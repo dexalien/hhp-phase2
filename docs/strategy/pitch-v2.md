@@ -31,11 +31,16 @@
 
 ## SLIDE 3 — Solution
 
-**Headline:** MATCH → BUILD → CO-LIVE
+**Headline:** VERIFY → MATCH → CO-LIVE
 
-- **MATCH** — Conecta builders por identidad on-chain: POAPs, Talent Protocol skill tags, wallet con historial. Matching verificable, no auto-declarado.
-- **BUILD** — Hack Spaces para formar equipos y colaborar remotamente en proyectos reales.
-- **CO-LIVE** — Hacker Houses coordinadas on-chain en Arbitrum. Pool de fondos vía smart contract. Sin intermediarios.
+- **VERIFY** — Tu identidad on-chain es tu credencial: score de Talent Protocol, POAPs de eventos a los que asististe, historial de wallet. No lo declarás — lo probás.
+- **MATCH** — Explorá Hacker Houses que encajen con tu perfil *y* para las que califiques. Cada house define sus propios requisitos de acceso: mínimo de score en Talent Protocol, cantidad de POAPs, o POAPs específicos de ciertos eventos.
+- **CO-LIVE** — Una vez aceptado, coordinás tu cupo on-chain en Arbitrum. Pool de fondos entre builders, liberación automática al organizador, reembolso automático si no se completa. Sin intermediarios.
+
+**Ejemplos de gating on-chain:**
+- *"Esta house requiere score ≥ 60 en Talent Protocol"* — solo builders con reputación verificada
+- *"Esta house requiere un POAP de ETHGlobal"* — solo quienes ya estuvieron en un evento
+- *"Esta house requiere 5+ POAPs"* — builders con trayectoria demostrable en el ecosistema
 
 ---
 
@@ -101,14 +106,15 @@ La confirmación de tu Hacker House es un **NFT en Arbitrum** con fechas, ubicac
 
 **Headline:** Ya construido. Esto es lo que falta.
 
-✅ Auth + Cypher Identity (perfil on-chain)
-✅ Hacker Houses — crear, listar, aplicar, gestionar
-✅ Builder Discovery + Matching algorítmico
-✅ Sistema de amistades + Notificaciones + Mapa interactivo
+✅ Auth + Cypher Identity — perfil on-chain con Talent Protocol, POAPs y wallet
+✅ Hacker Houses — crear, listar, aplicar, gestionar aplicaciones
+✅ Builder Discovery + Matching algorítmico por credenciales on-chain
+✅ Notificaciones + Mapa interactivo de houses por ciudad y evento
 
-🔨 Smart contract Arbitrum (pool + escrow + NFT de booking)
+🔨 Gating on-chain — requisitos de acceso por score, cantidad de POAPs o POAPs específicos
+🔨 Smart contract Arbitrum — pool de fondos + escrow + NFT de booking
 🔨 Integración contrato ↔ UI de HackerHouses
-🔨 Comunidades — invite link, badge, filtros
+🔨 Comunidades — invite link, badge de comunidad, filtros en Discovery
 
 ---
 
