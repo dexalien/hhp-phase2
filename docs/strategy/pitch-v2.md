@@ -14,14 +14,18 @@ El lugar donde los builders encuentran su casa — y la coordinan on-chain.
 
 ## El problema
 
-Los builders Web3 viajan a los mismos eventos, en las mismas ciudades, en las mismas fechas. Pero coordinar quién va, dónde se quedan y cómo se divide el costo sigue siendo un caos de chats fragmentados, hojas de cálculo y transferencias manuales donde alguien siempre tiene que confiar en alguien.
+Los builders Web3 viajan a los mismos eventos, en las mismas ciudades, en las mismas fechas. Siempre hay alguien dispuesto a organizar — pero incluso con un organizador responsable, el proceso es manual, frágil y sin garantías.
+
+El organizador persigue pagos uno a uno. Los builders envían fondos sin garantía de reembolso si la house no se llena. Las organizaciones que quieren patrocinar no tienen forma on-chain de comprometer fondos de forma transparente. Y cuando el evento termina, la comunidad desaparece.
 
 Cuatro problemas concretos:
 
 - **Coordinación** — Fragmentada en Telegram y Discord. Sin estructura, sin filtros, sin identidad persistente.
 - **Habilidades** — Claims manuales y no verificables. No hay forma de probar qué has construido o dónde has estado.
-- **Logística** — Sin forma crypto-nativa de hacer pool de fondos como equipo. Builders dividen costos con Venmo, banco o efectivo — sin escrow, sin trustless co-payment.
+- **Logística** — Sin infraestructura crypto-nativa para los tres modelos de house: copayment entre builders, sponsor de una organización, o staking como compromiso. Todo se resuelve con transferencias manuales y fe.
 - **Comunidad** — Se disuelve después del hackathon. Sin persistencia.
+
+El protocolo no reemplaza al organizador — le da la infraestructura para que su responsabilidad sea trustless, automática y verificable on-chain.
 
 ---
 
