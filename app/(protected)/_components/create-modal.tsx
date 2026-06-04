@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { House, Zap } from "lucide-react"
+import { House, Users, Zap } from "lucide-react"
 import {
   Sheet,
   SheetContent,
@@ -85,6 +85,35 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
               </span>
               <span className="text-sm text-muted-foreground">
                 Organize a co-living for builders
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/dashboard/community/create")}
+            className="flex items-center gap-4 rounded-xl border border-border bg-muted px-5 py-4 text-left transition-colors hover:bg-accent active:bg-accent"
+          >
+            <div
+              className="flex size-11 shrink-0 items-center justify-center rounded-lg"
+              style={{
+                background:
+                  "color-mix(in oklch, var(--strategist-archetype) 15%, transparent)",
+                border:
+                  "1px solid color-mix(in oklch, var(--strategist-archetype) 30%, transparent)",
+              }}
+            >
+              <Users
+                className="size-5"
+                style={{ color: "var(--strategist-archetype)" }}
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-display font-semibold text-foreground">
+                Community
+              </span>
+              <span className="text-sm text-muted-foreground">
+                Create a community for builders
               </span>
             </div>
           </button>

@@ -13,4 +13,6 @@ export const queryKeys = {
   unreadNotificationCount: "unread-notification-count",
   builders: "builders",
   mapMarkers: "map-markers",
+  communities: "communities",
+  community: "community",
 }

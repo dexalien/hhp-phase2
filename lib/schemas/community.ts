@@ -1,0 +1,25 @@
+import { z } from "zod"
+
+export const COMMUNITY_CATEGORIES = [
+  "DeFi",
+  "DAO tools",
+  "AI",
+  "Social",
+  "Gaming",
+  "NFTs",
+  "Infrastructure",
+  "Other",
+] as const
+
+export const createCommunitySchema = z.object({
+  name: z.string().min(3, "Minimum 3 characters").max(80),
+  description: z.string().min(10, "Minimum 10 characters").max(500),
+  category: z.enum(COMMUNITY_CATEGORIES, { required_error: "Select a category" }),
+  image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+})
+
+export type CreateCommunityInput = z.infer<typeof createCommunitySchema>
+
+export const updateCommunitySchema = createCommunitySchema.partial()
+
+export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>

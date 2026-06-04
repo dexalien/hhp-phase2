@@ -293,3 +293,45 @@ export interface MapMarkerData {
 export interface MapMarkersResponse {
   markers: MapMarkerData[]
 }
+
+// Communities
+export type CommunityCategory =
+  | "DeFi"
+  | "DAO tools"
+  | "AI"
+  | "Social"
+  | "Gaming"
+  | "NFTs"
+  | "Infrastructure"
+  | "Other"
+
+export interface Community {
+  id: string
+  name: string
+  description: string
+  image_url: string | null
+  category: CommunityCategory
+  creator: {
+    id: string
+    handle: string | null
+    archetype: string | null
+    avatar_url: string | null
+  }
+  member_count: number
+  is_member?: boolean
+  created_at: string
+}
+
+export interface CommunityListParams {
+  category?: CommunityCategory
+  q?: string
+  limit?: number
+  offset?: number
+}
+
+export interface CommunityListResponse {
+  communities: Community[]
+  total: number
+  offset: number
+  limit: number
+}
