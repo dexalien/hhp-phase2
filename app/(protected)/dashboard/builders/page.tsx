@@ -14,6 +14,8 @@ import {
   Calendar,
   Briefcase,
   ArrowRight,
+  BadgeCheck,
+  Star,
 } from "lucide-react"
 import {
   useProfile,
@@ -122,8 +124,10 @@ function CommunityCard({ community }: { community: Community }) {
           </span>
         </div>
         <div className="p-4 -mt-4 relative">
-          <h3 className="font-display font-bold text-foreground text-sm mb-1 line-clamp-1">
-            {community.name}
+          <h3 className="font-display font-bold text-foreground text-sm mb-1 line-clamp-1 flex items-center gap-1">
+            <span className="truncate">{community.name}</span>
+            {community.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
+            {community.is_featured && <Star className="w-3 h-3 text-strategist shrink-0" />}
           </h3>
           <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{community.description}</p>
           <div className="flex items-center gap-1 text-muted-foreground text-xs">
@@ -643,7 +647,8 @@ export default function BuildersPage() {
   } = useFilteredCommunities({})
   const communities = communityData?.pages.flatMap((p) => p.communities) ?? []
   const myCommunities = communities.filter((c) => c.is_member)
-  const suggestedCommunities = communities.filter((c) => !c.is_member)
+  const featuredCommunities = communities.filter((c) => !c.is_member && c.is_featured)
+  const otherCommunities = communities.filter((c) => !c.is_member && !c.is_featured)
 
   // Builders swipe
   const allBuildersForSwipe = [
@@ -928,10 +933,36 @@ export default function BuildersPage() {
                 )}
               </section>
 
-              {/* Suggested Communities */}
+              {/* Featured Communities */}
+              {(communityLoading || featuredCommunities.length > 0) && (
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-display font-bold text-lg text-foreground flex items-center gap-2">
+                      <Star className="w-4 h-4 text-strategist" />
+                      Featured
+                    </h2>
+                    <Link href="/dashboard/community/explore" className="text-primary text-sm font-medium flex items-center gap-1">
+                      View more <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                  {communityLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[1, 2].map((i) => <CardSkeleton key={i} variant="community" />)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {featuredCommunities.slice(0, 4).map((c) => (
+                        <CommunityCard key={c.id} community={c} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Other Communities */}
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display font-bold text-lg text-foreground">Suggested communities</h2>
+                  <h2 className="font-display font-bold text-lg text-foreground">Explore communities</h2>
                   <Link href="/dashboard/community/explore" className="text-primary text-sm font-medium flex items-center gap-1">
                     View more <ArrowRight className="w-4 h-4" />
                   </Link>
@@ -940,9 +971,9 @@ export default function BuildersPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[1, 2, 3].map((i) => <CardSkeleton key={i} variant="community" />)}
                   </div>
-                ) : suggestedCommunities.length > 0 ? (
+                ) : otherCommunities.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {suggestedCommunities.slice(0, 4).map((c) => (
+                    {otherCommunities.slice(0, 4).map((c) => (
                       <CommunityCard key={c.id} community={c} />
                     ))}
                   </div>

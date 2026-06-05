@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Check, Users } from "lucide-react"
+import { ArrowRight, Check, Users, BadgeCheck, Star } from "lucide-react"
 import { useFilteredCommunities, useJoinCommunity } from "@/services/api/communities"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -28,8 +28,10 @@ function CommunityCard({ community }: { community: Community }) {
           </span>
         </div>
         <div className="p-4 -mt-4 relative">
-          <h3 className="font-display font-bold text-foreground text-sm mb-1 line-clamp-1">
-            {community.name}
+          <h3 className="font-display font-bold text-foreground text-sm mb-1 line-clamp-1 flex items-center gap-1">
+            <span className="truncate">{community.name}</span>
+            {community.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
+            {community.is_featured && <Star className="w-3 h-3 text-strategist shrink-0" />}
           </h3>
           <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{community.description}</p>
           <div className="flex items-center gap-1 text-muted-foreground text-xs">

@@ -17,6 +17,10 @@ import {
   useToggleAdmin,
   useAdminCommunities,
   useAdminDeleteCommunity,
+  useVerifyCommunity,
+  useToggleCommunityFeatured,
+  useUpdateCommunityFeaturedOrder,
+  useUpdateCommunityDisplayOrder,
   useAdminHackSpaces,
   useAdminDeleteHackSpace,
   useAdminHackerHouses,
@@ -984,6 +988,8 @@ function UserRow({ user }: { user: AdminUser }) {
 function CommunitiesTab() {
   const { data, isLoading } = useAdminCommunities()
   const deleteCommunity = useAdminDeleteCommunity()
+  const updateFeaturedOrder = useUpdateCommunityFeaturedOrder()
+  const updateDisplayOrder = useUpdateCommunityDisplayOrder()
   const [q, setQ] = useState("")
 
   function handleDelete(id: string, name: string) {
@@ -991,12 +997,256 @@ function CommunitiesTab() {
     deleteCommunity.mutate(id)
   }
 
-  const communities = [...(data?.communities ?? [])]
-    .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
+  const allCommunities = data?.communities ?? []
+
+  // Pending requests (verify or feature not yet granted)
+  const pendingRequests = allCommunities.filter(
+    (c) => (c.verification_requested && !c.is_verified) || (c.featured_requested && !c.is_featured),
+  )
+
+  // Featured communities sorted by featured_order (for home order control)
+  const [featuredOrder, setFeaturedOrder] = useState<typeof allCommunities>([])
+  const [orderDirty, setOrderDirty] = useState(false)
+
+  // Sync featuredOrder whenever data refreshes (only if not dirty)
+  const featuredFromData = [...allCommunities.filter((c) => c.is_featured)]
+    .sort((a, b) => (a.featured_order ?? 999) - (b.featured_order ?? 999))
+
+  // Reset local order when data changes and user hasn't edited
+  const prevFeaturedIds = featuredFromData.map((c) => c.id).join(",")
+  const [lastFeaturedIds, setLastFeaturedIds] = useState("")
+  if (prevFeaturedIds !== lastFeaturedIds && !orderDirty) {
+    setFeaturedOrder(featuredFromData)
+    setLastFeaturedIds(prevFeaturedIds)
+  }
+
+  function moveItem(idx: number, dir: -1 | 1) {
+    const next = [...featuredOrder]
+    const swap = idx + dir
+    if (swap < 0 || swap >= next.length) return
+    ;[next[idx], next[swap]] = [next[swap], next[idx]]
+    setFeaturedOrder(next)
+    setOrderDirty(true)
+  }
+
+  function saveFeaturedOrder() {
+    const order = featuredOrder.map((c, i) => ({ id: c.id, featured_order: i + 1 }))
+    updateFeaturedOrder.mutate({ order }, {
+      onSuccess: () => { toast.success("Home order saved"); setOrderDirty(false) },
+      onError: () => toast.error("Failed to save order"),
+    })
+  }
+
+  // Non-featured display order
+  const nonFeaturedFromData = [...allCommunities.filter((c) => !c.is_featured)]
+    .sort((a, b) => {
+      if (a.display_order !== null && b.display_order !== null) return a.display_order - b.display_order
+      if (a.display_order !== null) return -1
+      if (b.display_order !== null) return 1
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
+  const [displayOrder, setDisplayOrder] = useState<typeof allCommunities>([])
+  const [displayOrderDirty, setDisplayOrderDirty] = useState(false)
+
+  const prevNonFeaturedIds = nonFeaturedFromData.map((c) => c.id).join(",")
+  const [lastNonFeaturedIds, setLastNonFeaturedIds] = useState("")
+  if (prevNonFeaturedIds !== lastNonFeaturedIds && !displayOrderDirty) {
+    setDisplayOrder(nonFeaturedFromData)
+    setLastNonFeaturedIds(prevNonFeaturedIds)
+  }
+
+  function moveDisplayItem(idx: number, dir: -1 | 1) {
+    const next = [...displayOrder]
+    const swap = idx + dir
+    if (swap < 0 || swap >= next.length) return
+    ;[next[idx], next[swap]] = [next[swap], next[idx]]
+    setDisplayOrder(next)
+    setDisplayOrderDirty(true)
+  }
+
+  function saveDisplayOrder() {
+    const order = displayOrder.map((c, i) => ({ id: c.id, display_order: i + 1 }))
+    updateDisplayOrder.mutate({ order }, {
+      onSuccess: () => { toast.success("Order saved"); setDisplayOrderDirty(false) },
+      onError: () => toast.error("Failed to save order"),
+    })
+  }
+
+  function CommunityVerifyButton({ id, verified }: { id: string; verified: boolean }) {
+    const verify = useVerifyCommunity(id)
+    return (
+      <button
+        onClick={() => verify.mutate({ verified: !verified })}
+        disabled={verify.isPending}
+        title={verified ? "Unverify" : "Verify"}
+        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors disabled:opacity-40"
+        style={verified ? { borderColor: "#6EE76E", color: "#6EE76E" } : { borderColor: "var(--border)" }}
+      >
+        <BadgeCheck className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">{verified ? "Verified" : "Verify"}</span>
+      </button>
+    )
+  }
+
+  function CommunityFeaturedButton({ id, featured }: { id: string; featured: boolean }) {
+    const toggle = useToggleCommunityFeatured(id)
+    return (
+      <button
+        onClick={() => toggle.mutate({ featured: !featured })}
+        disabled={toggle.isPending}
+        title={featured ? "Unfeature" : "Feature"}
+        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors disabled:opacity-40"
+        style={featured ? { borderColor: "var(--strategist)", color: "var(--strategist)" } : { borderColor: "var(--border)" }}
+      >
+        <Star className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">{featured ? "Featured" : "Feature"}</span>
+      </button>
+    )
+  }
+
+  const filteredCommunities = allCommunities.filter((c) =>
+    c.name.toLowerCase().includes(q.toLowerCase()),
+  )
+  const featuredList = filteredCommunities
+    .filter((c) => c.is_featured)
+    .sort((a, b) => (a.featured_order ?? 999) - (b.featured_order ?? 999))
+  const nonFeaturedList = filteredCommunities
+    .filter((c) => !c.is_featured)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+
+      {/* ── Pending requests ── */}
+      {pendingRequests.length > 0 && (
+        <div className="rounded-xl border p-4 space-y-2" style={{ background: "color-mix(in oklch, var(--card) 80%, var(--primary) 5%)", borderColor: "color-mix(in oklch, var(--border) 50%, var(--primary) 30%)" }}>
+          <p className="text-xs font-mono font-semibold opacity-60 uppercase tracking-wider">
+            Pending requests · {pendingRequests.length}
+          </p>
+          {pendingRequests.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 rounded-lg px-3 py-2 border" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{c.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {c.verification_requested && !c.is_verified && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
+                      Verification
+                    </span>
+                  )}
+                  {c.featured_requested && !c.is_featured && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-strategist/10 text-strategist border border-strategist/30">
+                      Featured
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {c.featured_requested && !c.is_featured && <CommunityFeaturedButton id={c.id} featured={c.is_featured} />}
+                {c.verification_requested && !c.is_verified && <CommunityVerifyButton id={c.id} verified={c.is_verified} />}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Home feed order ── */}
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 text-strategist" /> Home feed order
+            </h3>
+            <p className="text-xs opacity-50 mt-0.5">
+              Featured communities appear first on home in this order. Mark communities as Featured below to add them here.
+            </p>
+          </div>
+          {orderDirty && (
+            <button
+              onClick={saveFeaturedOrder}
+              disabled={updateFeaturedOrder.isPending}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:opacity-80 transition-opacity disabled:opacity-30"
+              style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {updateFeaturedOrder.isPending ? "Saving..." : "Save order"}
+            </button>
+          )}
+        </div>
+        {featuredOrder.length === 0 ? (
+          <p className="text-xs opacity-40 italic">No featured communities yet. Click Feature on any community below to add it here.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {featuredOrder.map((c, idx) => (
+              <div key={c.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                <span className="text-xs font-mono text-strategist w-5 shrink-0">{idx + 1}</span>
+                <span className="flex-1 text-sm font-medium truncate">{c.name}</span>
+                <span className="text-[10px] font-mono opacity-40 hidden sm:block">{c.category}</span>
+                <div className="flex gap-0.5 shrink-0">
+                  <button onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-white/5 disabled:opacity-20 transition-opacity">
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => moveItem(idx, 1)} disabled={idx === featuredOrder.length - 1} className="p-1 rounded hover:bg-white/5 disabled:opacity-20 transition-opacity">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {orderDirty && (
+          <p className="text-[10px] font-mono text-yellow-400 opacity-70">Unsaved changes — click Save order to apply</p>
+        )}
+      </div>
+
+      {/* ── Non-featured display order ── */}
+      <div className="rounded-xl border p-4 space-y-3" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm">Non-featured order</h3>
+            <p className="text-xs opacity-50 mt-0.5">
+              Controls the order non-featured communities appear after featured ones on home.
+            </p>
+          </div>
+          {displayOrderDirty && (
+            <button
+              onClick={saveDisplayOrder}
+              disabled={updateDisplayOrder.isPending}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border hover:opacity-80 transition-opacity disabled:opacity-30"
+              style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {updateDisplayOrder.isPending ? "Saving..." : "Save order"}
+            </button>
+          )}
+        </div>
+        {displayOrder.length === 0 ? (
+          <p className="text-xs opacity-40 italic">No non-featured communities.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {displayOrder.map((c, idx) => (
+              <div key={c.id} className="flex items-center gap-3 px-3 py-2 rounded-lg border" style={{ borderColor: "var(--border)" }}>
+                <span className="text-xs font-mono opacity-40 w-5 shrink-0">{idx + 1}</span>
+                <span className="flex-1 text-sm font-medium truncate">{c.name}</span>
+                <span className="text-[10px] font-mono opacity-40 hidden sm:block">{c.category}</span>
+                <div className="flex gap-0.5 shrink-0">
+                  <button onClick={() => moveDisplayItem(idx, -1)} disabled={idx === 0} className="p-1 rounded hover:bg-white/5 disabled:opacity-20 transition-opacity">
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => moveDisplayItem(idx, 1)} disabled={idx === displayOrder.length - 1} className="p-1 rounded hover:bg-white/5 disabled:opacity-20 transition-opacity">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {displayOrderDirty && (
+          <p className="text-[10px] font-mono text-yellow-400 opacity-70">Unsaved changes — click Save order to apply</p>
+        )}
+      </div>
+
+      {/* ── All communities list ── */}
       <div className="flex items-center gap-3">
         <input
           value={q}
@@ -1005,8 +1255,9 @@ function CommunitiesTab() {
           className="flex-1 px-3 py-2 rounded-lg text-sm bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
           style={{ borderColor: "var(--border)" }}
         />
-        <p className="text-sm opacity-60 shrink-0">{communities.length} communities</p>
+        <p className="text-sm opacity-60 shrink-0">{allCommunities.length} total</p>
       </div>
+
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
@@ -1014,38 +1265,78 @@ function CommunitiesTab() {
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
-          {communities.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center gap-4 rounded-xl border px-4 py-3"
-              style={{ background: "var(--card)", borderColor: "var(--border)" }}
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{c.name}</p>
-                <p className="text-xs opacity-50">
-                  {c.category} · {c.member_count} members · by @{c.creator?.handle ?? "unknown"}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Link
-                  href={`/dashboard/community/${c.id}`}
-                  className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-                  title="View / Edit"
+        <div className="space-y-5">
+          {/* Featured */}
+          {featuredList.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-mono font-semibold opacity-50 uppercase tracking-wider flex items-center gap-1.5">
+                <Star className="w-3 h-3 text-strategist" /> Featured · {featuredList.length}
+              </p>
+              {featuredList.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-4 rounded-xl border px-4 py-3"
+                  style={{ background: "var(--card)", borderColor: "var(--border)" }}
                 >
-                  <ArrowRight className="w-4 h-4 opacity-60" />
-                </Link>
-                <button
-                  onClick={() => handleDelete(c.id, c.name)}
-                  disabled={deleteCommunity.isPending}
-                  className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4 opacity-60 text-red-400" />
-                </button>
-              </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm flex items-center gap-1.5 flex-wrap">
+                      {c.name}
+                      {c.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
+                      <span className="flex items-center gap-0.5 text-[10px] font-mono text-strategist">
+                        <Star className="w-3 h-3" />
+                        #{(featuredOrder.findIndex((f) => f.id === c.id) + 1) || "?"}
+                      </span>
+                    </p>
+                    <p className="text-xs opacity-50">{c.category} · {c.member_count} members · by @{c.creator?.handle ?? "unknown"}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <CommunityFeaturedButton id={c.id} featured={c.is_featured} />
+                    <CommunityVerifyButton id={c.id} verified={c.is_verified} />
+                    <Link href={`/dashboard/community/${c.id}`} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="View">
+                      <ArrowRight className="w-4 h-4 opacity-60" />
+                    </Link>
+                    <button onClick={() => handleDelete(c.id, c.name)} disabled={deleteCommunity.isPending} className="p-2 rounded-lg hover:bg-red-500/10 transition-colors" title="Delete">
+                      <Trash2 className="w-4 h-4 opacity-60 text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          {/* Non-featured */}
+          <div className="space-y-2">
+            <p className="text-xs font-mono font-semibold opacity-50 uppercase tracking-wider">
+              Other · {nonFeaturedList.length}
+            </p>
+            {nonFeaturedList.length === 0 ? (
+              <p className="text-xs opacity-40 italic px-1">No other communities.</p>
+            ) : nonFeaturedList.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center gap-4 rounded-xl border px-4 py-3"
+                style={{ background: "var(--card)", borderColor: "var(--border)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm flex items-center gap-1.5 flex-wrap">
+                    {c.name}
+                    {c.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
+                  </p>
+                  <p className="text-xs opacity-50">{c.category} · {c.member_count} members · by @{c.creator?.handle ?? "unknown"}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <CommunityFeaturedButton id={c.id} featured={c.is_featured} />
+                  <CommunityVerifyButton id={c.id} verified={c.is_verified} />
+                  <Link href={`/dashboard/community/${c.id}`} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="View">
+                    <ArrowRight className="w-4 h-4 opacity-60" />
+                  </Link>
+                  <button onClick={() => handleDelete(c.id, c.name)} disabled={deleteCommunity.isPending} className="p-2 rounded-lg hover:bg-red-500/10 transition-colors" title="Delete">
+                    <Trash2 className="w-4 h-4 opacity-60 text-red-400" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

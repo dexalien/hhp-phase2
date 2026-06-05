@@ -37,6 +37,9 @@ export async function GET(req: NextRequest) {
   let query = supabaseServer
     .from("communities")
     .select(`*, creator:users!creator_id(id, handle, archetype, avatar_url)`, { count: "exact" })
+    .order("is_featured", { ascending: false })
+    .order("featured_order", { ascending: true, nullsFirst: false })
+    .order("display_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
 
   if (category) {
@@ -119,8 +122,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const cityVal = parsed.data.city || null
-  const countryVal = parsed.data.country || null
+  const isWorldwide = parsed.data.is_worldwide ?? false
+  const cityVal = isWorldwide ? null : (parsed.data.city || null)
+  const countryVal = isWorldwide ? null : (parsed.data.country || null)
 
   const { data, error } = await supabaseServer
     .from("communities")
@@ -132,12 +136,16 @@ export async function POST(req: NextRequest) {
       image_url: parsed.data.image_url || null,
       city: cityVal,
       country: countryVal,
+      is_worldwide: isWorldwide,
+      verification_requested: parsed.data.verification_requested ?? false,
+      featured_requested: parsed.data.featured_requested ?? false,
     })
     .select(`*, creator:users!creator_id(id, handle, archetype, avatar_url)`)
     .single()
 
   if (error) {
-    return NextResponse.json({ message: "Database error" }, { status: 500 })
+    console.error("[POST /api/communities] insert error:", error)
+    return NextResponse.json({ message: "Database error", detail: error.message }, { status: 500 })
   }
 
   // Auto-join as creator
@@ -147,8 +155,8 @@ export async function POST(req: NextRequest) {
     role: "creator",
   })
 
-  // Geocode if city+country provided
-  if (cityVal && countryVal) {
+  // Geocode only if specific location provided (not worldwide)
+  if (!isWorldwide && cityVal && countryVal) {
     geocodeAndUpdate("communities", data.id, cityVal, countryVal)
   }
 

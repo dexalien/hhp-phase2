@@ -1,11 +1,11 @@
 "use client"
 
 import { Fragment, useEffect, useRef, useState } from "react"
-import { useForm, useWatch, Controller } from "react-hook-form"
+import { useForm, useWatch, Controller, type Control, type UseFormSetValue } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { X } from "lucide-react"
+import { X, MapPin } from "lucide-react"
 import { ARCHETYPES, LANGUAGES } from "@/lib/onboarding"
 import { useEvents } from "@/services/api/events"
 import {
@@ -14,8 +14,11 @@ import {
   APPLICATION_TYPES,
   EVENT_TIMINGS,
   HOUSE_MODALITIES,
+  CONTRACT_TYPES,
 } from "@/lib/schemas/hacker-house"
 import { useUploadHackerHouseImage } from "@/services/api/hacker-houses"
+import { useCommunities } from "@/services/api/communities"
+import type { Community } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
@@ -63,6 +66,11 @@ const MODALITY_OPTIONS: { value: string; title: string; description: string }[] 
   { value: "staking", title: "Staking", description: "Stake crypto to reserve your spot" },
 ]
 
+const CONTRACT_TYPE_OPTIONS: { value: string; title: string; description: string }[] = [
+  { value: "multisig", title: "Multisig", description: "Funds controlled by a multisig wallet" },
+  { value: "admin_wallet", title: "House Creator Wallet", description: "Funds controlled by the house creator" },
+]
+
 const AMENITY_OPTIONS: { key: keyof CreateHackerHouseInput; label: string; description: string }[] = [
   { key: "includes_private_room", label: "Private room", description: "Each member gets their own room" },
   { key: "includes_shared_room", label: "Shared room", description: "Members share bedrooms" },
@@ -75,7 +83,7 @@ const STEPS = ["House", "Amenities", "Community", "Access", "Check-in"] as const
 type Step = (typeof STEPS)[number]
 
 const STEP_FIELDS: Record<Step, (keyof CreateHackerHouseInput)[]> = {
-  House: ["name", "modality", "region", "country", "city", "address"],
+  House: ["name", "modality", "region", "country", "city", "address", "lat", "lng"],
   Amenities: ["start_date", "end_date", "capacity"],
   Community: ["profile_sought", "language"],
   Access: ["application_type", "application_deadline"],
@@ -148,6 +156,73 @@ function TogglePill({
   )
 }
 
+function SponsorField({
+  control,
+  setValue,
+  communities,
+}: {
+  control: Control<CreateHackerHouseInput>
+  setValue: UseFormSetValue<CreateHackerHouseInput>
+  communities: Community[]
+}) {
+  const sponsorCommunityId = useWatch({ control, name: "sponsor_community_id" })
+  const sponsorName = useWatch({ control, name: "sponsor_name" })
+  const selectedCommunity = communities.find((c) => c.id === sponsorCommunityId)
+
+  return (
+    <Field>
+      <FieldLabel optional>Sponsor</FieldLabel>
+      <FieldDescription>Select a community sponsor or type a name manually.</FieldDescription>
+      <div className="flex flex-col gap-2">
+        <select
+          value={sponsorCommunityId ?? ""}
+          onChange={(e) => {
+            const val = e.target.value
+            if (val) {
+              const found = communities.find((c) => c.id === val)
+              setValue("sponsor_community_id", val)
+              setValue("sponsor_name", found?.name ?? "")
+            } else {
+              setValue("sponsor_community_id", undefined)
+            }
+          }}
+          className="w-full px-3 py-2 rounded-lg border border-border text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          style={{ background: "var(--card)" }}
+        >
+          <option value="">— Type a name manually —</option>
+          {communities.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} · {c.category}
+            </option>
+          ))}
+        </select>
+
+        {selectedCommunity ? (
+          <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg">
+            {selectedCommunity.image_url && (
+              <img src={selectedCommunity.image_url} alt="" className="size-6 rounded-full object-cover" />
+            )}
+            <span className="text-sm text-foreground font-medium">{selectedCommunity.name}</span>
+            <span className="text-xs text-muted-foreground font-mono ml-auto">{selectedCommunity.member_count} members</span>
+          </div>
+        ) : (
+          <Controller
+            name="sponsor_name"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                placeholder="e.g. Ethereum Foundation"
+                maxLength={100}
+              />
+            )}
+          />
+        )}
+      </div>
+    </Field>
+  )
+}
+
 interface CreateHackerHouseFormProps {
   defaultValues?: Partial<CreateHackerHouseInput>
   onFormSubmit: (values: CreateHackerHouseInput) => Promise<void>
@@ -197,6 +272,7 @@ export function CreateHackerHouseForm({
       country: "",
       city: "",
       neighborhood: "",
+      booking_url: "",
       address: "",
       checkin_wifi_password: "",
       checkin_room_info: "",
@@ -216,6 +292,7 @@ export function CreateHackerHouseForm({
       house_rules: "",
       application_type: "open",
       application_deadline: undefined,
+      application_form_url: "",
       has_event: false,
       event_name: "",
       event_url: "",
@@ -228,15 +305,76 @@ export function CreateHackerHouseForm({
 
   const hasEvent = useWatch({ control, name: "has_event" })
   const watchedModality = useWatch({ control, name: "modality" })
+
+  useEffect(() => {
+    if (watchedModality === "free") {
+      setValue("application_type", "curated")
+    }
+  }, [watchedModality, setValue])
   const watchedRegion = useWatch({ control, name: "region" })
   const watchedCountry = useWatch({ control, name: "country" })
+  const watchedCity = useWatch({ control, name: "city" })
+  const watchedAddress = useWatch({ control, name: "address" })
 
   const { data: eventsData } = useEvents()
   const availableEvents = eventsData?.events ?? []
 
+  const { data: communitiesData } = useCommunities()
+  const availableCommunities = communitiesData?.communities ?? []
+
   const availableCountries = watchedRegion ? getCountriesForRegion(watchedRegion) : []
   const availableCities =
     watchedRegion && watchedCountry ? getCitiesForCountry(watchedRegion, watchedCountry) : []
+
+  const [hotelName, setHotelName] = useState("")
+  const [lookingUpLocation, setLookingUpLocation] = useState(false)
+
+  async function lookupFromHotel() {
+    if (!hotelName || !watchedCity || !watchedCountry) return
+    setLookingUpLocation(true)
+    try {
+      const q = encodeURIComponent(`${hotelName}, ${watchedCity}, ${watchedCountry}`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { "User-Agent": "HackerHouseProtocol/1.0" },
+      })
+      const results: { display_name: string; lat: string; lon: string }[] = await res.json()
+      if (results.length > 0) {
+        setValue("address", results[0].display_name)
+        setValue("lat", parseFloat(results[0].lat))
+        setValue("lng", parseFloat(results[0].lon))
+        toast.success("Address & pin set from hotel name")
+      } else {
+        toast.error("Hotel not found — try a different name or enter address manually")
+      }
+    } catch {
+      toast.error("Location lookup failed")
+    } finally {
+      setLookingUpLocation(false)
+    }
+  }
+
+  async function geocodeFromAddress() {
+    if (!watchedAddress) return
+    setLookingUpLocation(true)
+    try {
+      const q = encodeURIComponent(watchedAddress)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { "User-Agent": "HackerHouseProtocol/1.0" },
+      })
+      const results: { lat: string; lon: string }[] = await res.json()
+      if (results.length > 0) {
+        setValue("lat", parseFloat(results[0].lat))
+        setValue("lng", parseFloat(results[0].lon))
+        toast.success("Map pin set from address")
+      } else {
+        toast.error("Could not locate this address")
+      }
+    } catch {
+      toast.error("Geocoding failed")
+    } finally {
+      setLookingUpLocation(false)
+    }
+  }
 
   function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -456,22 +594,47 @@ export function CreateHackerHouseForm({
             )}
 
             {watchedModality === "free" && (
-              <Controller
-                name="sponsor_name"
+              <SponsorField
                 control={control}
-                render={({ field }) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name} optional>Sponsor name</FieldLabel>
-                    <FieldDescription>Who is sponsoring this house?</FieldDescription>
-                    <Input
-                      {...field}
-                      id={field.name}
-                      placeholder="e.g. Ethereum Foundation"
-                      maxLength={100}
-                    />
-                  </Field>
-                )}
+                setValue={setValue}
+                communities={availableCommunities}
               />
+            )}
+
+            {watchedModality !== "free" && (
+            <Controller
+              name="contract_type"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel optional>Contract type</FieldLabel>
+                  <FieldDescription>How are funds managed on-chain?</FieldDescription>
+                  <RadioGroup
+                    value={field.value ?? ""}
+                    onValueChange={(val) => field.onChange(val || undefined)}
+                    className="gap-2"
+                  >
+                    {CONTRACT_TYPE_OPTIONS.map((opt) => (
+                      <label
+                        key={opt.value}
+                        className={cn(
+                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
+                          field.value === opt.value
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/40",
+                        )}
+                      >
+                        <RadioGroupItem value={opt.value} />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-medium text-foreground">{opt.title}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{opt.description}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </Field>
+              )}
+            />
             )}
 
             <Controller
@@ -586,6 +749,44 @@ export function CreateHackerHouseForm({
               )}
             />
 
+            {/* Airbnb / Booking link (optional) */}
+            <Controller
+              name="booking_url"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field>
+                  <FieldLabel optional>Airbnb / Booking link</FieldLabel>
+                  <FieldDescription>Paste the Airbnb, Booking.com, or similar listing URL.</FieldDescription>
+                  <Input {...field} placeholder="https://airbnb.com/rooms/..." type="url" />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            {/* Hotel name lookup (optional) */}
+            <Field>
+              <FieldLabel optional>Hotel name</FieldLabel>
+              <FieldDescription>
+                Enter the hotel name to auto-fill the address and set the map pin.
+              </FieldDescription>
+              <div className="flex gap-2">
+                <Input
+                  value={hotelName}
+                  onChange={(e) => setHotelName(e.target.value)}
+                  placeholder="e.g. Marriott Buenos Aires"
+                />
+                <button
+                  type="button"
+                  onClick={() => void lookupFromHotel()}
+                  disabled={!hotelName || !watchedCity || !watchedCountry || lookingUpLocation}
+                  className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                >
+                  <MapPin className="size-3.5" />
+                  {lookingUpLocation ? "Looking up…" : "Auto-fill from hotel"}
+                </button>
+              </div>
+            </Field>
+
             <Controller
               name="address"
               control={control}
@@ -595,11 +796,23 @@ export function CreateHackerHouseForm({
                   <FieldDescription>
                     Only revealed to accepted participants. Publicly shown as a blurred neighborhood pin.
                   </FieldDescription>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    placeholder="Street address, building name, floor..."
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      {...field}
+                      id={field.name}
+                      placeholder="Street address, building name, floor..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void geocodeFromAddress()}
+                      disabled={!watchedAddress || lookingUpLocation}
+                      title="Set map pin from this address"
+                      className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                    >
+                      <MapPin className="size-3.5" />
+                      Set pin
+                    </button>
+                  </div>
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -1053,42 +1266,72 @@ export function CreateHackerHouseForm({
               <p className="text-muted-foreground text-sm mt-1">Who can apply and how?</p>
             </div>
 
-            <Controller
-              name="application_type"
-              control={control}
-              render={({ field }) => (
+            {watchedModality === "free" ? (
+              <>
                 <Field>
                   <FieldLabel>Application type</FieldLabel>
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    className="gap-2"
-                  >
-                    {APPLICATION_TYPES.map((t) => (
-                      <label
-                        key={t}
-                        className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
-                          field.value === t
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
-                        )}
-                      >
-                        <RadioGroupItem value={t} />
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">
-                            {APPLICATION_TYPE_LABELS[t].title}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {APPLICATION_TYPE_LABELS[t].description}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
-                  </RadioGroup>
+                  <div className="flex items-center gap-3 p-4 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium text-foreground">Curated review</span>
+                      <span className="text-xs text-muted-foreground font-mono">Sponsored houses use curated review — you approve each applicant manually</span>
+                    </div>
+                  </div>
                 </Field>
-              )}
-            />
+                <Controller
+                  name="application_form_url"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel optional>External application form</FieldLabel>
+                      <FieldDescription>Link applicants to your own form (e.g. Typeform, Google Forms). If set, applicants will be directed to this URL instead of applying in-app.</FieldDescription>
+                      <Input
+                        {...field}
+                        placeholder="https://forms.example.com/apply"
+                        type="url"
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
+              </>
+            ) : (
+              <Controller
+                name="application_type"
+                control={control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Application type</FieldLabel>
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      className="gap-2"
+                    >
+                      {APPLICATION_TYPES.map((t) => (
+                        <label
+                          key={t}
+                          className={cn(
+                            "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
+                            field.value === t
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/40",
+                          )}
+                        >
+                          <RadioGroupItem value={t} />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-medium text-foreground">
+                              {APPLICATION_TYPE_LABELS[t].title}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {APPLICATION_TYPE_LABELS[t].description}
+                            </span>
+                          </div>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </Field>
+                )}
+              />
+            )}
 
             <Controller
               name="application_deadline"

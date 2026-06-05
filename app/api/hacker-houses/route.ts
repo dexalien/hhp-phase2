@@ -165,6 +165,12 @@ export async function POST(req: NextRequest) {
     house_rules: fields.house_rules || null,
     application_type: fields.application_type,
     application_deadline: fields.application_deadline || null,
+    booking_url: fields.booking_url || null,
+    application_form_url: fields.application_form_url || null,
+    contract_type: fields.contract_type ?? null,
+    sponsor_community_id: has_event ? null : (fields.sponsor_community_id ?? null),
+    lat: fields.lat ?? null,
+    lng: fields.lng ?? null,
     event_name: has_event ? (fields.event_name || null) : null,
     event_url: has_event ? (fields.event_url || null) : null,
     event_start_date: has_event ? (fields.event_start_date || null) : null,
@@ -183,7 +189,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Database error" }, { status: 500 })
   }
 
-  geocodeAndUpdate("hacker_houses", data.id, fields.city, fields.country, fields.address || undefined)
+  if (!fields.lat || !fields.lng) {
+    geocodeAndUpdate("hacker_houses", data.id, fields.city, fields.country, fields.address || undefined)
+  }
 
   const hackerHouse = {
     ...data,

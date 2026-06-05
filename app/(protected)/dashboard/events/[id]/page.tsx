@@ -296,9 +296,21 @@ export default function EventDetailPage({
                             {hh.end_date && `–${parseLocalDate(hh.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
                           </p>
                         )}
-                        <p className="text-[10px] font-mono text-muted-foreground mt-auto">
-                          {hh.capacity} spots · {({ paid: "Co-payment", free: "Sponsored", staking: "Staking" } as Record<string, string>)[hh.modality as string] ?? hh.modality}
-                        </p>
+                        <div className="flex items-center justify-between mt-auto">
+                          <p className="text-[10px] font-mono text-muted-foreground">{hh.capacity} spots</p>
+                          <span
+                            className="text-[9px] px-1.5 py-0.5 rounded font-mono font-medium"
+                            style={
+                              (hh.modality as string) === "paid"
+                                ? { background: "color-mix(in oklch, var(--builder-archetype) 15%, transparent)", color: "var(--builder-archetype)" }
+                                : (hh.modality as string) === "staking"
+                                  ? { background: "color-mix(in oklch, var(--strategist) 15%, transparent)", color: "var(--strategist)" }
+                                  : { background: "rgba(249,115,22,0.15)", color: "rgb(249,115,22)" }
+                            }
+                          >
+                            {({ paid: "Co-payment", free: "Sponsored", staking: "Staking" } as Record<string, string>)[hh.modality as string] ?? hh.modality}
+                          </span>
+                        </div>
                       </div>
                     </Link>
                   ) : (

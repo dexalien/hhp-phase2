@@ -2,11 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { useApplyToHackerHouse } from "@/services/api/hacker-houses"
 import { ARCHETYPES } from "@/lib/onboarding"
 import type { HackerHouse } from "@/lib/types"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
 import { parseLocalDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -39,9 +37,6 @@ interface HackerHouseCardProps {
 }
 
 export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardProps) {
-  const apply = useApplyToHackerHouse(hackerHouse.id)
-  const [showApplyForm, setShowApplyForm] = useState(false)
-  const [message, setMessage] = useState("")
   const [imageIndex, setImageIndex] = useState(0)
 
   const images = hackerHouse.images.length > 0 ? hackerHouse.images : []
@@ -57,7 +52,6 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
     setImageIndex((i) => (i + 1) % images.length)
   }
 
-  const isOwner = currentUserId === hackerHouse.creator.id
   const statusCfg = STATUS_CONFIG[hackerHouse.status] ?? STATUS_CONFIG.open
   const creatorArchetype = ARCHETYPES.find((a) => a.id === hackerHouse.creator.archetype)
 
@@ -76,13 +70,6 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
     { key: "includes_internet", label: "Internet" },
   ]
   const activeAmenities = amenities.filter((a) => hackerHouse[a.key] === true)
-
-  function handleApply() {
-    apply.mutate(
-      { message: message || undefined },
-      { onSuccess: () => setShowApplyForm(false) },
-    )
-  }
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col hover:border-primary/30 transition-all duration-200 h-full">
@@ -149,9 +136,33 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
           </>
         )}
 
-        {/* Image count badge — top right */}
+        {/* Status badge — top right */}
+        <span
+          className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-sm font-mono whitespace-nowrap border"
+          style={{
+            backgroundColor: "rgba(0,0,0,0.75)",
+            color: `var(${statusCfg.colorVar})`,
+            borderColor: `var(${statusCfg.colorVar})`,
+          }}
+        >
+          {statusCfg.label}
+        </span>
+
+        {/* Modality tag — bottom left */}
+        <span className={cn(
+          "absolute bottom-2 left-2 text-[10px] px-2 py-0.5 rounded-sm font-mono whitespace-nowrap",
+          hackerHouse.modality === "free"
+            ? "bg-[#6EE76E]/90 text-background"
+            : hackerHouse.modality === "staking"
+              ? "bg-[#8B78E6]/90 text-white"
+              : "bg-[rgba(249,115,22,0.85)] text-white",
+        )}>
+          {hackerHouse.modality === "free" ? "Sponsored" : hackerHouse.modality === "staking" ? "Staking" : "Co-payment"}
+        </span>
+
+        {/* Image count badge — top left (only when multiple) */}
         {images.length > 1 && (
-          <span className="absolute top-2 right-2 text-[10px] font-mono bg-black/50 backdrop-blur-sm text-white px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
+          <span className="absolute top-2 left-2 text-[10px] font-mono bg-black/50 backdrop-blur-sm text-white px-1.5 py-0.5 rounded opacity-0 group-hover/img:opacity-100 transition-opacity">
             {imageIndex + 1}/{images.length}
           </span>
         )}
@@ -159,25 +170,15 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
 
       <div className="p-4 flex flex-col gap-3">
         {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0">
+          <Link href={`/dashboard/hacker-houses/${hackerHouse.id}`} className="hover:text-primary transition-colors">
             <h3 className="font-display font-bold text-foreground text-base leading-snug line-clamp-1">
               {hackerHouse.name}
             </h3>
-            <p className="text-xs font-mono text-muted-foreground mt-0.5">
-              {hackerHouse.city}, {hackerHouse.country}
-            </p>
-          </div>
-          <span
-            className="shrink-0 text-[10px] px-2 py-0.5 rounded-sm border font-mono whitespace-nowrap"
-            style={{
-              borderColor: `var(${statusCfg.colorVar})`,
-              color: `var(${statusCfg.colorVar})`,
-              backgroundColor: `color-mix(in oklch, var(${statusCfg.colorVar}) 10%, transparent)`,
-            }}
-          >
-            {statusCfg.label}
-          </span>
+          </Link>
+          <p className="text-xs font-mono text-muted-foreground mt-0.5">
+            {hackerHouse.city}, {hackerHouse.country}
+          </p>
         </div>
 
         {/* Dates */}
@@ -271,68 +272,13 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
           </div>
 
           {/* Right: CTA */}
-          {isOwner ? (
-            <Link href={`/dashboard/hacker-houses/${hackerHouse.id}`}>
-              <Button size="sm" variant="outline" className="text-xs font-mono rounded-lg shrink-0">
-                Manage →
-              </Button>
-            </Link>
-          ) : hackerHouse.status === "full" || hackerHouse.status === "active" || hackerHouse.status === "finished" ? (
-            <Link href={`/dashboard/hacker-houses/${hackerHouse.id}`}>
-              <Button size="sm" variant="outline" className="text-xs font-mono rounded-lg shrink-0">
-                View →
-              </Button>
-            </Link>
-          ) : apply.isSuccess ? (
-            <span className="text-xs font-mono text-primary shrink-0">Applied</span>
-          ) : showApplyForm ? (
-            <span className="text-xs font-mono text-muted-foreground shrink-0">Applying...</span>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => setShowApplyForm(true)}
-              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs shrink-0"
-            >
-              Apply →
+          <Link href={`/dashboard/hacker-houses/${hackerHouse.id}`}>
+            <Button size="sm" variant="outline" className="text-xs font-mono rounded-lg shrink-0">
+              View →
             </Button>
-          )}
+          </Link>
         </div>
 
-        {/* Inline apply form */}
-        {showApplyForm && !apply.isSuccess && (
-          <div className="flex flex-col gap-2 pt-2 border-t border-border">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Why do you want to join? (optional)"
-              maxLength={300}
-              rows={2}
-              className="resize-none"
-            />
-            {apply.error && (
-              <p className="text-xs text-destructive">{apply.error.message}</p>
-            )}
-            <div className="flex gap-2 justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowApplyForm(false)}
-                disabled={apply.isPending}
-                className="text-xs font-mono"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleApply}
-                disabled={apply.isPending}
-                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs"
-              >
-                {apply.isPending ? "Sending..." : "Send →"}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

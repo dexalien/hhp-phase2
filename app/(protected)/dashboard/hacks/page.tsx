@@ -238,7 +238,7 @@ function CardSkeleton() {
 /* ── Main Page ── */
 
 export default function HacksPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("spaces")
+  const [activeTab, setActiveTab] = useState<Tab>("houses")
   const { data: profile } = useProfile()
 
   const { data: hsData, isLoading: hsLoading } = useFilteredHackSpaces({})
@@ -257,9 +257,10 @@ export default function HacksPage() {
   const myHackerHouses = allHackerHouses.filter(
     (hh) => profile?.id && (hh.creator.id === profile.id || (hh.participants ?? []).some((p) => p.id === profile.id)),
   )
-  const recommendedHackerHouses = allHackerHouses.filter(
-    (hh) => !myHackerHouses.some((m) => m.id === hh.id),
-  )
+  // Recommended: only houses the user didn't create and isn't a participant in
+  const recommendedHackerHouses = profile?.id
+    ? allHackerHouses.filter((hh) => hh.creator.id !== profile.id && !(hh.participants ?? []).some((p) => p.id === profile.id))
+    : allHackerHouses
 
   return (
     <PageContainer>
@@ -271,17 +272,6 @@ export default function HacksPage() {
         <div className="flex gap-2 mb-6 bg-card p-1 rounded-lg">
           <button
             type="button"
-            onClick={() => setActiveTab("spaces")}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-              activeTab === "spaces"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Hack Spaces
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab("houses")}
             className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
               activeTab === "houses"
@@ -290,6 +280,17 @@ export default function HacksPage() {
             }`}
           >
             Hacker Houses
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("spaces")}
+            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
+              activeTab === "spaces"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Hack Spaces
           </button>
         </div>
 
@@ -399,27 +400,27 @@ export default function HacksPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
                 </div>
-              ) : (recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).length === 0 ? (
+              ) : recommendedHackerHouses.length === 0 ? (
                 <div className="bg-card border border-dashed border-border rounded-lg p-12 flex flex-col items-center gap-3 text-center">
-                  <p className="text-muted-foreground text-sm">No Hacker Houses available yet. Be the first to host one!</p>
+                  <p className="text-muted-foreground text-sm">No other Hacker Houses available yet.</p>
                   <Link
-                    href="/dashboard/hacker-houses/create"
+                    href="/dashboard/hacker-houses"
                     className="mt-2 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
                   >
-                    Create House
+                    Browse all houses
                   </Link>
                 </div>
               ) : (
                 <>
                   {/* Mobile: Carousel */}
                   <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:hidden">
-                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 3).map((house) => (
+                    {recommendedHackerHouses.slice(0, 3).map((house) => (
                       <HackerHouseInlineCard key={house.id} house={house} />
                     ))}
                   </div>
                   {/* Desktop: Grid */}
                   <div className="hidden lg:grid lg:grid-cols-3 gap-4">
-                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 3).map((house) => (
+                    {recommendedHackerHouses.slice(0, 3).map((house) => (
                       <HackerHouseInlineCard key={house.id} house={house} />
                     ))}
                   </div>

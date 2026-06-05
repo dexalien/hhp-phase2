@@ -44,10 +44,6 @@ export async function POST(
     return NextResponse.json({ message: "Hacker House not found" }, { status: 404 })
   }
 
-  if (hackerHouse.creator_id === user.id) {
-    return NextResponse.json({ message: "You are the host" }, { status: 400 })
-  }
-
   // Upsert application as accepted (handles both new join and existing pending application)
   const { error } = await supabaseServer
     .from("applications")

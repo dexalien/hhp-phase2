@@ -231,8 +231,23 @@ export const useReviewEventRequest = (id: string) => {
 
 // ── Communities ──
 
+export type AdminCommunity = {
+  id: string
+  name: string
+  category: string
+  member_count: number
+  created_at: string
+  is_verified: boolean
+  is_featured: boolean
+  featured_order: number | null
+  display_order: number | null
+  verification_requested: boolean
+  featured_requested: boolean
+  creator: { handle: string | null }
+}
+
 export const useAdminCommunities = () =>
-  useAppQuery<{ communities: Array<{ id: string; name: string; category: string; member_count: number; created_at: string; creator: { handle: string | null } }>; total: number }>({
+  useAppQuery<{ communities: AdminCommunity[]; total: number }>({
     fetcher: () =>
       genericAuthRequest("get", "/api/admin/communities"),
     queryKey: [queryKeys.adminCommunities],
@@ -248,6 +263,62 @@ export const useAdminDeleteCommunity = () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.adminCommunities] })
         queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
         queryClient.invalidateQueries({ queryKey: [queryKeys.adminStats] })
+      },
+    },
+  })
+}
+
+export const useToggleCommunityFeatured = (id: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ featured: boolean }, { community: AdminCommunity }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ community: AdminCommunity }>("patch", `/api/admin/communities/${id}/featured`, body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminCommunities] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
+      },
+    },
+  })
+}
+
+export const useVerifyCommunity = (id: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ verified: boolean }, { community: AdminCommunity }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ community: AdminCommunity }>("patch", `/api/admin/communities/${id}/verify`, body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminCommunities] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
+      },
+    },
+  })
+}
+
+export const useUpdateCommunityFeaturedOrder = () => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ order: { id: string; featured_order: number }[] }, { ok: boolean }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ ok: boolean }>("patch", "/api/admin/communities/featured-order", body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminCommunities] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
+      },
+    },
+  })
+}
+
+export const useUpdateCommunityDisplayOrder = () => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ order: { id: string; display_order: number }[] }, { ok: boolean }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ ok: boolean }>("patch", "/api/admin/communities/display-order", body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminCommunities] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
       },
     },
   })

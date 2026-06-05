@@ -190,6 +190,7 @@ export interface ApplicationWithApplicant extends Application {
 // Hacker Houses
 export type HouseModality = "free" | "paid" | "staking"
 export type HouseStatus = "open" | "full" | "active" | "finished"
+export type HouseContractType = "multisig" | "admin_wallet"
 
 export interface HackerHouseParticipant {
   id: string
@@ -219,6 +220,7 @@ export interface HackerHouse {
   includes_internet: boolean
   profile_sought: string[]
   language: string[]
+  booking_url: string | null
   address: string | null
   checkin_wifi_password: string | null
   checkin_room_info: string | null
@@ -228,6 +230,9 @@ export interface HackerHouse {
   status: HouseStatus
   application_type: ApplicationType
   application_deadline: string
+  application_form_url: string | null
+  contract_type: HouseContractType | null
+  sponsor_community_id: string | null
   event_name: string | null
   event_url: string | null
   event_start_date: string | null
@@ -321,6 +326,7 @@ export type CommunityCategory =
   | "Gaming"
   | "NFTs"
   | "Infrastructure"
+  | "Foundation"
   | "Other"
 
 export interface Community {
@@ -339,6 +345,12 @@ export interface Community {
   }
   member_count: number
   is_member?: boolean
+  is_verified: boolean
+  is_featured: boolean
+  featured_order: number | null
+  verification_requested: boolean
+  featured_requested: boolean
+  is_worldwide: boolean
   created_at: string
 }
 

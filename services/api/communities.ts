@@ -13,6 +13,12 @@ import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/schemas/c
 
 const PAGE_SIZE = 12
 
+export const useCommunities = () =>
+  useAppQuery<CommunityListResponse>({
+    fetcher: () => genericAuthRequest<CommunityListResponse>("get", "/api/communities", { limit: 100, offset: 0 }),
+    queryKey: [queryKeys.communities, "all"],
+  })
+
 export const useFilteredCommunities = (filters: CommunityListParams) => {
   return useInfiniteQuery<CommunityListResponse, Error>({
     queryKey: [queryKeys.communities, "filtered", filters],

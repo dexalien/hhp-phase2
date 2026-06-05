@@ -1,13 +1,10 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import { useApplyToHackSpace } from "@/services/api/hack-spaces"
 import { ARCHETYPES } from "@/lib/onboarding"
 import type { HackSpace } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Badge, type badgeVariants } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
 import type { VariantProps } from "class-variance-authority"
 import { parseLocalDate } from "@/lib/utils"
 
@@ -35,11 +32,6 @@ export function HackSpaceCard({
   hackSpace,
   currentUserId,
 }: HackSpaceCardProps) {
-  const apply = useApplyToHackSpace(hackSpace.id)
-  const [showApplyForm, setShowApplyForm] = useState(false)
-  const [message, setMessage] = useState("")
-
-  const isOwner = currentUserId === hackSpace.creator.id
   const creatorArchetype = ARCHETYPES.find(
     (a) => a.id === hackSpace.creator.archetype,
   )
@@ -48,15 +40,10 @@ export function HackSpaceCard({
   const visibleSkills = hackSpace.skills_needed.slice(0, 3)
   const extraSkills = hackSpace.skills_needed.length - 3
 
-  function handleApply() {
-    apply.mutate(
-      { message: message || undefined },
-      { onSuccess: () => setShowApplyForm(false) },
-    )
-  }
-
   const memberCount = hackSpace.member_count ?? 0
   const participants = hackSpace.participants ?? []
+
+  void currentUserId
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col hover:border-primary/30 transition-all duration-200 h-full">
@@ -77,12 +64,13 @@ export function HackSpaceCard({
       <div className="p-4 flex flex-col gap-4 flex-1">
         {/* Header */}
         <div className="flex items-start gap-3">
-          {/* Title + status */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-display font-bold text-foreground text-base leading-snug line-clamp-1 flex-1">
-                {hackSpace.title}
-              </h3>
+              <Link href={`/dashboard/hack-spaces/${hackSpace.id}`} className="hover:text-primary transition-colors flex-1">
+                <h3 className="font-display font-bold text-foreground text-base leading-snug line-clamp-1">
+                  {hackSpace.title}
+                </h3>
+              </Link>
               <span
                 className="shrink-0 text-[10px] px-2 py-0.5 rounded-sm border font-mono whitespace-nowrap"
                 style={{
@@ -117,7 +105,7 @@ export function HackSpaceCard({
           {hackSpace.description}
         </p>
 
-        {/* Pills: skills + archetypes — fixed area so footer stays anchored */}
+        {/* Pills: skills + archetypes */}
         <div className="flex flex-col gap-1.5 min-h-11">
           {hackSpace.skills_needed.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -220,81 +208,13 @@ export function HackSpaceCard({
             </div>
           </div>
 
-          {/* Right: CTA */}
-          {isOwner ? (
-            <Link href={`/dashboard/hack-spaces/${hackSpace.id}`}>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs font-mono rounded-lg shrink-0"
-              >
-                Manage →
-              </Button>
-            </Link>
-          ) : hackSpace.status === "full" || hackSpace.status === "finished" ? (
-            <Link href={`/dashboard/hack-spaces/${hackSpace.id}`}>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs font-mono rounded-lg shrink-0"
-              >
-                View →
-              </Button>
-            </Link>
-          ) : apply.isSuccess ? (
-            <span className="text-xs font-mono text-primary shrink-0">
-              ✓ Applied
-            </span>
-          ) : showApplyForm ? (
-            <span className="text-xs font-mono text-muted-foreground shrink-0">
-              Applying...
-            </span>
-          ) : (
-            <Button
-              size="sm"
-              onClick={() => setShowApplyForm(true)}
-              className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs shrink-0"
-            >
-              Apply →
+          {/* Right: CTA — always navigates to detail page */}
+          <Link href={`/dashboard/hack-spaces/${hackSpace.id}`}>
+            <Button size="sm" variant="outline" className="text-xs font-mono rounded-lg shrink-0">
+              View →
             </Button>
-          )}
+          </Link>
         </div>
-
-        {/* Inline apply form */}
-        {showApplyForm && !apply.isSuccess && (
-          <div className="flex flex-col gap-2 pt-2 border-t border-border">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Why do you want to join? (optional)"
-              maxLength={300}
-              rows={2}
-              className="resize-none"
-            />
-            {apply.error && (
-              <p className="text-xs text-destructive">{apply.error.message}</p>
-            )}
-            <div className="flex gap-2 justify-end">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowApplyForm(false)}
-                disabled={apply.isPending}
-                className="text-xs font-mono"
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleApply}
-                disabled={apply.isPending}
-                className="rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs"
-              >
-                {apply.isPending ? "Sending..." : "Send →"}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

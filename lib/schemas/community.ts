@@ -8,6 +8,7 @@ export const COMMUNITY_CATEGORIES = [
   "Gaming",
   "NFTs",
   "Infrastructure",
+  "Foundation",
   "Other",
 ] as const
 
@@ -18,6 +19,9 @@ export const createCommunitySchema = z.object({
   image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   city: z.string().max(80).optional().or(z.literal("")),
   country: z.string().max(80).optional().or(z.literal("")),
+  is_worldwide: z.boolean().optional(),
+  verification_requested: z.boolean().optional(),
+  featured_requested: z.boolean().optional(),
 })
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>
