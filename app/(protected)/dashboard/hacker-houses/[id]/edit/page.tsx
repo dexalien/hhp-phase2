@@ -78,7 +78,7 @@ export default function EditHackerHousePage({
     )
   }
 
-  const canEdit = profile && (profile.id === hackerHouse?.creator.id || ADMIN_USER_IDS.includes(profile.id))
+  const canEdit = profile && (profile.id === hackerHouse?.creator.id || profile.is_admin || ADMIN_USER_IDS.includes(profile.id))
   if (!hackerHouse || !canEdit) {
     return (
       <PageContainer>

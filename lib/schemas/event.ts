@@ -8,6 +8,8 @@ export const EVENT_TYPES = [
   "Meetup",
   "Summit",
   "Founder House",
+  "Blockchain Week",
+  "Festival",
   "Other",
 ] as const
 
