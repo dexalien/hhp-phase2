@@ -6,35 +6,7 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message = "Connecting" }: LoadingScreenProps) {
   return (
-    <>
-      <style>{`
-        @keyframes hhp-spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes hhp-spin-reverse {
-          to { transform: rotate(-360deg); }
-        }
-        @keyframes hhp-logo-glow {
-          0%, 100% {
-            opacity: 0.65;
-            filter: drop-shadow(0 0 5px oklch(0.62 0.26 295 / 0.35));
-          }
-          50% {
-            opacity: 1;
-            filter: drop-shadow(0 0 13px oklch(0.62 0.26 295 / 0.65));
-          }
-        }
-        @keyframes hhp-cursor {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0; }
-        }
-        @keyframes hhp-bg-breathe {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.55; }
-        }
-      `}</style>
-
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-9 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-9 relative overflow-hidden">
 
         {/* Ambient radial glow */}
         <div
@@ -109,7 +81,6 @@ export function LoadingScreen({ message = "Connecting" }: LoadingScreenProps) {
             _
           </span>
         </p>
-      </div>
-    </>
+    </div>
   )
 }

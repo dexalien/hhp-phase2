@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes hhp-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes hhp-spin-reverse {
+  to { transform: rotate(-360deg); }
+}
+@keyframes hhp-logo-glow {
+  0%, 100% {
+    opacity: 0.65;
+    filter: drop-shadow(0 0 5px oklch(0.62 0.26 295 / 0.35));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 13px oklch(0.62 0.26 295 / 0.65));
+  }
+}
+@keyframes hhp-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes hhp-bg-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
