@@ -4,6 +4,7 @@ import { use } from "react"
 import { useRouter } from "next/navigation"
 import { useHackSpace, useUpdateHackSpace } from "@/services/api/hack-spaces"
 import { useProfile } from "@/services/api/profile"
+import { ADMIN_USER_IDS } from "@/lib/admin"
 import { toast } from "sonner"
 import { PageContainer } from "../../../_components/page-container"
 import { HackSpaceForm } from "../../create/_components/create-hack-space-form"
@@ -67,7 +68,8 @@ export default function EditHackSpacePage({
     )
   }
 
-  if (!hackSpace || profile?.id !== hackSpace.creator.id) {
+  const canEdit = profile && (profile.id === hackSpace?.creator.id || ADMIN_USER_IDS.includes(profile.id))
+  if (!hackSpace || !canEdit) {
     return (
       <PageContainer>
         <div className="flex flex-col items-center justify-center gap-4 py-20">

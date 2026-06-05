@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge, type badgeVariants } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import type { VariantProps } from "class-variance-authority"
+import { parseLocalDate } from "@/lib/utils"
 
 type BadgeVariant = VariantProps<typeof badgeVariants>["variant"]
 
@@ -209,8 +210,8 @@ export function HackSpaceCard({
                       <>
                         {" "}
                         {hackSpace.event_end_date
-                          ? `${new Date(hackSpace.event_start_date).getDate()}–${new Date(hackSpace.event_end_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
-                          : new Date(hackSpace.event_start_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
+                          ? `${parseLocalDate(hackSpace.event_start_date).getDate()}–${parseLocalDate(hackSpace.event_end_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
+                          : parseLocalDate(hackSpace.event_start_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
                       </>
                     )}
                   </span>

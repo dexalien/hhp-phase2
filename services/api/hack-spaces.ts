@@ -39,6 +39,22 @@ export const useFilteredHackSpaces = (filters: HackSpaceListParams) => {
   })
 }
 
+export const useHackSpacesByEvent = (eventName: string) =>
+  useAppQuery<HackSpace[]>({
+    fetcher: async () => {
+      const { hack_spaces } = await genericAuthRequest<{
+        hack_spaces: HackSpace[]
+      }>("get", "/api/hack-spaces", {
+        event_name: eventName,
+        limit: 50,
+        offset: 0,
+      })
+      return hack_spaces ?? []
+    },
+    queryKey: [queryKeys.hackSpaces, "by-event", eventName],
+    enabled: !!eventName,
+  })
+
 export const useMyHackSpaces = (creatorId: string) => {
   return useAppQuery<HackSpace[]>({
     fetcher: async () => {

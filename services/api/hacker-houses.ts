@@ -38,6 +38,22 @@ export const useFilteredHackerHouses = (filters: HackerHouseListParams) =>
     },
   })
 
+export const useHackerHousesByEvent = (eventName: string) =>
+  useAppQuery<HackerHouse[]>({
+    fetcher: async () => {
+      const { hacker_houses } = await genericAuthRequest<{
+        hacker_houses: HackerHouse[]
+      }>("get", "/api/hacker-houses", {
+        event_name: eventName,
+        limit: 50,
+        offset: 0,
+      })
+      return hacker_houses ?? []
+    },
+    queryKey: [queryKeys.hackerHouses, "by-event", eventName],
+    enabled: !!eventName,
+  })
+
 export const useMyHackerHouses = (creatorId: string) =>
   useAppQuery<HackerHouse[]>({
     fetcher: async () => {
@@ -111,6 +127,21 @@ export const useApplyToHackerHouse = (id: string) => {
         input
       )
       return application
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouses] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouse, id] })
+      },
+    },
+  })
+}
+
+export const useJoinHackerHouse = (id: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<void, { joined: boolean }>({
+    fetcher: async () => {
+      return genericAuthRequest<{ joined: boolean }>("post", `/api/hacker-houses/${id}/join`, {})
     },
     options: {
       onSuccess: () => {

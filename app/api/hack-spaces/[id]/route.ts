@@ -3,6 +3,7 @@ import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
 import { updateHackSpaceSchema } from "@/lib/schemas/hack-space"
 import { geocodeAndUpdate } from "@/lib/geocode"
+import { isAdmin } from "@/lib/admin"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -85,7 +86,7 @@ export async function PATCH(
     return NextResponse.json({ message: "Hack Space not found" }, { status: 404 })
   }
 
-  if (hackSpace.creator_id !== user.id) {
+  if (hackSpace.creator_id !== user.id && !isAdmin(user.id)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 })
   }
 

@@ -6,6 +6,7 @@ import { NotificationBadge } from "../_components/notification-badge"
 import { useProfile } from "@/services/api/profile"
 import { HackSpacesFeed } from "./_components/hack-spaces-feed"
 import { HackerHousesFeed } from "./_components/hacker-houses-feed"
+import { CommunitiesFeed } from "./_components/communities-feed"
 import { SuggestedBuildersFeed } from "./_components/suggested-builders-feed"
 import { PageContainer } from "./_components/page-container"
 import { WelcomeHeader } from "./_components/welcome-header"
@@ -43,6 +44,7 @@ export default function DashboardPage() {
         <UpcomingEventsFeed />
         <HackSpacesFeed currentUserId={profile?.id ?? null} />
         <HackerHousesFeed currentUserId={profile?.id ?? null} />
+        <CommunitiesFeed />
         <SuggestedBuildersFeed />
         <ActiveCitiesSection />
       </div>

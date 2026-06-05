@@ -28,6 +28,7 @@ export default function HackerHousesPage() {
     status: parseAsString.withDefault(""),
     profile_sought: parseAsString.withDefault(""),
     q: parseAsString.withDefault(""),
+    event_name: parseAsString.withDefault(""),
   })
 
   const [searchInput, setSearchInput] = useState(filters.q)
@@ -37,6 +38,7 @@ export default function HackerHousesPage() {
   if (filters.status) activeFilters.status = filters.status as HouseStatus
   if (filters.profile_sought) activeFilters.profile_sought = filters.profile_sought
   if (debouncedSearch) activeFilters.q = debouncedSearch
+  if (filters.event_name) activeFilters.event_name = filters.event_name
 
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useFilteredHackerHouses(activeFilters)
@@ -51,20 +53,20 @@ export default function HackerHousesPage() {
   const hackerHouses = data?.pages.flatMap((p) => p.hacker_houses) ?? []
   const total = data?.pages[0]?.total ?? 0
 
-  const hasActiveFilters = !!filters.status || !!filters.profile_sought || !!filters.q
+  const hasActiveFilters = !!filters.status || !!filters.profile_sought || !!filters.q || !!filters.event_name
 
   function handleClearFilters() {
-    void setFilters({ status: "", profile_sought: "", q: "" })
+    void setFilters({ status: "", profile_sought: "", q: "", event_name: "" })
     setSearchInput("")
   }
 
   return (
     <PageContainer className="flex flex-col gap-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-1 min-w-0">
           <h1 className="font-display font-bold text-foreground text-2xl">Hacker Houses</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground truncate">
             {isLoading
               ? "Loading..."
               : `Showing ${hackerHouses.length} of ${total} house${total !== 1 ? "s" : ""}`}
@@ -101,11 +103,11 @@ export default function HackerHousesPage() {
         </div>
 
         {/* Profile sought row */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
           <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest shrink-0">
             Profile
           </span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             {ARCHETYPES.map((a) => (
               <button
                 key={a.id}
@@ -138,12 +140,12 @@ export default function HackerHousesPage() {
         </div>
 
         {/* Status row + clear */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5 flex-1 min-w-0">
             <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest shrink-0">
               Status
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               {STATUS_OPTIONS.map(({ value, label, colorVar }) => (
                 <button
                   key={value}
@@ -185,11 +187,26 @@ export default function HackerHousesPage() {
             </button>
           )}
         </div>
+
+        {/* Event filter banner */}
+        {filters.event_name && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-sm">
+            <span className="text-muted-foreground font-mono text-xs">Event:</span>
+            <span className="text-foreground font-medium text-xs truncate">{filters.event_name}</span>
+            <button
+              type="button"
+              onClick={() => void setFilters({ event_name: "" })}
+              className="ml-auto text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0 text-xs"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -237,7 +254,7 @@ export default function HackerHousesPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {hackerHouses.map((hh) => (
             <HackerHouseCard
               key={hh.id}
@@ -280,7 +297,7 @@ export default function HackerHousesPage() {
                 {finishedHouses.length}
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-70">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-70">
               {finishedHouses.map((hh) => (
                 <HackerHouseCard
                   key={hh.id}

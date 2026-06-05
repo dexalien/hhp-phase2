@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Lock } from "lucide-react"
 import type { MapMarkerData } from "@/lib/types"
 
 const STATUS_CONFIG: Record<string, { label: string; colorVar: string }> = {
@@ -53,6 +54,11 @@ export function HousePopup({ marker }: HousePopupProps) {
       {marker.event_name && (
         <p className="text-[11px] font-mono text-primary truncate">
           {marker.event_name}
+        </p>
+      )}
+      {marker.location_revealed === false && (
+        <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1 mt-1">
+          <Lock className="w-3 h-3" /> Exact address revealed after booking
         </p>
       )}
       <Link

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status")
   const profileSought = searchParams.get("profile_sought")
   const q = searchParams.get("q")
+  const eventName = searchParams.get("event_name")
   const limit = parseInt(searchParams.get("limit") ?? "12", 10)
   const offset = parseInt(searchParams.get("offset") ?? "0", 10)
 
@@ -90,6 +91,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (eventName) {
+    query = query.eq("event_name", eventName)
+  }
+
   query = query.range(offset, offset + limit - 1)
 
   const { data, error, count } = await query
@@ -134,13 +139,20 @@ export async function POST(req: NextRequest) {
   const insertData = {
     creator_id: user.id,
     name: fields.name,
+    region: fields.region || null,
     city: fields.city,
     country: fields.country,
     neighborhood: fields.neighborhood || null,
+    address: fields.address || null,
+    checkin_wifi_password: fields.checkin_wifi_password || null,
+    checkin_room_info: fields.checkin_room_info || null,
+    checkin_lockbox: fields.checkin_lockbox || null,
+    checkin_notes: fields.checkin_notes || null,
     start_date: fields.start_date,
     end_date: fields.end_date,
     capacity: fields.capacity,
     modality: fields.modality ?? "free",
+    price_per_person: fields.price_per_person ?? null,
     sponsor_name: fields.sponsor_name || null,
     images: fields.images ?? [],
     includes_private_room: fields.includes_private_room ?? false,
@@ -157,7 +169,7 @@ export async function POST(req: NextRequest) {
     event_url: has_event ? (fields.event_url || null) : null,
     event_start_date: has_event ? (fields.event_start_date || null) : null,
     event_end_date: has_event ? (fields.event_end_date || null) : null,
-    event_timing: has_event ? (fields.event_timing ?? null) : null,
+    event_timing: has_event ? (fields.event_timing ?? []) : [],
   }
 
   const { data, error } = await supabaseServer
@@ -171,7 +183,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Database error" }, { status: 500 })
   }
 
-  geocodeAndUpdate("hacker_houses", data.id, fields.city, fields.country)
+  geocodeAndUpdate("hacker_houses", data.id, fields.city, fields.country, fields.address || undefined)
 
   const hackerHouse = {
     ...data,

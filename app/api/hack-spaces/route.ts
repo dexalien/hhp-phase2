@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status")
   const lookingFor = searchParams.get("looking_for")
   const q = searchParams.get("q")
+  const eventName = searchParams.get("event_name")
   const limit = parseInt(searchParams.get("limit") ?? "12", 10)
   const offset = parseInt(searchParams.get("offset") ?? "0", 10)
 
@@ -88,6 +89,10 @@ export async function GET(req: NextRequest) {
 
   if (q) {
     query = query.ilike("title", `%${q}%`)
+  }
+
+  if (eventName) {
+    query = query.eq("event_name", eventName)
   }
 
   query = query.range(offset, offset + limit - 1)

@@ -1,6 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
+import { useSearchParams } from "next/navigation"
 import { Spinner } from "@/components/ui/spinner"
 
 const MapView = dynamic(
@@ -16,9 +17,17 @@ const MapView = dynamic(
 )
 
 export default function MapPage() {
+  const params = useSearchParams()
+  const lat = parseFloat(params.get("lat") ?? "")
+  const lng = parseFloat(params.get("lng") ?? "")
+  const zoom = parseInt(params.get("zoom") ?? "")
+
+  const initialCenter = !isNaN(lat) && !isNaN(lng) ? ([lat, lng] as [number, number]) : undefined
+  const initialZoom = !isNaN(zoom) ? zoom : undefined
+
   return (
-    <div className="h-[calc(100dvh-3.5rem)] w-full">
-      <MapView />
+    <div className="h-dvh w-full overflow-hidden">
+      <MapView initialCenter={initialCenter} initialZoom={initialZoom} />
     </div>
   )
 }

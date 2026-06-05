@@ -21,16 +21,16 @@ function formatDateRange(start: string, end: string) {
   return `${sMonth}–${e.getDate()}`
 }
 
-const MODE_STYLE: Record<string, { bg: string; text: string }> = {
-  free: { bg: "bg-[#6EE76E]/20", text: "text-[#6EE76E]" },
-  paid: { bg: "bg-[#F59E0B]/20", text: "text-[#F59E0B]" },
-  staking: { bg: "bg-[#8B78E6]/20", text: "text-[#8B78E6]" },
-}
-
 const MODE_BADGE: Record<string, string> = {
   free: "bg-[#6EE76E]/90 text-background",
   paid: "bg-[#F59E0B]/90 text-background",
   staking: "bg-[#8B78E6]/90 text-primary-foreground",
+}
+
+const MODE_LABEL: Record<string, string> = {
+  free: "Sponsored",
+  paid: "Co-payment",
+  staking: "Staking",
 }
 
 /* ── Pixel world images used as "My Hack Space" banners ── */
@@ -46,7 +46,7 @@ const PIXEL_WORLD_BANNERS = [
 function MyHackSpaceCard({ space, index = 0 }: { space: HackSpace; index?: number }) {
   const worldImg = PIXEL_WORLD_BANNERS[index % PIXEL_WORLD_BANNERS.length]
   return (
-    <div className="min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col">
+    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col">
       <div className="relative h-32 w-full flex-shrink-0">
         <img src={worldImg} alt={space.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
@@ -96,7 +96,7 @@ function HackSpaceInlineCard({ space }: { space: HackSpace }) {
   return (
     <Link
       href={`/dashboard/hack-spaces/${space.id}`}
-      className="min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col"
+      className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col"
     >
       <div className="relative h-32 w-full flex-shrink-0">
         {space.image_url ? (
@@ -144,52 +144,7 @@ function HackSpaceInlineCard({ space }: { space: HackSpace }) {
   )
 }
 
-/* ── My Hacker House Card ── */
-
-function MyHackerHouseCard({ house }: { house: HackerHouse }) {
-  const modeStyle = MODE_STYLE[house.modality] ?? MODE_STYLE["paid"]
-  const banner = house.images[0] ?? null
-
-  return (
-    <div className="min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col">
-      <div className="relative h-32 w-full flex-shrink-0">
-        {banner ? (
-          <img src={banner} alt={house.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-        <span
-          className={`absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium ${
-            house.status === "open"
-              ? "bg-[#6EE76E]/90 text-background"
-              : "bg-[#F59E0B]/90 text-background"
-          }`}
-        >
-          {house.status === "open" ? "Open" : house.status === "active" ? "Active" : house.status === "full" ? "Full" : house.status === "finished" ? "Finished" : "Pending"}
-        </span>
-      </div>
-      <div className="p-4 -mt-4 relative">
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-display font-bold text-foreground">{house.name}</h3>
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${modeStyle.bg} ${modeStyle.text}`}>
-            {house.modality.charAt(0).toUpperCase() + house.modality.slice(1)}
-          </span>
-        </div>
-        <p className="text-muted-foreground text-sm mb-1">{house.city}, {house.country}</p>
-        <p className="text-muted-foreground text-sm mb-3">{formatDateRange(house.start_date, house.end_date)}</p>
-        <Link
-          href={`/dashboard/hacker-houses/${house.id}`}
-          className="w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors text-center block"
-        >
-          View details
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-/* ── Recommended Hacker House Card ── */
+/* ── Hacker House Card ── */
 
 function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
   const progress = Math.round((house.participants_count / house.capacity) * 100)
@@ -197,10 +152,7 @@ function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
   const modeBadge = MODE_BADGE[house.modality] ?? MODE_BADGE["paid"]
 
   return (
-    <Link
-      href={`/dashboard/hacker-houses/${house.id}`}
-      className="min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col"
-    >
+    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col">
       <div className="relative h-32 w-full flex-shrink-0">
         {banner ? (
           <img src={banner} alt={house.name} className="w-full h-full object-cover" />
@@ -208,38 +160,39 @@ function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-        <span className={`absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium ${modeBadge}`}>
-          {house.modality.charAt(0).toUpperCase() + house.modality.slice(1)}
+        <span className={`absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${modeBadge}`}>
+          {MODE_LABEL[house.modality] ?? house.modality}
         </span>
       </div>
       <div className="p-4 -mt-4 relative flex flex-col flex-1">
-        <h3 className="font-display font-bold text-lg text-foreground mb-1">{house.name}</h3>
+        <h3 className="font-display font-bold text-lg text-foreground mb-1 truncate">{house.name}</h3>
         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
           <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span>{house.city}, {house.country}</span>
+          <span className="truncate">{house.city}, {house.country}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
           <Calendar className="w-4 h-4 flex-shrink-0" />
           <span>{formatDateRange(house.start_date, house.end_date)}</span>
         </div>
-        <div className="h-10 mb-2">
-          {house.event_name && (
-            <span className="text-[#8B78E6] text-xs">{house.event_name}</span>
-          )}
-        </div>
-        <div className="mt-auto">
-          <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-muted-foreground">{house.participants_count}/{house.capacity} spots</span>
+        {house.event_name && (
+          <span className="text-[#8B78E6] text-xs mb-2 truncate">{house.event_name}</span>
+        )}
+        <div className="mt-auto flex flex-col gap-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">{house.participants_count}/{house.capacity} spots available</span>
           </div>
           <div className="h-2 bg-border rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-primary rounded-full" style={{ width: `${progress}%` }} />
           </div>
+          <Link
+            href={`/dashboard/hacker-houses/${house.id}`}
+            className="mt-1 w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors text-center"
+          >
+            View details
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -250,7 +203,7 @@ function MyPlaceholder({ type }: { type: "hack-spaces" | "hacker-houses" }) {
   const action = type === "hack-spaces" ? "join or create one" : "apply or host one"
 
   return (
-    <div className="min-w-[300px] lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col items-center justify-center text-center px-6"
+    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col items-center justify-center text-center px-6"
       style={{ minHeight: "232px" }}
     >
       <p className="text-muted-foreground text-sm leading-relaxed">
@@ -270,7 +223,7 @@ function MyPlaceholder({ type }: { type: "hack-spaces" | "hacker-houses" }) {
 
 function CardSkeleton() {
   return (
-    <div className="min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0">
+    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0">
       <Skeleton className="h-32 w-full rounded-none" />
       <div className="p-4 flex flex-col gap-3">
         <Skeleton className="h-5 w-2/3" />
@@ -347,11 +300,9 @@ export default function HacksPage() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-lg text-foreground">My Hack Spaces</h2>
-                {myHackSpaces.length > 0 && (
-                  <Link href="/dashboard/hack-spaces" className="text-primary text-sm font-medium flex items-center gap-1">
-                    See all <ArrowRight className="w-4 h-4" />
-                  </Link>
-                )}
+                <Link href="/dashboard/hack-spaces" className="text-primary text-sm font-medium flex items-center gap-1">
+                  See all <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
               {hsLoading ? (
                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0">
@@ -359,7 +310,7 @@ export default function HacksPage() {
                 </div>
               ) : myHackSpaces.length > 0 ? (
                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0">
-                  {myHackSpaces.map((space, i) => (
+                  {myHackSpaces.slice(0, 3).map((space, i) => (
                     <MyHackSpaceCard key={space.id} space={space} index={i} />
                   ))}
                 </div>
@@ -394,13 +345,13 @@ export default function HacksPage() {
                 <>
                   {/* Mobile: Carousel */}
                   <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:hidden">
-                    {(recommendedHackSpaces.length > 0 ? recommendedHackSpaces : allHackSpaces).slice(0, 6).map((space) => (
+                    {(recommendedHackSpaces.length > 0 ? recommendedHackSpaces : allHackSpaces).slice(0, 3).map((space) => (
                       <HackSpaceInlineCard key={space.id} space={space} />
                     ))}
                   </div>
                   {/* Desktop: Grid */}
                   <div className="hidden lg:grid lg:grid-cols-3 gap-4">
-                    {(recommendedHackSpaces.length > 0 ? recommendedHackSpaces : allHackSpaces).slice(0, 6).map((space) => (
+                    {(recommendedHackSpaces.length > 0 ? recommendedHackSpaces : allHackSpaces).slice(0, 3).map((space) => (
                       <HackSpaceInlineCard key={space.id} space={space} />
                     ))}
                   </div>
@@ -417,11 +368,9 @@ export default function HacksPage() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-lg text-foreground">My Hacker Houses</h2>
-                {myHackerHouses.length > 0 && (
-                  <Link href="/dashboard/hacker-houses" className="text-primary text-sm font-medium flex items-center gap-1">
-                    See all <ArrowRight className="w-4 h-4" />
-                  </Link>
-                )}
+                <Link href="/dashboard/hacker-houses" className="text-primary text-sm font-medium flex items-center gap-1">
+                  See all <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
               {hhLoading ? (
                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0">
@@ -429,8 +378,8 @@ export default function HacksPage() {
                 </div>
               ) : myHackerHouses.length > 0 ? (
                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:grid lg:grid-cols-3 lg:overflow-visible lg:mx-0 lg:px-0">
-                  {myHackerHouses.map((house) => (
-                    <MyHackerHouseCard key={house.id} house={house} />
+                  {myHackerHouses.slice(0, 3).map((house) => (
+                    <HackerHouseInlineCard key={house.id} house={house} />
                   ))}
                 </div>
               ) : (
@@ -464,13 +413,13 @@ export default function HacksPage() {
                 <>
                   {/* Mobile: Carousel */}
                   <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar lg:hidden">
-                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 6).map((house) => (
+                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 3).map((house) => (
                       <HackerHouseInlineCard key={house.id} house={house} />
                     ))}
                   </div>
                   {/* Desktop: Grid */}
                   <div className="hidden lg:grid lg:grid-cols-3 gap-4">
-                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 6).map((house) => (
+                    {(recommendedHackerHouses.length > 0 ? recommendedHackerHouses : allHackerHouses).slice(0, 3).map((house) => (
                       <HackerHouseInlineCard key={house.id} house={house} />
                     ))}
                   </div>

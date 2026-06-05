@@ -9,6 +9,7 @@ const HOUSE_MODALITIES = ["free", "paid", "staking"] as const
 export const createHackerHouseSchema = z.object({
   name: z.string().min(3, "Minimum 3 characters").max(80),
   modality: z.enum(HOUSE_MODALITIES, { required_error: "Select a modality" }),
+  price_per_person: z.number().min(0).optional(),
   sponsor_name: z.string().max(100).optional(),
   region: z.string().optional(),
   country: z.string().min(1, "Country is required"),
@@ -25,15 +26,20 @@ export const createHackerHouseSchema = z.object({
   images: z.array(z.string().url()).max(5).optional(),
   profile_sought: z.array(z.enum(ARCHETYPE_IDS)).min(1, "Select at least one archetype"),
   language: z.array(z.string()).min(1, "Select at least one language"),
+  address: z.string().min(5, "Address is required").max(200),
+  checkin_wifi_password: z.string().max(100).optional(),
+  checkin_room_info: z.string().max(100).optional(),
+  checkin_lockbox: z.string().max(100).optional(),
+  checkin_notes: z.string().max(500).optional(),
   house_rules: z.string().max(500).optional(),
   application_type: z.enum(APPLICATION_TYPES),
-  application_deadline: z.string().min(1, "Select an application deadline"),
+  application_deadline: z.string().optional(),
   has_event: z.boolean().optional(),
   event_name: z.string().optional(),
   event_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   event_start_date: z.string().optional(),
   event_end_date: z.string().optional(),
-  event_timing: z.array(z.enum(EVENT_TIMINGS)).min(1).optional(),
+  event_timing: z.array(z.enum(EVENT_TIMINGS)).optional(),
 })
 
 export type CreateHackerHouseInput = z.infer<typeof createHackerHouseSchema>
