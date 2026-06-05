@@ -16,6 +16,8 @@ export const createCommunitySchema = z.object({
   description: z.string().min(10, "Minimum 10 characters").max(500),
   category: z.enum(COMMUNITY_CATEGORIES, { required_error: "Select a category" }),
   image_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  city: z.string().max(80).optional().or(z.literal("")),
+  country: z.string().max(80).optional().or(z.literal("")),
 })
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>

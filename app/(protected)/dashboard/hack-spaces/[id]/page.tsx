@@ -14,7 +14,7 @@ import { ApplicationManager } from "./_components/application-manager"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 import {
   PenLine,
   Calendar,
@@ -196,8 +196,8 @@ export default function HackSpaceDetailPage({
               {hackSpace.event_timing && hackSpace.event_timing.length > 0 &&
                 ` · ${hackSpace.event_timing.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(" · ")} the event`}
               {hackSpace.event_start_date && (
-                <> · {new Date(hackSpace.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  {hackSpace.event_end_date && `–${new Date(hackSpace.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                <> · {parseLocalDate(hackSpace.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {hackSpace.event_end_date && `–${parseLocalDate(hackSpace.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
                 </>
               )}
             </div>
@@ -366,9 +366,9 @@ export default function HackSpaceDetailPage({
                     <h3 className="font-display font-bold text-foreground">{hackSpace.event_name}</h3>
                     <p className="text-muted-foreground text-sm">
                       {hackSpace.event_start_date &&
-                        new Date(hackSpace.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        parseLocalDate(hackSpace.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       {hackSpace.event_end_date &&
-                        `–${new Date(hackSpace.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                        `–${parseLocalDate(hackSpace.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
                     </p>
                   </div>
                   {hackSpace.event_url && (

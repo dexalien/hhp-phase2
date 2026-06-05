@@ -142,6 +142,11 @@
   --sidebar-ring: oklch(0.452 0.246 297);
 }
 
+/* Hide Leaflet attribution */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
 /* Leaflet popup dark theme override */
 .map-popup-dark .leaflet-popup-content-wrapper {
   background: var(--card);

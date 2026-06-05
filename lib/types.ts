@@ -46,6 +46,7 @@ export type NotificationType =
   | "hack_space_accepted"
   | "hacker_house_application"
   | "hacker_house_accepted"
+  | "event_request"
 
 export interface Notification {
   id: string
@@ -152,6 +153,7 @@ export interface HackSpaceListParams {
   status?: HackSpaceStatus
   looking_for?: string
   q?: string
+  event_name?: string
   limit?: number
   offset?: number
 }
@@ -205,6 +207,8 @@ export interface HackerHouse {
   end_date: string
   capacity: number
   modality: HouseModality
+  price_per_person: number | null
+  region: string | null
   sponsor_name: string | null
   images: string[]
   includes_private_room: boolean
@@ -214,6 +218,11 @@ export interface HackerHouse {
   includes_internet: boolean
   profile_sought: string[]
   language: string[]
+  address: string | null
+  checkin_wifi_password: string | null
+  checkin_room_info: string | null
+  checkin_lockbox: string | null
+  checkin_notes: string | null
   house_rules: string | null
   status: HouseStatus
   application_type: ApplicationType
@@ -235,6 +244,7 @@ export interface HackerHouseListParams {
   status?: HouseStatus
   profile_sought?: string
   q?: string
+  event_name?: string
   limit?: number
   offset?: number
 }
@@ -268,7 +278,7 @@ export interface SuggestedBuilder extends UserProfile {
 }
 
 // Map
-export type MapMarkerType = "hacker_house" | "hack_space"
+export type MapMarkerType = "hacker_house" | "hack_space" | "event" | "community"
 
 export interface MapMarkerData {
   id: string
@@ -288,6 +298,13 @@ export interface MapMarkerData {
   member_count: number | null
   track: string | null
   image_url: string | null
+  // event/community extras
+  description?: string | null
+  website_url?: string | null
+  prizes?: string | null
+  category?: string | null
+  // location privacy
+  location_revealed?: boolean
 }
 
 export interface MapMarkersResponse {
@@ -311,6 +328,8 @@ export interface Community {
   description: string
   image_url: string | null
   category: CommunityCategory
+  city: string | null
+  country: string | null
   creator: {
     id: string
     handle: string | null
@@ -334,4 +353,78 @@ export interface CommunityListResponse {
   total: number
   offset: number
   limit: number
+}
+
+/* ── Events ── */
+export type EventType = "Hackathon" | "Buildathon" | "Conference" | "Workshop" | "Meetup" | "Summit" | "Founder House" | "Other"
+
+export interface HHPEvent {
+  id: string
+  name: string
+  description: string
+  type: EventType
+  city: string
+  country: string
+  venue: string | null
+  address: string | null
+  address_reveal_date: string | null
+  start_date: string
+  end_date: string
+  banner_url: string | null
+  website_url: string | null
+  prizes: string | null
+  is_featured: boolean
+  is_verified: boolean
+  featured_order: number | null
+  lat: number | null
+  lng: number | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface EventListResponse {
+  events: HHPEvent[]
+  total: number
+}
+
+export type EventRequestStatus = "pending" | "approved" | "rejected"
+
+export interface EventRequest {
+  id: string
+  name: string
+  description: string
+  type: EventType
+  city: string
+  country: string
+  start_date: string
+  end_date: string
+  venue: string | null
+  website_url: string | null
+  prizes: string | null
+  notes: string | null
+  status: EventRequestStatus
+  submitted_by: string | null
+  submitter: { id: string; handle: string | null; avatar_url: string | null } | null
+  created_at: string
+}
+
+/* ── Admin ── */
+export interface AdminStats {
+  users: number
+  events: number
+  communities: number
+  hack_spaces: number
+  hacker_houses: number
+  event_requests: number
+}
+
+export interface AdminUser {
+  id: string
+  handle: string | null
+  archetype: string | null
+  avatar_url: string | null
+  is_verified: boolean
+  privy_id: string
+  created_at: string
 }

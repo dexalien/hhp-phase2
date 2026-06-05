@@ -4,6 +4,7 @@ import { use } from "react"
 import { useRouter } from "next/navigation"
 import { useHackerHouse, useUpdateHackerHouse } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
+import { ADMIN_USER_IDS } from "@/lib/admin"
 import { toast } from "sonner"
 import { PageContainer } from "../../../_components/page-container"
 import { CreateHackerHouseForm } from "../../create/_components/create-hacker-house-form"
@@ -15,9 +16,17 @@ import type { HackerHouse } from "@/lib/types"
 function hackerHouseToDefaults(hh: HackerHouse): Partial<CreateHackerHouseInput> {
   return {
     name: hh.name,
+    modality: hh.modality as CreateHackerHouseInput["modality"],
+    price_per_person: hh.price_per_person ?? undefined,
+    region: hh.region ?? "",
     city: hh.city,
     country: hh.country,
     neighborhood: hh.neighborhood ?? "",
+    address: hh.address ?? "",
+    checkin_wifi_password: hh.checkin_wifi_password ?? "",
+    checkin_room_info: hh.checkin_room_info ?? "",
+    checkin_lockbox: hh.checkin_lockbox ?? "",
+    checkin_notes: hh.checkin_notes ?? "",
     start_date: hh.start_date,
     end_date: hh.end_date,
     capacity: hh.capacity,
@@ -69,7 +78,8 @@ export default function EditHackerHousePage({
     )
   }
 
-  if (!hackerHouse || profile?.id !== hackerHouse.creator.id) {
+  const canEdit = profile && (profile.id === hackerHouse?.creator.id || ADMIN_USER_IDS.includes(profile.id))
+  if (!hackerHouse || !canEdit) {
     return (
       <PageContainer>
         <div className="flex flex-col items-center justify-center gap-4 py-20">
@@ -110,6 +120,7 @@ export default function EditHackerHousePage({
           onFormSubmit={handleSubmit}
           submitLabel="Save changes →"
           submittingLabel="Saving..."
+          editMode
         />
       </div>
     </PageContainer>

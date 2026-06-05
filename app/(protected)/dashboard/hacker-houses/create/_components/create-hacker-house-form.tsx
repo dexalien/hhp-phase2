@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { X } from "lucide-react"
 import { ARCHETYPES, LANGUAGES } from "@/lib/onboarding"
+import { useEvents } from "@/services/api/events"
 import {
   createHackerHouseSchema,
   type CreateHackerHouseInput,
@@ -70,14 +71,15 @@ const AMENITY_OPTIONS: { key: keyof CreateHackerHouseInput; label: string; descr
   { key: "includes_internet", label: "Internet", description: "High-speed WiFi included" },
 ]
 
-const STEPS = ["House", "Amenities", "Community", "Access"] as const
+const STEPS = ["House", "Amenities", "Community", "Access", "Check-in"] as const
 type Step = (typeof STEPS)[number]
 
 const STEP_FIELDS: Record<Step, (keyof CreateHackerHouseInput)[]> = {
-  House: ["name", "modality", "region", "country", "city"],
+  House: ["name", "modality", "region", "country", "city", "address"],
   Amenities: ["start_date", "end_date", "capacity"],
   Community: ["profile_sought", "language"],
   Access: ["application_type", "application_deadline"],
+  "Check-in": [],
 }
 
 const FIELD_TO_STEP: Partial<Record<keyof CreateHackerHouseInput, Step>> = {
@@ -88,6 +90,7 @@ const FIELD_TO_STEP: Partial<Record<keyof CreateHackerHouseInput, Step>> = {
   country: "House",
   city: "House",
   neighborhood: "House",
+  address: "House",
   start_date: "Amenities",
   end_date: "Amenities",
   capacity: "Amenities",
@@ -103,6 +106,10 @@ const FIELD_TO_STEP: Partial<Record<keyof CreateHackerHouseInput, Step>> = {
   event_timing: "Community",
   application_type: "Access",
   application_deadline: "Access",
+  checkin_wifi_password: "Check-in",
+  checkin_room_info: "Check-in",
+  checkin_lockbox: "Check-in",
+  checkin_notes: "Check-in",
 }
 
 function SectionCard({ children }: { children: React.ReactNode }) {
@@ -146,6 +153,7 @@ interface CreateHackerHouseFormProps {
   onFormSubmit: (values: CreateHackerHouseInput) => Promise<void>
   submitLabel: string
   submittingLabel: string
+  editMode?: boolean
 }
 
 export function CreateHackerHouseForm({
@@ -153,11 +161,13 @@ export function CreateHackerHouseForm({
   onFormSubmit,
   submitLabel,
   submittingLabel,
+  editMode = false,
 }: CreateHackerHouseFormProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>("House")
   const [serverError, setServerError] = useState<string | null>(null)
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
+  const [existingImages, setExistingImages] = useState<string[]>(defaultValues?.images ?? [])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadImage = useUploadHackerHouseImage()
 
@@ -187,6 +197,11 @@ export function CreateHackerHouseForm({
       country: "",
       city: "",
       neighborhood: "",
+      address: "",
+      checkin_wifi_password: "",
+      checkin_room_info: "",
+      checkin_lockbox: "",
+      checkin_notes: "",
       start_date: "",
       end_date: "",
       capacity: 4,
@@ -215,6 +230,9 @@ export function CreateHackerHouseForm({
   const watchedModality = useWatch({ control, name: "modality" })
   const watchedRegion = useWatch({ control, name: "region" })
   const watchedCountry = useWatch({ control, name: "country" })
+
+  const { data: eventsData } = useEvents()
+  const availableEvents = eventsData?.events ?? []
 
   const availableCountries = watchedRegion ? getCountriesForRegion(watchedRegion) : []
   const availableCities =
@@ -272,12 +290,15 @@ export function CreateHackerHouseForm({
   async function onSubmit(values: CreateHackerHouseInput) {
     setServerError(null)
     try {
-      let imageUrls: string[] = []
+      let newUrls: string[] = []
       if (pendingFiles.length > 0) {
         const results = await Promise.all(pendingFiles.map((p) => uploadImage.mutateAsync(p.file)))
-        imageUrls = results.map((r) => r.image_url)
+        newUrls = results.map((r) => r.image_url)
       }
-      await onFormSubmit({ ...values, images: imageUrls })
+      const finalImages = editMode
+        ? [...existingImages, ...newUrls]
+        : newUrls
+      await onFormSubmit({ ...values, images: finalImages })
     } catch (e) {
       const message = e instanceof Error ? e.message : "Something went wrong"
       toast.error(message)
@@ -294,46 +315,50 @@ export function CreateHackerHouseForm({
   }
 
 
+  const showStep = (s: Step) => editMode || step === s
+
   return (
     <div className="w-full flex flex-col gap-8">
-      {/* Step indicator */}
-      <div className="flex items-center w-full">
-        {STEPS.map((s, i) => (
-          <Fragment key={s}>
-            <div className="flex items-center gap-2 shrink-0">
-              <div
-                className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-bold border transition-all",
-                  i < stepIndex
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : i === stepIndex
-                      ? "border-primary text-primary"
-                      : "border-border text-muted-foreground",
-                )}
-              >
-                {i < stepIndex ? "✓" : i + 1}
+      {/* Step indicator — hidden in edit mode */}
+      {!editMode && (
+        <div className="flex items-center w-full">
+          {STEPS.map((s, i) => (
+            <Fragment key={s}>
+              <div className="flex items-center gap-2 shrink-0">
+                <div
+                  className={cn(
+                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-bold border transition-all",
+                    i < stepIndex
+                      ? "bg-primary border-primary text-primary-foreground"
+                      : i === stepIndex
+                        ? "border-primary text-primary"
+                        : "border-border text-muted-foreground",
+                  )}
+                >
+                  {i < stepIndex ? "✓" : i + 1}
+                </div>
+                <span
+                  className={cn(
+                    "text-xs font-mono hidden sm:block",
+                    i === stepIndex ? "text-foreground font-medium" : "text-muted-foreground",
+                  )}
+                >
+                  {s}
+                </span>
               </div>
-              <span
-                className={cn(
-                  "text-xs font-mono hidden sm:block",
-                  i === stepIndex ? "text-foreground font-medium" : "text-muted-foreground",
-                )}
-              >
-                {s}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn("h-px flex-1 mx-2", i < stepIndex ? "bg-primary" : "bg-border")}
-              />
-            )}
-          </Fragment>
-        ))}
-      </div>
+              {i < STEPS.length - 1 && (
+                <div
+                  className={cn("h-px flex-1 mx-2", i < stepIndex ? "bg-primary" : "bg-border")}
+                />
+              )}
+            </Fragment>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="w-full flex flex-col gap-4">
         {/* ── STEP 1: HOUSE ── */}
-        {step === "House" && (
+        {showStep("House") && (
           <SectionCard>
             <div>
               <h2 className="font-display font-bold text-foreground text-xl">About the house</h2>
@@ -396,6 +421,39 @@ export function CreateHackerHouseForm({
                 </Field>
               )}
             />
+
+            {(watchedModality === "paid" || watchedModality === "staking") && (
+              <Controller
+                name="price_per_person"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name} optional>
+                      {watchedModality === "staking" ? "Stake amount" : "Price per person"}
+                    </FieldLabel>
+                    <FieldDescription>
+                      {watchedModality === "staking"
+                        ? "Amount each member stakes to reserve their spot (USDC)"
+                        : "Amount each member pays to join the house (USDC)"}
+                    </FieldDescription>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-mono">$</span>
+                      <Input
+                        id={field.name}
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder="0"
+                        className="pl-7"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+                      />
+                    </div>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+            )}
 
             {watchedModality === "free" && (
               <Controller
@@ -527,11 +585,30 @@ export function CreateHackerHouseForm({
                 </Field>
               )}
             />
+
+            <Controller
+              name="address"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Exact Address</FieldLabel>
+                  <FieldDescription>
+                    Only revealed to accepted participants. Publicly shown as a blurred neighborhood pin.
+                  </FieldDescription>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    placeholder="Street address, building name, floor..."
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
           </SectionCard>
         )}
 
         {/* ── STEP 2: AMENITIES ── */}
-        {step === "Amenities" && (
+        {showStep("Amenities") && (
           <SectionCard>
             <div>
               <h2 className="font-display font-bold text-foreground text-xl">Dates & amenities</h2>
@@ -649,6 +726,20 @@ export function CreateHackerHouseForm({
               <FieldLabel optional>Photos</FieldLabel>
               <FieldDescription>Max 5 photos. First one is the cover.</FieldDescription>
               <div className="flex flex-wrap gap-2">
+                {/* Existing images (edit mode) */}
+                {editMode && existingImages.map((url, index) => (
+                  <div key={url} className="relative size-20 rounded-lg overflow-hidden border border-border group">
+                    <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setExistingImages((prev) => prev.filter((_, i) => i !== index))}
+                      className="absolute top-1 right-1 size-5 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="size-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                {/* New pending files */}
                 {pendingFiles.map((p, index) => (
                   <div key={p.preview} className="relative size-20 rounded-lg overflow-hidden border border-border group">
                     <img src={p.preview} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
@@ -661,7 +752,7 @@ export function CreateHackerHouseForm({
                     </button>
                   </div>
                 ))}
-                {pendingFiles.length < 5 && (
+                {(editMode ? existingImages.length : 0) + pendingFiles.length < 5 && (
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -685,7 +776,7 @@ export function CreateHackerHouseForm({
         )}
 
         {/* ── STEP 3: COMMUNITY ── */}
-        {step === "Community" && (
+        {showStep("Community") && (
           <SectionCard>
             <div>
               <h2 className="font-display font-bold text-foreground text-xl">Community</h2>
@@ -824,6 +915,34 @@ export function CreateHackerHouseForm({
 
             {hasEvent && (
               <div className="flex flex-col gap-4 pl-3 border-l-2 border-primary/30">
+                {/* Event picker from existing HHP events */}
+                {availableEvents.length > 0 && (
+                  <Field>
+                    <FieldLabel>Pick from HHP Events</FieldLabel>
+                    <FieldDescription>Select an event to auto-fill the fields below.</FieldDescription>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg text-sm bg-transparent border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                      style={{ background: "var(--card)" }}
+                      defaultValue=""
+                      onChange={(e) => {
+                        const event = availableEvents.find((ev) => ev.id === e.target.value)
+                        if (!event) return
+                        setValue("event_name", event.name)
+                        setValue("event_url", event.website_url ?? "")
+                        setValue("event_start_date", event.start_date)
+                        setValue("event_end_date", event.end_date)
+                      }}
+                    >
+                      <option value="">— Select an event —</option>
+                      {availableEvents.map((ev) => (
+                        <option key={ev.id} value={ev.id}>
+                          {ev.name} · {ev.city}, {ev.country}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+
                 <Controller
                   name="event_name"
                   control={control}
@@ -925,7 +1044,7 @@ export function CreateHackerHouseForm({
         )}
 
         {/* ── STEP 4: ACCESS ── */}
-        {step === "Access" && (
+        {showStep("Access") && (
           <SectionCard>
             <div>
               <h2 className="font-display font-bold text-foreground text-xl">
@@ -976,7 +1095,7 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Application deadline</FieldLabel>
+                  <FieldLabel optional>Application deadline</FieldLabel>
                   <DatePicker
                     value={field.value}
                     onChange={(v) => field.onChange(v ?? "")}
@@ -991,6 +1110,63 @@ export function CreateHackerHouseForm({
           </SectionCard>
         )}
 
+        {/* ── STEP 5: CHECK-IN ── */}
+        {showStep("Check-in") && (
+          <SectionCard>
+            <div>
+              <h2 className="font-display font-bold text-foreground text-xl">Self check-in</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Only revealed to accepted participants after joining. All fields are optional.
+              </p>
+            </div>
+
+            <Controller
+              name="checkin_wifi_password"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name} optional>WiFi Password</FieldLabel>
+                  <Input {...field} id={field.name} placeholder="Network name · Password" />
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="checkin_room_info"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name} optional>Room / Apartment</FieldLabel>
+                  <Input {...field} id={field.name} placeholder="e.g. Apt 3B, Floor 2, Room 7" />
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="checkin_lockbox"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name} optional>Lockbox / Door Code</FieldLabel>
+                  <Input {...field} id={field.name} placeholder="e.g. #1234 or press * then 4729#" />
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="checkin_notes"
+              control={control}
+              render={({ field }) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name} optional>Additional Notes</FieldLabel>
+                  <FieldDescription>Anything else participants need to know to get in.</FieldDescription>
+                  <Textarea {...field} id={field.name} placeholder="e.g. Ring bell twice, concierge has spare key..." rows={3} className="resize-none" />
+                </Field>
+              )}
+            />
+          </SectionCard>
+        )}
+
         {/* Server error */}
         {serverError && (
           <p className="text-sm font-mono text-destructive border border-destructive/30 rounded-lg px-4 py-2.5 bg-destructive/5">
@@ -999,19 +1175,9 @@ export function CreateHackerHouseForm({
         )}
 
         {/* Navigation */}
-        <div className="flex justify-between pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => (stepIndex > 0 ? setStep(STEPS[stepIndex - 1]) : router.back())}
-            className="font-mono text-sm"
-          >
-            ← {stepIndex === 0 ? "Cancel" : "Back"}
-          </Button>
-
-          {step === "Access" ? (
+        {editMode ? (
+          <div className="flex justify-end pt-2">
             <Button
-              key="submit"
               type="submit"
               disabled={isSubmitting}
               className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
@@ -1024,17 +1190,45 @@ export function CreateHackerHouseForm({
                 submitLabel
               )}
             </Button>
-          ) : (
+          </div>
+        ) : (
+          <div className="flex justify-between pt-2">
             <Button
-              key="continue"
               type="button"
-              onClick={goNext}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              variant="ghost"
+              onClick={() => (stepIndex > 0 ? setStep(STEPS[stepIndex - 1]) : router.back())}
+              className="font-mono text-sm"
             >
-              Continue →
+              ← {stepIndex === 0 ? "Cancel" : "Back"}
             </Button>
-          )}
-        </div>
+
+            {step === "Check-in" ? (
+              <Button
+                key="submit"
+                type="submit"
+                disabled={isSubmitting}
+                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Spinner className="mr-2" /> {submittingLabel}
+                  </>
+                ) : (
+                  submitLabel
+                )}
+              </Button>
+            ) : (
+              <Button
+                key="continue"
+                type="button"
+                onClick={goNext}
+                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              >
+                Continue →
+              </Button>
+            )}
+          </div>
+        )}
       </form>
     </div>
   )

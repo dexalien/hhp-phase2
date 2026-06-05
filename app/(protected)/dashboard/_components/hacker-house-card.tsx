@@ -8,6 +8,7 @@ import type { HackerHouse } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
+import { parseLocalDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 const STATUS_CONFIG = {
@@ -198,8 +199,8 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
                 <>
                   {" · "}
                   {hackerHouse.event_end_date
-                    ? `${new Date(hackerHouse.event_start_date).getDate()}–${new Date(hackerHouse.event_end_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
-                    : new Date(hackerHouse.event_start_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
+                    ? `${parseLocalDate(hackerHouse.event_start_date).getDate()}–${parseLocalDate(hackerHouse.event_end_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
+                    : parseLocalDate(hackerHouse.event_start_date).toLocaleDateString("en-US", { day: "numeric", month: "short" })}
                 </>
               )}
             </span>

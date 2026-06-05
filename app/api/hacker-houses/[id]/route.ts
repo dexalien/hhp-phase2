@@ -3,6 +3,7 @@ import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
 import { updateHackerHouseSchema } from "@/lib/schemas/hacker-house"
 import { geocodeAndUpdate } from "@/lib/geocode"
+import { isAdmin } from "@/lib/admin"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -75,7 +76,7 @@ export async function PATCH(
 
   const { data: hackerHouse } = await supabaseServer
     .from("hacker_houses")
-    .select("id, creator_id, city, country")
+    .select("id, creator_id, city, country, address")
     .eq("id", id)
     .single()
 
@@ -83,7 +84,7 @@ export async function PATCH(
     return NextResponse.json({ message: "Hacker House not found" }, { status: 404 })
   }
 
-  if (hackerHouse.creator_id !== user.id) {
+  if (hackerHouse.creator_id !== user.id && !isAdmin(user.id)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 })
   }
 
@@ -108,7 +109,7 @@ export async function PATCH(
     cleaned.event_url = null
     cleaned.event_start_date = null
     cleaned.event_end_date = null
-    cleaned.event_timing = null
+    cleaned.event_timing = []
   }
 
   cleaned.updated_at = new Date().toISOString()
@@ -125,11 +126,12 @@ export async function PATCH(
     return NextResponse.json({ message: error.message }, { status: 500 })
   }
 
-  if (cleaned.city !== undefined || cleaned.country !== undefined) {
+  if (cleaned.city !== undefined || cleaned.country !== undefined || cleaned.address !== undefined) {
     const finalCity = (cleaned.city as string | null) ?? hackerHouse.city
     const finalCountry = (cleaned.country as string | null) ?? hackerHouse.country
+    const finalAddress = (cleaned.address as string | null) ?? hackerHouse.address ?? undefined
     if (finalCity && finalCountry) {
-      geocodeAndUpdate("hacker_houses", id, finalCity, finalCountry)
+      geocodeAndUpdate("hacker_houses", id, finalCity, finalCountry, finalAddress ?? undefined)
     }
   }
 

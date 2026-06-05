@@ -9,7 +9,7 @@ import type {
   CommunityListParams,
   CommunityListResponse,
 } from "@/lib/types"
-import type { CreateCommunityInput } from "@/lib/schemas/community"
+import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/schemas/community"
 
 const PAGE_SIZE = 12
 
@@ -55,6 +55,24 @@ export const useCreateCommunity = () => {
     },
     options: {
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
+      },
+    },
+  })
+}
+
+export const useUpdateCommunity = (communityId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<UpdateCommunityInput, Community>({
+    fetcher: async (input) => {
+      const { community } = await genericAuthRequest<{
+        community: Community
+      }>("patch", `/api/communities/${communityId}`, input)
+      return community
+    },
+    options: {
+      onSuccess: (updated) => {
+        queryClient.setQueryData([queryKeys.community, communityId], updated)
         queryClient.invalidateQueries({ queryKey: [queryKeys.communities] })
       },
     },

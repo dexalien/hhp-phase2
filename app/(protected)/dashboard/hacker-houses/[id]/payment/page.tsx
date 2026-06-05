@@ -2,23 +2,32 @@
 
 import { use, useState, useEffect } from "react"
 import Link from "next/link"
-import { useHackerHouse } from "@/services/api/hacker-houses"
+import { useHackerHouse, useJoinHackerHouse } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
 import { PageContainer } from "../../../_components/page-container"
 import { ARCHETYPES } from "@/lib/onboarding"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 import { MapPin, Users, Check, ArrowLeft, Lock } from "lucide-react"
 import type { HouseModality } from "@/lib/types"
 
 type PaymentStep = "details" | "payment" | "success"
 
-function getCostLabel(modality: HouseModality) {
+function getCostLabel(modality: HouseModality, pricePerPerson: number | null, capacity: number) {
+  const price = pricePerPerson ?? 0
   switch (modality) {
     case "paid":
-      return { share: "256 USDC", total: "2,048 USDC", method: "USDC" }
+      return {
+        share: price > 0 ? `${price} USDC` : "TBD",
+        total: price > 0 ? `${price * capacity} USDC` : "TBD",
+        method: "USDC",
+      }
     case "staking":
-      return { share: "0.08 ETH", total: "0.48 ETH", method: "ETH" }
+      return {
+        share: price > 0 ? `${price} USDC` : "TBD",
+        total: price > 0 ? `${price * capacity} USDC` : "TBD",
+        method: "USDC",
+      }
     case "free":
       return { share: "Free", total: "Sponsored", method: "N/A" }
   }
@@ -62,12 +71,18 @@ export default function PaymentPage({
   const [step, setStep] = useState<PaymentStep>("details")
   const [selectedPayment, setSelectedPayment] = useState("usdc")
   const [showConfetti, setShowConfetti] = useState(false)
+  const joinMutation = useJoinHackerHouse(id)
 
   useEffect(() => {
     if (step === "success") {
       setShowConfetti(true)
     }
   }, [step])
+
+  async function handleConfirmPayment() {
+    await joinMutation.mutateAsync()
+    setStep("success")
+  }
 
   if (isLoading) {
     return (
@@ -92,7 +107,7 @@ export default function PaymentPage({
     )
   }
 
-  const costLabel = getCostLabel(hackerHouse.modality)
+  const costLabel = getCostLabel(hackerHouse.modality, hackerHouse.price_per_person, hackerHouse.capacity)
   const allParticipants = [hackerHouse.creator, ...(hackerHouse.participants ?? [])]
   const isStaking = hackerHouse.modality === "staking"
 
@@ -251,13 +266,11 @@ export default function PaymentPage({
               {isStaking ? "Staking Method" : "Payment Method"}
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {isStaking
-                ? "Stake via ETH on Arbitrum."
-                : "We only accept payments via USDC at this time."}
+              We only accept payments via USDC at this time.
             </p>
 
             <button
-              onClick={() => setSelectedPayment(isStaking ? "eth" : "usdc")}
+              onClick={() => setSelectedPayment("usdc")}
               className={cn(
                 "w-full p-4 rounded-xl border transition-colors flex items-center gap-3",
                 "bg-primary/20 border-primary",
@@ -296,11 +309,12 @@ export default function PaymentPage({
 
           {/* Pay button */}
           <button
-            onClick={() => setStep("success")}
-            className="w-full py-4 px-6 bg-builder-archetype text-background font-bold rounded-full hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            onClick={handleConfirmPayment}
+            disabled={joinMutation.isPending}
+            className="w-full py-4 px-6 bg-builder-archetype text-background font-bold rounded-full hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isStaking && <Lock className="size-4" />}
-            {isStaking ? "Confirm Stake" : "Pay Now"}
+            {joinMutation.isPending ? "Confirming..." : isStaking ? "Confirm Stake" : "Pay Now"}
           </button>
         </div>
       </PageContainer>
@@ -343,12 +357,12 @@ export default function PaymentPage({
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <span>When</span>
             <span className="text-foreground">
-              {new Date(hackerHouse.start_date).toLocaleDateString("en-US", {
+              {parseLocalDate(hackerHouse.start_date).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
               })}
               –
-              {new Date(hackerHouse.end_date).toLocaleDateString("en-US", {
+              {parseLocalDate(hackerHouse.end_date).toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",

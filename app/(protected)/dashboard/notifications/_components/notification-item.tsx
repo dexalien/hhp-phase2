@@ -13,6 +13,7 @@ const ICON_MAP: Record<NotificationType, React.ElementType> = {
   hack_space_accepted: Zap,
   hacker_house_application: Building2,
   hacker_house_accepted: Building2,
+  event_request: Bell,
 }
 
 function getRelativeTime(dateString: string): string {

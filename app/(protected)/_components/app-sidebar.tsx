@@ -11,12 +11,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Bell, Calendar, Code2, Home, Map, Settings, User, Users } from "lucide-react"
+import { Bell, Calendar, Code2, Home, Map, Settings, Shield, User, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import React from "react"
 import { SidebarUserCard } from "./sidebar-user-card"
 import { NotificationBadge } from "./notification-badge"
+import { useProfile } from "@/services/api/profile"
+import { ADMIN_USER_IDS } from "@/lib/admin"
 
 const NAV_MAIN: {
   key: string
@@ -35,6 +37,7 @@ const NAV_MAIN: {
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { data: profile } = useProfile()
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href
@@ -85,6 +88,22 @@ export function AppSidebar() {
 
       <SidebarFooter className="px-4 pb-6">
         <SidebarMenu className="gap-1">
+          {profile && ADMIN_USER_IDS.includes(profile.id) && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                size="lg"
+                isActive={isActive("/dashboard/admin")}
+                tooltip="Admin"
+                className="h-12 text-base font-medium [&_svg]:size-5 px-4 gap-3 rounded-full hover:bg-transparent hover:text-sidebar-accent-foreground"
+              >
+                <Link href="/dashboard/admin">
+                  <Shield />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild

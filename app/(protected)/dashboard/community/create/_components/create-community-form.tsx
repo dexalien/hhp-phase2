@@ -18,12 +18,14 @@ interface CommunityFormProps {
   onFormSubmit: (values: CreateCommunityInput) => Promise<void>
   submitLabel?: string
   submittingLabel?: string
+  defaultValues?: Partial<CreateCommunityInput>
 }
 
 export function CommunityForm({
   onFormSubmit,
   submitLabel = "Create Community",
   submittingLabel = "Creating...",
+  defaultValues,
 }: CommunityFormProps) {
   const {
     register,
@@ -39,11 +41,14 @@ export function CommunityForm({
       description: "",
       category: undefined,
       image_url: "",
+      city: "",
+      country: "",
+      ...defaultValues,
     },
   })
 
   const uploadImage = useUploadCommunityImage()
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(defaultValues?.image_url ?? null)
   const fileRef = useRef<HTMLInputElement>(null)
   const imageUrl = watch("image_url")
 
@@ -120,6 +125,25 @@ export function CommunityForm({
         {errors.category && (
           <p className="text-destructive text-xs">{errors.category.message}</p>
         )}
+      </div>
+
+      {/* Location (optional) */}
+      <div className="flex flex-col gap-2">
+        <label className="font-display font-bold text-sm text-foreground">
+          Location <span className="text-muted-foreground font-normal">(optional — shows on map)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            {...register("city")}
+            placeholder="City"
+            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+          />
+          <input
+            {...register("country")}
+            placeholder="Country"
+            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+          />
+        </div>
       </div>
 
       {/* Cover Image */}

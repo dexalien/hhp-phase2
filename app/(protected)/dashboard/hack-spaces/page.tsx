@@ -57,6 +57,7 @@ export default function HackSpacesPage() {
     status: parseAsString.withDefault(""),
     looking_for: parseAsString.withDefault(""),
     q: parseAsString.withDefault(""),
+    event_name: parseAsString.withDefault(""),
   })
 
   const [searchInput, setSearchInput] = useState(filters.q)
@@ -67,6 +68,7 @@ export default function HackSpacesPage() {
   if (filters.status) activeFilters.status = filters.status as HackSpaceStatus
   if (filters.looking_for) activeFilters.looking_for = filters.looking_for
   if (debouncedSearch) activeFilters.q = debouncedSearch
+  if (filters.event_name) activeFilters.event_name = filters.event_name
 
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useFilteredHackSpaces(activeFilters)
@@ -77,10 +79,10 @@ export default function HackSpacesPage() {
   const total = data?.pages[0]?.total ?? 0
 
   const hasActiveFilters =
-    !!filters.track || !!filters.status || !!filters.looking_for || !!filters.q
+    !!filters.track || !!filters.status || !!filters.looking_for || !!filters.q || !!filters.event_name
 
   function handleClearFilters() {
-    void setFilters({ track: "", status: "", looking_for: "", q: "" })
+    void setFilters({ track: "", status: "", looking_for: "", q: "", event_name: "" })
     setSearchInput("")
   }
 
@@ -160,11 +162,11 @@ export default function HackSpacesPage() {
           </div>
 
           {/* Looking for row */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
             <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest shrink-0">
               Looking for
             </span>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               {ARCHETYPES.map((a) => (
                 <button
                   key={a.id}
@@ -197,12 +199,12 @@ export default function HackSpacesPage() {
           </div>
 
           {/* Status row + clear */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5 flex-1 min-w-0">
               <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest shrink-0">
                 Status
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 {STATUS_OPTIONS.map(({ value, label, colorVar }) => (
                   <button
                     key={value}
@@ -255,11 +257,26 @@ export default function HackSpacesPage() {
               </button>
             )}
           </div>
+
+          {/* Event filter banner */}
+          {filters.event_name && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-sm">
+              <span className="text-muted-foreground font-mono text-xs">Event:</span>
+              <span className="text-foreground font-medium text-xs truncate">{filters.event_name}</span>
+              <button
+                type="button"
+                onClick={() => void setFilters({ event_name: "" })}
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0 text-xs"
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Results */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
@@ -307,7 +324,7 @@ export default function HackSpacesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {hackSpaces.map((hs) => (
               <HackSpaceCard
                 key={hs.id}

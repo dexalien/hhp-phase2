@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
+import { isAdmin } from "@/lib/admin"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -58,4 +59,54 @@ export async function GET(
   return NextResponse.json({
     community: { ...data, member_count: count ?? 0, is_member: isMember },
   })
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params
+
+  const privyUserId = await getPrivyUserId(req)
+  if (!privyUserId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+  const { data: user } = await supabaseServer
+    .from("users")
+    .select("id")
+    .eq("privy_id", privyUserId)
+    .single()
+  if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 })
+
+  // Only creator can edit
+  const { data: community } = await supabaseServer
+    .from("communities")
+    .select("creator_id")
+    .eq("id", id)
+    .single()
+  if (!community) return NextResponse.json({ message: "Not found" }, { status: 404 })
+  if (community.creator_id !== user.id && !isAdmin(user.id)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+
+  const body: unknown = await req.json()
+  const { updateCommunitySchema } = await import("@/lib/schemas/community")
+  const parsed = updateCommunitySchema.safeParse(body)
+  if (!parsed.success) return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 })
+
+  const updates: Record<string, unknown> = {}
+  if (parsed.data.name !== undefined)        updates.name = parsed.data.name
+  if (parsed.data.description !== undefined) updates.description = parsed.data.description
+  if (parsed.data.category !== undefined)    updates.category = parsed.data.category
+  if (parsed.data.image_url !== undefined)   updates.image_url = parsed.data.image_url || null
+  if (parsed.data.city !== undefined)        updates.city = parsed.data.city || null
+  if (parsed.data.country !== undefined)     updates.country = parsed.data.country || null
+
+  const { data: updated, error } = await supabaseServer
+    .from("communities")
+    .update(updates)
+    .eq("id", id)
+    .select(`*, creator:users!creator_id(id, handle, archetype, avatar_url)`)
+    .single()
+
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 })
+
+  return NextResponse.json({ community: updated })
 }

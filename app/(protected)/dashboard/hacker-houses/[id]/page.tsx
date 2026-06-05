@@ -1,6 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import {
   useHackerHouse,
@@ -14,7 +15,7 @@ import { HackerHouseApplicationManager } from "./_components/hacker-house-applic
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 import {
   PenLine,
   Users,
@@ -38,6 +39,11 @@ import {
 } from "lucide-react"
 import { BackButton } from "../../../_components/back-button"
 import type { HouseModality } from "@/lib/types"
+
+const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.MiniMap), {
+  ssr: false,
+  loading: () => <div className="rounded-lg bg-muted animate-pulse mb-6" style={{ height: 180 }} />,
+})
 
 /* ── Mode config ── */
 const MODE_CONFIG: Record<
@@ -118,20 +124,46 @@ const INCLUDES_ICONS = [
   { key: "includes_internet", icon: Wifi, label: "WiFi" },
 ] as const
 
+function CheckinRow({ icon, label, value, copyable }: { icon: React.ReactNode; label: string; value: string; copyable?: boolean }) {
+  const [copied, setCopied] = useState(false)
+  function copy() {
+    void navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+        {icon}
+        <span className="text-xs font-mono">{label}</span>
+      </div>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm text-foreground font-medium truncate">{value}</span>
+        {copyable && (
+          <button onClick={copy} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+            {copied ? <Check className="size-3.5 text-primary" /> : <Copy className="size-3.5" />}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function formatDateRange(start: string, end: string): string {
   const s = new Date(start)
   const e = new Date(end)
   return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
 }
 
-function getCostDisplay(modality: HouseModality, capacity: number) {
+function getCostDisplay(modality: HouseModality, capacity: number, pricePerPerson: number | null) {
+  const price = pricePerPerson ?? 0
   switch (modality) {
     case "paid":
-      return { costPerPerson: "256 USDC", totalAmount: `${256 * capacity} USDC`, amountRaised: "TBD" }
+      return { costPerPerson: price > 0 ? `${price} USDC` : "TBD", totalAmount: price > 0 ? `${price * capacity} USDC` : "TBD", amountRaised: "TBD" }
     case "free":
       return { costPerPerson: "Free", totalAmount: "Sponsored", amountRaised: "Sponsored" }
     case "staking":
-      return { costPerPerson: "0.08 ETH", totalAmount: `${(0.08 * capacity).toFixed(2)} ETH`, amountRaised: "TBD" }
+      return { costPerPerson: price > 0 ? `${price} USDC` : "TBD", totalAmount: price > 0 ? `${price * capacity} USDC` : "TBD", amountRaised: "TBD" }
   }
 }
 
@@ -149,6 +181,7 @@ export default function HackerHouseDetailPage({
   const [showGallery, setShowGallery] = useState(false)
   const [showApplyForm, setShowApplyForm] = useState(false)
   const [message, setMessage] = useState("")
+  const [showNft, setShowNft] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
 
   if (isLoading) {
@@ -185,13 +218,14 @@ export default function HackerHouseDetailPage({
   }
 
   const isOwner = profile?.id === hackerHouse.creator.id
+  const isAccepted = isOwner || (hackerHouse.participants ?? []).some((p) => p.id === profile?.id)
   const modeCfg = MODE_CONFIG[hackerHouse.modality] ?? MODE_CONFIG.paid
   const statusCfg = STATUS_CONFIG[hackerHouse.status as HouseStatus] ?? STATUS_CONFIG.open
   const canApply = !isOwner && hackerHouse.status === "open"
   const allParticipants = [hackerHouse.creator, ...(hackerHouse.participants ?? [])]
   const filledCount = hackerHouse.participants_count
   const progress = hackerHouse.capacity > 0 ? Math.round((filledCount / hackerHouse.capacity) * 100) : 0
-  const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity)
+  const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity, hackerHouse.price_per_person)
   const images = hackerHouse.images.length > 0
     ? hackerHouse.images
     : ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop"]
@@ -318,6 +352,34 @@ export default function HackerHouseDetailPage({
               <CalendarDays className="size-4" />
               <span>{formatDateRange(hackerHouse.start_date, hackerHouse.end_date)}</span>
             </div>
+            {hackerHouse.lat && hackerHouse.lng && (
+              <div className="mb-4">
+                <MiniMap
+                  lat={hackerHouse.lat}
+                  lng={hackerHouse.lng}
+                  href={`/dashboard/map?lat=${hackerHouse.lat}&lng=${hackerHouse.lng}&zoom=17`}
+                  className="border border-border"
+                />
+              </div>
+            )}
+
+            {hackerHouse.address && (
+              <div className="flex items-start gap-2 mb-4">
+                <MapPin className="size-4 text-muted-foreground mt-0.5 shrink-0" />
+                {isAccepted ? (
+                  <p className="text-sm text-foreground">{hackerHouse.address}</p>
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm text-foreground blur-sm select-none pointer-events-none">
+                      {hackerHouse.address}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Address revealed once you mark as attending
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <p className="text-muted-foreground">
               Hosted by{" "}
@@ -332,7 +394,7 @@ export default function HackerHouseDetailPage({
 
           {/* Owner actions */}
           {isOwner && (
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
+            <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-border">
               <Link href={`/dashboard/hacker-houses/${id}/edit`}>
                 <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 rounded-full">
                   <PenLine className="size-3.5" />
@@ -431,12 +493,12 @@ export default function HackerHouseDetailPage({
                     <h3 className="font-display font-bold text-foreground">{hackerHouse.event_name}</h3>
                     <p className="text-muted-foreground text-sm">
                       {hackerHouse.event_start_date &&
-                        new Date(hackerHouse.event_start_date).toLocaleDateString("en-US", {
+                        parseLocalDate(hackerHouse.event_start_date).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                         })}
                       {hackerHouse.event_end_date &&
-                        `–${new Date(hackerHouse.event_end_date).toLocaleDateString("en-US", {
+                        `–${parseLocalDate(hackerHouse.event_end_date).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                         })}`}
@@ -468,7 +530,7 @@ export default function HackerHouseDetailPage({
                 {hackerHouse.modality === "paid" && (
                   <>
                     <p className="text-builder-archetype font-bold">
-                      {filledCount * 256} USDC
+                      {filledCount * (hackerHouse.price_per_person ?? 0)} USDC
                     </p>
                     <p className="text-muted-foreground text-xs">of {costInfo.totalAmount}</p>
                   </>
@@ -479,7 +541,7 @@ export default function HackerHouseDetailPage({
                 {hackerHouse.modality === "staking" && (
                   <>
                     <p className="text-builder-archetype font-bold">
-                      {(filledCount * 0.08).toFixed(2)} ETH staked
+                      {filledCount * (hackerHouse.price_per_person ?? 0)} USDC staked
                     </p>
                     <p className="text-muted-foreground text-xs">of {costInfo.totalAmount}</p>
                   </>
@@ -517,6 +579,49 @@ export default function HackerHouseDetailPage({
               )}
             </div>
           </section>
+
+          {/* ── Self Check-in ── */}
+          {(() => {
+            const hasCheckin = hackerHouse.checkin_wifi_password || hackerHouse.checkin_room_info || hackerHouse.checkin_lockbox || hackerHouse.checkin_notes
+            if (!hasCheckin && !isOwner) return null
+            return (
+              <section className="mb-8">
+                <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+                  <Lock className="size-4 opacity-60" />
+                  Self Check-in
+                </h2>
+                {isAccepted ? (
+                  <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
+                    {hackerHouse.checkin_wifi_password && (
+                      <CheckinRow icon={<Wifi className="size-4" />} label="WiFi" value={hackerHouse.checkin_wifi_password} copyable />
+                    )}
+                    {hackerHouse.checkin_room_info && (
+                      <CheckinRow icon={<Home className="size-4" />} label="Room / Apt" value={hackerHouse.checkin_room_info} copyable />
+                    )}
+                    {hackerHouse.checkin_lockbox && (
+                      <CheckinRow icon={<Lock className="size-4" />} label="Lockbox / Door" value={hackerHouse.checkin_lockbox} copyable />
+                    )}
+                    {hackerHouse.checkin_notes && (
+                      <div className="pt-2 border-t border-border">
+                        <p className="text-xs text-muted-foreground font-mono mb-1">Notes</p>
+                        <p className="text-sm text-foreground whitespace-pre-line">{hackerHouse.checkin_notes}</p>
+                      </div>
+                    )}
+                    {!hasCheckin && isOwner && (
+                      <p className="text-sm text-muted-foreground font-mono">
+                        No check-in details yet. <Link href={`/dashboard/hacker-houses/${id}/edit`} className="text-primary hover:underline">Add them →</Link>
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-card border border-border rounded-xl p-5 flex items-center gap-3 text-muted-foreground">
+                    <Lock className="size-5 shrink-0" />
+                    <p className="text-sm">WiFi password, room number, lockbox code and notes are revealed once you join.</p>
+                  </div>
+                )}
+              </section>
+            )
+          })()}
 
           {/* ── Added Hacker Homies ── */}
           <section className="mb-8">
@@ -567,9 +672,14 @@ export default function HackerHouseDetailPage({
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-sm">
-                        Pending
+                    <div className="text-right flex flex-col items-end gap-0.5">
+                      {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
+                        <span className="text-sm font-bold text-foreground">
+                          {hackerHouse.price_per_person} USDC
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
+                        <Check className="size-3" /> Paid
                       </span>
                     </div>
                   </div>
@@ -722,7 +832,14 @@ export default function HackerHouseDetailPage({
                 <p className="text-foreground font-bold text-lg">{costInfo.costPerPerson}</p>
                 <p className="text-muted-foreground text-sm">{modeCfg.footerLabel}</p>
               </div>
-              {hackerHouse.modality === "free" ? (
+              {isAccepted ? (
+                <button
+                  onClick={() => setShowNft(true)}
+                  className="flex-1 max-w-xs py-4 px-6 font-bold rounded-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                >
+                  🔑 See your Key NFT
+                </button>
+              ) : isOwner ? null : hackerHouse.modality === "free" ? (
                 <button
                   onClick={() => setShowApplyForm(true)}
                   className={cn(
@@ -744,6 +861,70 @@ export default function HackerHouseDetailPage({
                   {modeCfg.ctaText}
                 </Link>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Key NFT Modal ── */}
+        {showNft && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
+            <div className="relative bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden">
+              <button
+                onClick={() => setShowNft(false)}
+                className="absolute top-3 right-3 size-8 bg-muted rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10"
+              >
+                <X className="size-4" />
+              </button>
+
+              {/* Key visual */}
+              <div className="relative h-56 bg-gradient-to-br from-primary/30 via-strategist/20 to-card flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--primary) 40%, transparent) 0%, transparent 70%)" }} />
+                <img
+                  src="/assets/nft-key.png"
+                  alt="Key NFT"
+                  className="relative w-[90%] h-full object-contain"
+                  style={{ filter: "drop-shadow(0 0 32px var(--primary)) drop-shadow(0 0 64px color-mix(in oklch, var(--primary) 50%, transparent))" }}
+                />
+              </div>
+
+              {/* Info */}
+              <div className="p-6 flex flex-col gap-4">
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <span className="px-3 py-1 rounded-full text-xs font-mono border border-primary/40 text-primary bg-primary/10">
+                    Key NFT · #{String(filledCount).padStart(4, "0")}
+                  </span>
+                  <p className="text-xs text-muted-foreground font-mono mt-2">Welcome to</p>
+                  <h3 className="font-display font-bold text-xl text-foreground">{hackerHouse.name}</h3>
+                  <p className="text-primary font-mono text-sm">@{profile?.handle ?? "anon"}</p>
+                </div>
+
+                <div className="flex flex-col gap-2 text-sm">
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="font-mono text-xs">Location</span>
+                    <span className="text-foreground">{hackerHouse.city}, {hackerHouse.country}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="font-mono text-xs">Dates</span>
+                    <span className="text-foreground">{formatDateRange(hackerHouse.start_date, hackerHouse.end_date)}</span>
+                  </div>
+                  {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span className="font-mono text-xs">Paid</span>
+                      <span className="text-[#6EE76E] font-bold">{hackerHouse.price_per_person} USDC ✓</span>
+                    </div>
+                  )}
+                </div>
+
+                <a
+                  href="https://etherscan.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors text-sm font-mono"
+                >
+                  <ExternalLink className="size-4" />
+                  See it on Etherscan (coming soon)
+                </a>
+              </div>
             </div>
           </div>
         )}

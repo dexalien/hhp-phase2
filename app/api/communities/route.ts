@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
 import { createCommunitySchema } from "@/lib/schemas/community"
+import { geocodeAndUpdate } from "@/lib/geocode"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -118,6 +119,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const cityVal = parsed.data.city || null
+  const countryVal = parsed.data.country || null
+
   const { data, error } = await supabaseServer
     .from("communities")
     .insert({
@@ -126,6 +130,8 @@ export async function POST(req: NextRequest) {
       description: parsed.data.description,
       category: parsed.data.category,
       image_url: parsed.data.image_url || null,
+      city: cityVal,
+      country: countryVal,
     })
     .select(`*, creator:users!creator_id(id, handle, archetype, avatar_url)`)
     .single()
@@ -140,6 +146,11 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     role: "creator",
   })
+
+  // Geocode if city+country provided
+  if (cityVal && countryVal) {
+    geocodeAndUpdate("communities", data.id, cityVal, countryVal)
+  }
 
   return NextResponse.json({ community: { ...data, member_count: 1, is_member: true } }, { status: 201 })
 }

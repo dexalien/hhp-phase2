@@ -8,14 +8,16 @@ import {
   Check,
   Crown,
   Calendar,
-  MessageSquare,
   FolderOpen,
   Wrench,
   Info,
   LogOut,
+  Pencil,
   Image as ImageIcon,
 } from "lucide-react"
-import { useCommunity, useJoinCommunity, useLeaveCommunity, useCommunityMembers } from "@/services/api/communities"
+import { useCommunity, useJoinCommunity, useLeaveCommunity, useCommunityMembers, useUpdateCommunity } from "@/services/api/communities"
+import { CommunityForm } from "../create/_components/create-community-form"
+import { ADMIN_USER_IDS } from "@/lib/admin"
 import { useProfile } from "@/services/api/profile"
 import { PageContainer } from "../../_components/page-container"
 import { BackButton } from "../../../_components/back-button"
@@ -38,13 +40,15 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 export default function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [activeTab, setActiveTab] = useState<Tab>("about")
+  const [isEditing, setIsEditing] = useState(false)
   const { data: community, isLoading } = useCommunity(id)
   const { data: profile } = useProfile()
   const { data: members, isLoading: membersLoading } = useCommunityMembers(id)
   const joinMutation = useJoinCommunity(id)
   const leaveMutation = useLeaveCommunity(id)
+  const updateMutation = useUpdateCommunity(id)
 
-  const isCreator = community?.creator?.id === profile?.id
+  const isCreator = community?.creator?.id === profile?.id || ADMIN_USER_IDS.includes(profile?.id ?? "")
   const isMember = community?.is_member
 
   if (isLoading) {
@@ -123,6 +127,18 @@ export default function CommunityDetailPage() {
                 </div>
               </div>
 
+              {/* Edit (creator only) */}
+              {isCreator && (
+                <button
+                  onClick={() => setIsEditing((v) => !v)}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors hover:border-primary hover:text-primary"
+                  style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {isEditing ? "Cancel" : "Edit"}
+                </button>
+              )}
+
               {/* Join / Leave */}
               {!isCreator && (
                 <div className="shrink-0">
@@ -153,6 +169,29 @@ export default function CommunityDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Edit form (creator / admin) ── */}
+        {isEditing && (
+          <div className="rounded-xl border p-6" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+            <h2 className="font-display font-bold text-lg mb-5">Edit Community</h2>
+            <CommunityForm
+              defaultValues={{
+                name: community.name,
+                description: community.description,
+                category: community.category,
+                image_url: community.image_url ?? "",
+                city: community.city ?? "",
+                country: community.country ?? "",
+              }}
+              onFormSubmit={async (values) => {
+                await updateMutation.mutateAsync(values)
+                setIsEditing(false)
+              }}
+              submitLabel="Save Changes"
+              submittingLabel="Saving..."
+            />
+          </div>
+        )}
 
         {/* ── Tabs ── */}
         <div className="flex gap-1 overflow-x-auto no-scrollbar border-b border-border pb-0">

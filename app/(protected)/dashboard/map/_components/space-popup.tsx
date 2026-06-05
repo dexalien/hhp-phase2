@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { MapMarkerData } from "@/lib/types"
+import { parseLocalDate } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<string, { label: string; colorVar: string }> = {
   open: { label: "Looking for members", colorVar: "--primary" },
@@ -17,9 +18,9 @@ export function SpacePopup({ marker }: SpacePopupProps) {
 
   const dateRange =
     marker.event_start_date && marker.event_end_date
-      ? `${new Date(marker.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${new Date(marker.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      ? `${parseLocalDate(marker.event_start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${parseLocalDate(marker.event_end_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
       : marker.event_start_date
-        ? new Date(marker.event_start_date).toLocaleDateString("en-US", {
+        ? parseLocalDate(marker.event_start_date).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
           })

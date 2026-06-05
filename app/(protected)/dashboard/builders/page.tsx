@@ -720,7 +720,7 @@ export default function BuildersPage() {
               <p className="text-center text-muted-foreground text-sm mb-4">
                 {remainingBuildersCards.length} builders left
               </p>
-              <div className="relative h-[550px] md:h-[600px]">
+              <div className="relative h-[calc(100dvh-280px)] min-h-[420px] max-h-[600px]">
                 {remainingBuildersCards.length > 0 ? (
                   <>
                     {remainingBuildersCards
@@ -854,7 +854,7 @@ export default function BuildersPage() {
               <p className="text-center text-muted-foreground text-sm mb-4">
                 {remainingCommunityCards.length} communities left
               </p>
-              <div className="relative h-[550px] md:h-[600px]">
+              <div className="relative h-[calc(100dvh-280px)] min-h-[420px] max-h-[600px]">
                 {remainingCommunityCards.length > 0 ? (
                   <>
                     {remainingCommunityCards
