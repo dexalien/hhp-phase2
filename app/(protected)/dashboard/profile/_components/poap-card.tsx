@@ -26,6 +26,7 @@ export function PoapCard({ poap }: PoapCardProps) {
       <img
         src={poap.image_url}
         alt={poap.name}
+        loading="lazy"
         className="w-14 h-14 rounded-full object-cover"
       />
       <div className="flex flex-col gap-0.5">

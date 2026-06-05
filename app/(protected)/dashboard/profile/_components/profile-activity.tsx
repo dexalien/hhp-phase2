@@ -2,12 +2,49 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMyHackSpaces } from "@/services/api/hack-spaces"
 import { useMyHackerHouses } from "@/services/api/hacker-houses"
-import { HackSpaceCard } from "../../_components/hack-space-card"
-import { HackerHouseCard } from "../../_components/hacker-house-card"
+import { ActivityRow } from "./activity-row"
 import type { UserProfile } from "@/lib/types"
+
+const SPACE_STATUS = {
+  open: { label: "Open", colorVar: "--primary" },
+  full: { label: "Full", colorVar: "--builder-archetype" },
+  in_progress: { label: "In progress", colorVar: "--strategist" },
+  finished: { label: "Finished", colorVar: "--muted-foreground" },
+} as const
+
+const HOUSE_STATUS = {
+  open: { label: "Open", colorVar: "--primary" },
+  full: { label: "Full", colorVar: "--builder-archetype" },
+  active: { label: "Active", colorVar: "--strategist" },
+  finished: { label: "Finished", colorVar: "--muted-foreground" },
+} as const
+
+function shortDateRange(start: string, end: string): string {
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return `${fmt(new Date(start))} – ${fmt(new Date(end))}`
+}
+
+function RowsSkeleton() {
+  return (
+    <Card size="sm" className="py-0 gap-0 divide-y divide-border">
+      {[1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-3">
+          <Skeleton className="size-12 rounded-lg shrink-0" />
+          <div className="flex-1 flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+          <Skeleton className="h-5 w-14 rounded-sm shrink-0" />
+        </div>
+      ))}
+    </Card>
+  )
+}
 
 interface ProfileActivityProps {
   profile: UserProfile
@@ -41,27 +78,26 @@ export function ProfileActivity({ profile, isOwner }: ProfileActivityProps) {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="size-11 rounded-lg" />
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))}
-          </div>
+          <RowsSkeleton />
         ) : hackSpaces.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card size="sm" className="p-0! gap-0! divide-y divide-border">
             {hackSpaces.map((hs) => (
-              <HackSpaceCard key={hs.id} hackSpace={hs} currentUserId={profile.id} />
+              <ActivityRow
+                key={hs.id}
+                href={`/dashboard/hack-spaces/${hs.id}`}
+                imageUrl={hs.image_url}
+                title={hs.title}
+                meta={[
+                  `${hs.member_count ?? 0}/${hs.max_team_size} members`,
+                  hs.track,
+                  hs.event_name,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                status={SPACE_STATUS[hs.status] ?? SPACE_STATUS.open}
+              />
             ))}
-          </div>
+          </Card>
         ) : (
           <div
             className="rounded-xl border border-dashed p-8 flex flex-col items-center gap-3 text-center"
@@ -100,27 +136,23 @@ export function ProfileActivity({ profile, isOwner }: ProfileActivityProps) {
         </div>
 
         {isLoadingHouses ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="size-11 rounded-lg" />
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ))}
-          </div>
+          <RowsSkeleton />
         ) : hackerHouses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card size="sm" className="p-0! gap-0! divide-y divide-border">
             {hackerHouses.map((hh) => (
-              <HackerHouseCard key={hh.id} hackerHouse={hh} currentUserId={profile.id} />
+              <ActivityRow
+                key={hh.id}
+                href={`/dashboard/hacker-houses/${hh.id}`}
+                imageUrl={hh.images[0] ?? null}
+                title={`${hh.name} — ${hh.city}, ${hh.country}`}
+                meta={[
+                  shortDateRange(hh.start_date, hh.end_date),
+                  `${hh.participants_count}/${hh.capacity} spots`,
+                ].join(" · ")}
+                status={HOUSE_STATUS[hh.status] ?? HOUSE_STATUS.open}
+              />
             ))}
-          </div>
+          </Card>
         ) : (
           <div
             className="rounded-xl border border-dashed p-8 flex flex-col items-center gap-3 text-center"

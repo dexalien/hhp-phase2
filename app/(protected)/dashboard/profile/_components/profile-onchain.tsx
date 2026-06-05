@@ -12,6 +12,8 @@ import { PoapCard } from "./poap-card"
 import { ProfileTags } from "./profile-tags"
 import type { UserProfile } from "@/lib/types"
 
+const POAPS_PAGE_SIZE = 10
+
 interface ProfileOnchainProps {
   profile: UserProfile
   isOwner: boolean
@@ -19,6 +21,7 @@ interface ProfileOnchainProps {
 
 export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
   const [isImporting, setIsImporting] = useState(false)
+  const [visiblePoaps, setVisiblePoaps] = useState(POAPS_PAGE_SIZE)
   const [isLinkingWallet, setIsLinkingWallet] = useState(false)
   const importTalentScore = useImportTalentScore()
   const importPoaps = useImportPoaps()
@@ -141,9 +144,46 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
         </p>
         {profile.poaps && profile.poaps.length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {profile.poaps.map((poap) => (
-              <PoapCard key={poap.id} poap={poap} />
-            ))}
+            {[...profile.poaps]
+              .sort(
+                (a, b) =>
+                  new Date(b.event_date).getTime() - new Date(a.event_date).getTime(),
+              )
+              .slice(0, visiblePoaps)
+              .map((poap) => (
+                <PoapCard key={poap.id} poap={poap} />
+              ))}
+            {profile.poaps.length > visiblePoaps && (
+              <button
+                type="button"
+                onClick={() => setVisiblePoaps((c) => c + POAPS_PAGE_SIZE)}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl border p-3 text-center transition-all duration-200 hover:scale-105 cursor-pointer"
+                style={{
+                  background: "var(--muted)",
+                  borderColor: "var(--border)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor =
+                    "color-mix(in oklch, var(--primary) 40%, var(--border))"
+                  e.currentTarget.style.boxShadow =
+                    "0 0 16px color-mix(in oklch, var(--primary) 15%, transparent)"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)"
+                  e.currentTarget.style.boxShadow = "none"
+                }}
+              >
+                <span
+                  className="font-display font-bold text-lg leading-none"
+                  style={{ color: "var(--primary)" }}
+                >
+                  +{profile.poaps.length - visiblePoaps}
+                </span>
+                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider">
+                  Show more
+                </span>
+              </button>
+            )}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground/40 italic">
