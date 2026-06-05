@@ -27,7 +27,7 @@ export function SpacePopup({ marker }: SpacePopupProps) {
         : null
 
   return (
-    <div className="flex flex-col gap-2 min-w-[200px] max-w-[260px]">
+    <div className="flex flex-col gap-2 min-w-50 max-w-65">
       {marker.image_url && (
         <div className="relative h-24 w-full overflow-hidden rounded-md">
           <img

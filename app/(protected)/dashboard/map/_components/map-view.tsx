@@ -106,7 +106,7 @@ function ClusterPopupContent({ group }: { group: MapMarkerData[] }) {
 
   if (selected) {
     return (
-      <div className="min-w-[220px] max-w-[270px]">
+      <div className="min-w-55 max-w-67.5">
         <button
           onClick={(e) => { L.DomEvent.stopPropagation(e.nativeEvent); setSelected(null) }}
           className="text-[10px] font-mono text-muted-foreground hover:text-foreground mb-2 flex items-center gap-1"
@@ -122,11 +122,11 @@ function ClusterPopupContent({ group }: { group: MapMarkerData[] }) {
   }
 
   return (
-    <div className="min-w-[220px] max-w-[270px]">
+    <div className="min-w-55 max-w-67.5">
       <p className="text-[10px] font-mono text-muted-foreground mb-2">
         {group.length} items at this location
       </p>
-      <div className="flex flex-col gap-1 max-h-[280px] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-1 max-h-70 overflow-y-auto pr-1">
         {group.map((m) => {
           const { Icon, color } = TYPE_ICON[m.type]
           return (
@@ -201,7 +201,7 @@ export function MapView({
   return (
     <div className="relative w-full h-full">
       {/* Filter pills */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -221,7 +221,7 @@ export function MapView({
 
       {/* Empty state */}
       {filteredMarkers.length === 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] bg-card/90 backdrop-blur-sm border border-border rounded-xl px-6 py-4 text-center">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1000 bg-card/90 backdrop-blur-sm border border-border rounded-xl px-6 py-4 text-center">
           <p className="font-display font-semibold text-foreground text-sm">No locations found</p>
           <p className="text-muted-foreground text-xs mt-1">
             {filter !== "all"
