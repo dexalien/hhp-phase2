@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import { isAdmin } from "@/lib/admin"
+import { isAdminUser } from "@/lib/admin-server"
 import { updateEventSchema } from "@/lib/schemas/event"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
@@ -25,7 +25,7 @@ export async function PUT(
   const privyId = await getPrivyUserId(req)
   if (!privyId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   const userId = await getDbUserId(privyId)
-  if (!userId || !isAdmin(userId)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  if (!userId || !(await isAdminUser(userId))) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const body = await req.json()
@@ -59,9 +59,19 @@ export async function PUT(
     } catch { /* non-fatal */ }
   }
 
+  const sanitized = {
+    ...input,
+    banner_url: input.banner_url || null,
+    website_url: input.website_url || null,
+    venue: input.venue || null,
+    address: input.address || null,
+    address_reveal_date: input.address_reveal_date || null,
+    prizes: input.prizes || null,
+  }
+
   const { data, error } = await supabaseServer
     .from("events")
-    .update({ ...input, ...(lat !== undefined ? { lat, lng } : {}), updated_at: new Date().toISOString() })
+    .update({ ...sanitized, ...(lat !== undefined ? { lat, lng } : {}), updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single()
@@ -78,7 +88,7 @@ export async function DELETE(
   const privyId = await getPrivyUserId(req)
   if (!privyId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   const userId = await getDbUserId(privyId)
-  if (!userId || !isAdmin(userId)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  if (!userId || !(await isAdminUser(userId))) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const { error } = await supabaseServer.from("events").delete().eq("id", id)

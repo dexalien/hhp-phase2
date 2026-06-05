@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import { isAdmin } from "@/lib/admin"
+import { isAdminUser } from "@/lib/admin-server"
 import { createEventSchema } from "@/lib/schemas/event"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const privyId = await getPrivyUserId(req)
   if (!privyId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   const userId = await getDbUserId(privyId)
-  if (!userId || !isAdmin(userId)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  if (!userId || !(await isAdminUser(userId))) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
 
   const { searchParams } = new URL(req.url)
   const limit = parseInt(searchParams.get("limit") ?? "50")
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const privyId = await getPrivyUserId(req)
   if (!privyId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   const userId = await getDbUserId(privyId)
-  if (!userId || !isAdmin(userId)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  if (!userId || !(await isAdminUser(userId))) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
 
   const body = await req.json()
   const parsed = createEventSchema.safeParse(body)

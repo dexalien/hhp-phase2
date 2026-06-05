@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import { isAdminUser } from "@/lib/admin-server"
+import { isAdmin } from "@/lib/admin"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -17,28 +17,28 @@ async function getDbUserId(privyId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const privyId = await getPrivyUserId(req)
   if (!privyId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-  const userId = await getDbUserId(privyId)
-  if (!userId || !(await isAdminUser(userId))) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  const callerId = await getDbUserId(privyId)
+  // Only superadmins (hardcoded) can grant/revoke admin
+  if (!callerId || !isAdmin(callerId)) return NextResponse.json({ message: "Forbidden" }, { status: 403 })
 
-  const { searchParams } = new URL(req.url)
-  const limit = parseInt(searchParams.get("limit") ?? "50")
-  const offset = parseInt(searchParams.get("offset") ?? "0")
-  const q = searchParams.get("q") ?? ""
+  const { id } = await params
+  const body = await req.json().catch(() => ({}))
+  const is_admin = body.is_admin !== false
 
-  let query = supabaseServer
+  const { data, error } = await supabaseServer
     .from("users")
-    .select("id, handle, archetype, avatar_url, is_verified, is_admin, privy_id, created_at", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1)
-
-  if (q) query = query.ilike("handle", `%${q}%`)
-
-  const { data, error, count } = await query
+    .update({ is_admin })
+    .eq("id", id)
+    .select("id, handle, is_admin")
+    .single()
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 })
 
-  return NextResponse.json({ users: data ?? [], total: count ?? 0 })
+  return NextResponse.json({ user: data })
 }

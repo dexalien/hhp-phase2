@@ -68,7 +68,7 @@ export default function EditHackSpacePage({
     )
   }
 
-  const canEdit = profile && (profile.id === hackSpace?.creator.id || ADMIN_USER_IDS.includes(profile.id))
+  const canEdit = profile && (profile.id === hackSpace?.creator.id || profile.is_admin || ADMIN_USER_IDS.includes(profile.id))
   if (!hackSpace || !canEdit) {
     return (
       <PageContainer>

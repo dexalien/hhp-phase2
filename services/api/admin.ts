@@ -135,10 +135,23 @@ export const useVerifyUser = (targetId: string) => {
   })
 }
 
+export const useToggleAdmin = (targetId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ is_admin: boolean }, { user: AdminUser }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ user: AdminUser }>("post", `/api/admin/users/${targetId}/toggle-admin`, body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminUsers] })
+      },
+    },
+  })
+}
+
 // ── Hack Spaces ──
 
 export const useAdminHackSpaces = () =>
-  useAppQuery<{ hack_spaces: Array<{ id: string; name: string; track: string; status: string; city: string; country: string; created_at: string; creator: { handle: string | null } }>; total: number }>({
+  useAppQuery<{ hack_spaces: Array<{ id: string; title: string; track: string; status: string; city: string; country: string; created_at: string; creator: { handle: string | null } }>; total: number }>({
     fetcher: () =>
       genericAuthRequest("get", "/api/admin/hack-spaces"),
     queryKey: [queryKeys.adminHackSpaces],

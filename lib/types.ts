@@ -80,6 +80,7 @@ export interface UserProfile {
   farcaster_url: string | null
   website_url: string | null
   is_verified: boolean
+  is_admin: boolean
   talent_protocol_score: number | null
   talent_tags: string[]
   talent_credentials: TalentCredential[]
@@ -425,6 +426,7 @@ export interface AdminUser {
   archetype: string | null
   avatar_url: string | null
   is_verified: boolean
+  is_admin: boolean
   privy_id: string
   created_at: string
 }

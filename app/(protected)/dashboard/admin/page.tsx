@@ -14,6 +14,7 @@ import {
   useUploadEventBanner,
   useAdminUsers,
   useVerifyUser,
+  useToggleAdmin,
   useAdminCommunities,
   useAdminDeleteCommunity,
   useAdminHackSpaces,
@@ -143,7 +144,7 @@ function EventForm({
   const errClass = "text-xs mt-1 text-red-400"
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit, (errs) => toast.error("Check required fields: " + Object.keys(errs).join(", ")))} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {/* Name */}
@@ -617,9 +618,17 @@ function EventsTab() {
   const [editingEvent, setEditingEvent] = useState<HHPEvent | null>(null)
   const [showRequests, setShowRequests] = useState(false)
   const [showFeaturedOrder, setShowFeaturedOrder] = useState(false)
+  const [q, setQ] = useState("")
+
+  const events = [...(data?.events ?? [])]
+    .filter((e) => e.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   function handleCreate(input: CreateEventInput) {
-    createEvent.mutate(input, { onSuccess: () => setShowForm(false) })
+    createEvent.mutate(input, {
+      onSuccess: () => setShowForm(false),
+      onError: (e) => toast.error(e.message ?? "Failed to create event"),
+    })
   }
 
   function handleDelete(id: string, name: string) {
@@ -629,9 +638,16 @@ function EventsTab() {
 
   return (
     <div className="space-y-4">
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search events..."
+        className="w-full px-3 py-2 rounded-lg text-sm bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+        style={{ borderColor: "var(--border)" }}
+      />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <p className="text-sm opacity-60">{data?.total ?? 0} events</p>
+          <p className="text-sm opacity-60">{events.length} events</p>
           <button
             onClick={() => { setShowFeaturedOrder((v) => !v); setShowRequests(false) }}
             className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-colors hover:opacity-80 ${showFeaturedOrder ? "border-primary text-primary" : ""}`}
@@ -730,7 +746,7 @@ function EventsTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {(data?.events ?? []).map((event) => (
+          {events.map((event) => (
             <EventRow
               key={event.id}
               event={event}
@@ -833,7 +849,10 @@ function EditEventForm({ event, onDone }: { event: HHPEvent; onDone: () => void 
   const updateEvent = useUpdateEvent(event.id)
 
   function handleSubmit(input: CreateEventInput) {
-    updateEvent.mutate(input, { onSuccess: onDone })
+    updateEvent.mutate(input, {
+      onSuccess: onDone,
+      onError: (e) => toast.error(e.message ?? "Failed to update event"),
+    })
   }
 
   return (
@@ -900,6 +919,7 @@ function UsersTab() {
 
 function UserRow({ user }: { user: AdminUser }) {
   const verify = useVerifyUser(user.id)
+  const toggleAdmin = useToggleAdmin(user.id)
 
   return (
     <div
@@ -914,7 +934,15 @@ function UserRow({ user }: { user: AdminUser }) {
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm">{user.handle ?? "unnamed"}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-medium text-sm">{user.handle ?? "unnamed"}</p>
+          {user.is_admin && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold"
+              style={{ background: "color-mix(in oklch, var(--primary) 20%, transparent)", color: "var(--primary)" }}>
+              admin
+            </span>
+          )}
+        </div>
         <p className="text-xs opacity-50 truncate">{user.privy_id}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -935,6 +963,18 @@ function UserRow({ user }: { user: AdminUser }) {
         >
           {user.is_verified ? "Unverify" : "Verify"}
         </button>
+        <button
+          onClick={() => toggleAdmin.mutate({ is_admin: !user.is_admin })}
+          disabled={toggleAdmin.isPending}
+          className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1"
+          style={{
+            borderColor: user.is_admin ? "var(--primary)" : "var(--border)",
+            color: user.is_admin ? "var(--primary)" : undefined,
+          }}
+        >
+          <Shield className="w-3 h-3" />
+          {user.is_admin ? "Revoke Admin" : "Make Admin"}
+        </button>
       </div>
     </div>
   )
@@ -944,15 +984,29 @@ function UserRow({ user }: { user: AdminUser }) {
 function CommunitiesTab() {
   const { data, isLoading } = useAdminCommunities()
   const deleteCommunity = useAdminDeleteCommunity()
+  const [q, setQ] = useState("")
 
   function handleDelete(id: string, name: string) {
     if (!confirm(`Delete community "${name}"?`)) return
     deleteCommunity.mutate(id)
   }
 
+  const communities = [...(data?.communities ?? [])]
+    .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div className="space-y-4">
-      <p className="text-sm opacity-60">{data?.total ?? 0} communities</p>
+      <div className="flex items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search communities..."
+          className="flex-1 px-3 py-2 rounded-lg text-sm bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          style={{ borderColor: "var(--border)" }}
+        />
+        <p className="text-sm opacity-60 shrink-0">{communities.length} communities</p>
+      </div>
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
@@ -961,7 +1015,7 @@ function CommunitiesTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {(data?.communities ?? []).map((c) => (
+          {communities.map((c) => (
             <div
               key={c.id}
               className="flex items-center gap-4 rounded-xl border px-4 py-3"
@@ -1002,15 +1056,29 @@ function CommunitiesTab() {
 function HackSpacesTab() {
   const { data, isLoading } = useAdminHackSpaces()
   const deleteHackSpace = useAdminDeleteHackSpace()
+  const [q, setQ] = useState("")
 
   function handleDelete(id: string, name: string) {
     if (!confirm(`Delete hack space "${name}"?`)) return
     deleteHackSpace.mutate(id)
   }
 
+  const hackSpaces = [...(data?.hack_spaces ?? [])]
+    .filter((hs) => hs.title.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.title.localeCompare(b.title))
+
   return (
     <div className="space-y-4">
-      <p className="text-sm opacity-60">{data?.total ?? 0} hack spaces</p>
+      <div className="flex items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search hack spaces..."
+          className="flex-1 px-3 py-2 rounded-lg text-sm bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          style={{ borderColor: "var(--border)" }}
+        />
+        <p className="text-sm opacity-60 shrink-0">{hackSpaces.length} hack spaces</p>
+      </div>
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
@@ -1019,14 +1087,14 @@ function HackSpacesTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {(data?.hack_spaces ?? []).map((hs) => (
+          {hackSpaces.map((hs) => (
             <div
               key={hs.id}
               className="flex items-center gap-4 rounded-xl border px-4 py-3"
               style={{ background: "var(--card)", borderColor: "var(--border)" }}
             >
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{hs.name}</p>
+                <p className="font-medium text-sm">{hs.title}</p>
                 <p className="text-xs opacity-50">
                   {hs.track} · {hs.status} · {hs.city}, {hs.country} · by @{hs.creator?.handle ?? "unknown"}
                 </p>
@@ -1040,7 +1108,7 @@ function HackSpacesTab() {
                   <Pencil className="w-4 h-4 opacity-60" />
                 </Link>
                 <button
-                  onClick={() => handleDelete(hs.id, hs.name)}
+                  onClick={() => handleDelete(hs.id, hs.title)}
                   disabled={deleteHackSpace.isPending}
                   className="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                   title="Delete"
@@ -1060,15 +1128,29 @@ function HackSpacesTab() {
 function HackerHousesTab() {
   const { data, isLoading } = useAdminHackerHouses()
   const deleteHackerHouse = useAdminDeleteHackerHouse()
+  const [q, setQ] = useState("")
 
   function handleDelete(id: string, name: string) {
     if (!confirm(`Delete hacker house "${name}"?`)) return
     deleteHackerHouse.mutate(id)
   }
 
+  const hackerHouses = [...(data?.hacker_houses ?? [])]
+    .filter((hh) => hh.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
   return (
     <div className="space-y-4">
-      <p className="text-sm opacity-60">{data?.total ?? 0} hacker houses</p>
+      <div className="flex items-center gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search hacker houses..."
+          className="flex-1 px-3 py-2 rounded-lg text-sm bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          style={{ borderColor: "var(--border)" }}
+        />
+        <p className="text-sm opacity-60 shrink-0">{hackerHouses.length} hacker houses</p>
+      </div>
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
@@ -1077,7 +1159,7 @@ function HackerHousesTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {(data?.hacker_houses ?? []).map((hh) => (
+          {hackerHouses.map((hh) => (
             <div
               key={hh.id}
               className="flex items-center gap-4 rounded-xl border px-4 py-3"
@@ -1127,7 +1209,7 @@ export default function AdminPage() {
     )
   }
 
-  if (!profile || !ADMIN_USER_IDS.includes(profile.id)) {
+  if (!profile || (!ADMIN_USER_IDS.includes(profile.id) && !profile.is_admin)) {
     return (
       <PageContainer>
         <div className="h-64 flex flex-col items-center justify-center gap-3 opacity-60">
