@@ -8,8 +8,8 @@ All product and design documentation lives in `docs/`. **Always read the relevan
 
 | Doc | When to read |
 |---|---|
-| [`docs/strategy/problem.md`](./docs/strategy/problem.md) | The problem, pain points, why current solutions fail |
-| [`docs/strategy/pitch.md`](./docs/strategy/pitch.md) | One-liner, value prop, differentiators, vision |
+| [`docs/strategy/pitch-v2.md`](./docs/strategy/pitch-v2.md) | Pitch — problem, solution, vision (Arbitrum Open House London Buildathon) |
+| [`docs/strategy/plan-buildathon.md`](./docs/strategy/plan-buildathon.md) | Buildathon implementation plan — scope, Arbitrum escrow contract, communities |
 | [`docs/product/overview.md`](./docs/product/overview.md) | Vision, archetypes, user types, stack, roadmap, business decisions |
 | [`docs/product/prd.md`](./docs/product/prd.md) | MVP scope, acceptance criteria, Definition of Done |
 | [`docs/product/data-models.md`](./docs/product/data-models.md) | TypeScript types for all entities |
