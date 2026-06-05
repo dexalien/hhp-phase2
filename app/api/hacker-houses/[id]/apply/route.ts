@@ -27,7 +27,7 @@ export async function POST(
 
   const { data: user } = await supabaseServer
     .from("users")
-    .select("id")
+    .select("id, handle")
     .eq("privy_id", privyUserId)
     .single()
 
@@ -37,7 +37,7 @@ export async function POST(
 
   const { data: hackerHouse } = await supabaseServer
     .from("hacker_houses")
-    .select("id, creator_id, status")
+    .select("id, name, creator_id, status")
     .eq("id", hackerHouseId)
     .single()
 
@@ -49,10 +49,6 @@ export async function POST(
     return NextResponse.json({ message: "This Hacker House is not accepting applications" }, { status: 400 })
   }
 
-  if (hackerHouse.creator_id === user.id) {
-    return NextResponse.json({ message: "You can't apply to your own Hacker House" }, { status: 400 })
-  }
-
   const body: unknown = await req.json()
   const parsed = applyToHackerHouseSchema.safeParse(body)
   if (!parsed.success) {
@@ -60,6 +56,22 @@ export async function POST(
       { message: parsed.error.issues[0].message },
       { status: 400 }
     )
+  }
+
+  // Check for existing application — idempotent: pending = OK, accepted = block
+  const { data: existing } = await supabaseServer
+    .from("applications")
+    .select("id, status")
+    .eq("hacker_house_id", hackerHouseId)
+    .eq("applicant_id", user.id)
+    .maybeSingle()
+
+  if (existing) {
+    if (existing.status === "accepted") {
+      return NextResponse.json({ message: "You are already a member" }, { status: 409 })
+    }
+    // Already pending — return success without re-notifying
+    return NextResponse.json({ application: existing })
   }
 
   const { data, error } = await supabaseServer
@@ -75,12 +87,18 @@ export async function POST(
     .single()
 
   if (error) {
-    if (error.code === "23505") {
-      return NextResponse.json({ message: "You already applied to this Hacker House" }, { status: 409 })
-    }
     console.error("[POST /api/hacker-houses/:id/apply]", error)
     return NextResponse.json({ message: "Database error" }, { status: 500 })
   }
+
+  // Notify creator (only on first apply)
+  await supabaseServer.from("notifications").insert({
+    user_id: hackerHouse.creator_id,
+    type: "hacker_house_application",
+    title: "New application",
+    body: `${user.handle ?? "Someone"} applied to your hacker house "${hackerHouse.name}".`,
+    link: `/dashboard/hacker-houses/${hackerHouseId}`,
+  })
 
   return NextResponse.json({ application: data }, { status: 201 })
 }

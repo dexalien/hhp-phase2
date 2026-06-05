@@ -1,6 +1,6 @@
 "use client"
 
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   createCommunitySchema,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { useState, useRef } from "react"
-import { Upload, X } from "lucide-react"
+import { Upload, X, BadgeCheck, Star, Globe } from "lucide-react"
 
 interface CommunityFormProps {
   onFormSubmit: (values: CreateCommunityInput) => Promise<void>
@@ -51,6 +51,7 @@ export function CommunityForm({
   const [previewUrl, setPreviewUrl] = useState<string | null>(defaultValues?.image_url ?? null)
   const fileRef = useRef<HTMLInputElement>(null)
   const imageUrl = watch("image_url")
+  const isWorldwide = useWatch({ control, name: "is_worldwide" })
 
   async function handleImageUpload(file: File) {
     const result = await uploadImage.mutateAsync(file)
@@ -132,18 +133,47 @@ export function CommunityForm({
         <label className="font-display font-bold text-sm text-foreground">
           Location <span className="text-muted-foreground font-normal">(optional — shows on map)</span>
         </label>
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            {...register("city")}
-            placeholder="City"
-            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-          />
-          <input
-            {...register("country")}
-            placeholder="Country"
-            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-          />
-        </div>
+        <Controller
+          name="is_worldwide"
+          control={control}
+          render={({ field }) => (
+            <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={field.value ?? false}
+                onChange={(e) => {
+                  field.onChange(e.target.checked)
+                  if (e.target.checked) {
+                    setValue("city", "")
+                    setValue("country", "")
+                  }
+                }}
+                className="accent-[var(--primary)]"
+              />
+              <span className="flex items-center gap-1.5 text-sm text-foreground">
+                <Globe className="size-4 text-primary" />
+                Worldwide — no specific location
+              </span>
+            </label>
+          )}
+        />
+        {!isWorldwide && (
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              {...register("city")}
+              placeholder="City"
+              className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+            />
+            <input
+              {...register("country")}
+              placeholder="Country"
+              className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+            />
+          </div>
+        )}
+        {isWorldwide && (
+          <p className="text-xs text-muted-foreground font-mono">This community won&apos;t appear on the map.</p>
+        )}
       </div>
 
       {/* Cover Image */}
@@ -197,6 +227,56 @@ export function CommunityForm({
           </button>
         )}
       </div>
+
+      {/* Request verification */}
+      <Controller
+        name="verification_requested"
+        control={control}
+        render={({ field }) => (
+          <label className="flex items-start gap-3 p-4 rounded-lg border border-border hover:border-primary/40 transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              checked={field.value ?? false}
+              onChange={(e) => field.onChange(e.target.checked)}
+              className="mt-0.5 accent-[var(--primary)]"
+            />
+            <div className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <BadgeCheck className="size-4 text-[#6EE76E]" />
+                Request verified check
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Your community will be reviewed by the HHP team for verification. Verified communities get a badge and featured placement.
+              </span>
+            </div>
+          </label>
+        )}
+      />
+
+      {/* Request featured */}
+      <Controller
+        name="featured_requested"
+        control={control}
+        render={({ field }) => (
+          <label className="flex items-start gap-3 p-4 rounded-lg border border-border hover:border-primary/40 transition-colors cursor-pointer">
+            <input
+              type="checkbox"
+              checked={field.value ?? false}
+              onChange={(e) => field.onChange(e.target.checked)}
+              className="mt-0.5 accent-[var(--primary)]"
+            />
+            <div className="flex flex-col gap-0.5">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Star className="size-4 text-strategist" />
+                Request featured placement
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Ask the HHP team to feature your community on the home feed. Featured communities get priority visibility.
+              </span>
+            </div>
+          </label>
+        )}
+      />
 
       {/* Submit */}
       <Button

@@ -36,9 +36,11 @@ import {
   Copy,
   Check,
   Gift,
+  Shield,
+  Wallet,
 } from "lucide-react"
 import { BackButton } from "../../../_components/back-button"
-import type { HouseModality } from "@/lib/types"
+import type { HouseModality, HouseContractType } from "@/lib/types"
 
 const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.MiniMap), {
   ssr: false,
@@ -183,6 +185,7 @@ export default function HackerHouseDetailPage({
   const [message, setMessage] = useState("")
   const [showNft, setShowNft] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [visitedExternalForm, setVisitedExternalForm] = useState(false)
 
   if (isLoading) {
     return (
@@ -218,11 +221,15 @@ export default function HackerHouseDetailPage({
   }
 
   const isOwner = profile?.id === hackerHouse.creator.id
-  const isAccepted = isOwner || (hackerHouse.participants ?? []).some((p) => p.id === profile?.id)
+  // hasPaid: user has an accepted application (applies to creator too — they must pay their share)
+  const hasPaid = (hackerHouse.participants ?? []).some((p) => p.id === profile?.id)
+  const isAccepted = hasPaid || isOwner
   const modeCfg = MODE_CONFIG[hackerHouse.modality] ?? MODE_CONFIG.paid
   const statusCfg = STATUS_CONFIG[hackerHouse.status as HouseStatus] ?? STATUS_CONFIG.open
   const canApply = !isOwner && hackerHouse.status === "open"
-  const allParticipants = [hackerHouse.creator, ...(hackerHouse.participants ?? [])]
+  const allParticipants = [hackerHouse.creator, ...(hackerHouse.participants ?? [])].filter(
+    (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i,
+  )
   const filledCount = hackerHouse.participants_count
   const progress = hackerHouse.capacity > 0 ? Math.round((filledCount / hackerHouse.capacity) * 100) : 0
   const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity, hackerHouse.price_per_person)
@@ -634,6 +641,8 @@ export default function HackerHouseDetailPage({
               {allParticipants.map((p, i) => {
                 const archetype = ARCHETYPES.find((a) => a.id === p.archetype)
                 const isCreator = p.id === hackerHouse.creator.id
+                // Only show paid/accepted badge if they actually have an accepted application
+                const hasPaidRecord = (hackerHouse.participants ?? []).some((pp) => pp.id === p.id)
                 return (
                   <div
                     key={p.id ?? i}
@@ -673,14 +682,20 @@ export default function HackerHouseDetailPage({
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-0.5">
-                      {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
-                        <span className="text-sm font-bold text-foreground">
-                          {hackerHouse.price_per_person} USDC
-                        </span>
+                      {hasPaidRecord ? (
+                        <>
+                          {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
+                            <span className="text-sm font-bold text-foreground">
+                              {hackerHouse.price_per_person} USDC
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
+                            <Check className="size-3" /> {hackerHouse.modality === "free" ? "Accepted" : "Paid"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-mono text-muted-foreground">Pending</span>
                       )}
-                      <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
-                        <Check className="size-3" /> Paid
-                      </span>
                     </div>
                   </div>
                 )
@@ -763,11 +778,39 @@ export default function HackerHouseDetailPage({
                   {modeCfg.label}
                 </span>
               </div>
+              {hackerHouse.application_form_url && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <ExternalLink className="size-4" /> Application form
+                  </span>
+                  <a
+                    href={hackerHouse.application_form_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary text-sm font-medium hover:underline flex items-center gap-1"
+                  >
+                    Open form <ExternalLink className="size-3" />
+                  </a>
+                </div>
+              )}
+              {hackerHouse.contract_type && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    {hackerHouse.contract_type === "multisig"
+                      ? <Shield className="size-4" />
+                      : <Wallet className="size-4" />}
+                    Contract type
+                  </span>
+                  <span className="text-foreground font-medium">
+                    {hackerHouse.contract_type === "multisig" ? "Multisig" : "Admin Wallet"}
+                  </span>
+                </div>
+              )}
             </div>
           </section>
 
-          {/* ── Apply section (non-owner, inline) ── */}
-          {canApply && (
+          {/* ── Apply section (non-owner, inline) — only for paid/staking houses ── */}
+          {canApply && hackerHouse.modality !== "free" && (
             <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3 mb-8">
               <h2 className="font-display font-bold text-foreground">Apply to join</h2>
               {apply.isSuccess ? (
@@ -832,22 +875,59 @@ export default function HackerHouseDetailPage({
                 <p className="text-foreground font-bold text-lg">{costInfo.costPerPerson}</p>
                 <p className="text-muted-foreground text-sm">{modeCfg.footerLabel}</p>
               </div>
-              {isAccepted ? (
+              {hackerHouse.modality === "free" && isOwner ? null
+              : hackerHouse.modality === "free" ? (
+                // Sponsored house flow
+                apply.isSuccess ? (
+                  <div className="flex-1 max-w-xs py-4 px-6 font-bold rounded-full bg-primary/10 text-primary text-center text-sm flex items-center justify-center gap-2">
+                    <Check className="size-4" /> Request sent · Pending review
+                  </div>
+                ) : hackerHouse.application_form_url ? (
+                  // External form: open tab first, then confirm
+                  visitedExternalForm ? (
+                    <button
+                      onClick={() => apply.mutate({ message: "Applied via external form." })}
+                      disabled={apply.isPending}
+                      className={cn(
+                        "flex-1 max-w-xs py-4 px-6 font-bold rounded-full transition-opacity flex items-center justify-center gap-2",
+                        modeCfg.ctaCls,
+                      )}
+                    >
+                      {apply.isPending ? "Sending…" : "Did you apply? Mark as requested →"}
+                    </button>
+                  ) : (
+                    <a
+                      href={hackerHouse.application_form_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setVisitedExternalForm(true)}
+                      className={cn(
+                        "flex-1 max-w-xs py-4 px-6 font-bold rounded-full transition-opacity flex items-center justify-center gap-2",
+                        modeCfg.ctaCls,
+                      )}
+                    >
+                      Apply here <ExternalLink className="size-4" />
+                    </a>
+                  )
+                ) : (
+                  // No external form — direct request, no message needed
+                  <button
+                    onClick={() => apply.mutate({})}
+                    disabled={apply.isPending}
+                    className={cn(
+                      "flex-1 max-w-xs py-4 px-6 font-bold rounded-full transition-opacity flex items-center justify-center gap-2",
+                      modeCfg.ctaCls,
+                    )}
+                  >
+                    {apply.isPending ? "Sending…" : "Request to join →"}
+                  </button>
+                )
+              ) : hasPaid ? (
                 <button
                   onClick={() => setShowNft(true)}
                   className="flex-1 max-w-xs py-4 px-6 font-bold rounded-full flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                 >
                   🔑 See your Key NFT
-                </button>
-              ) : isOwner ? null : hackerHouse.modality === "free" ? (
-                <button
-                  onClick={() => setShowApplyForm(true)}
-                  className={cn(
-                    "flex-1 max-w-xs py-4 px-6 font-bold rounded-full transition-opacity flex items-center justify-center gap-2",
-                    modeCfg.ctaCls,
-                  )}
-                >
-                  {modeCfg.ctaText}
                 </button>
               ) : (
                 <Link

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
 import { updateHackerHouseSchema } from "@/lib/schemas/hacker-house"
-import { geocodeAndUpdate } from "@/lib/geocode"
+import { geocode } from "@/lib/geocode"
 import { isAdmin } from "@/lib/admin"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
@@ -43,10 +43,12 @@ export async function GET(
     .filter((a: { status: string }) => a.status === "accepted")
     .map((a: { applicant: unknown }) => a.applicant)
 
+  // Creator counts as 1 regardless — if they also have an accepted application don't double-count
+  const creatorAlsoPaid = (participants as { id: string }[]).some((p) => p.id === data.creator_id)
   const hackerHouse = {
     ...data,
     participants,
-    participants_count: participants.length + 1,
+    participants_count: participants.length + (creatorAlsoPaid ? 0 : 1),
     all_applications: undefined,
   }
 
@@ -126,12 +128,21 @@ export async function PATCH(
     return NextResponse.json({ message: error.message }, { status: 500 })
   }
 
+  // If location fields changed, geocode synchronously so the response already has fresh coords
   if (cleaned.city !== undefined || cleaned.country !== undefined || cleaned.address !== undefined) {
     const finalCity = (cleaned.city as string | null) ?? hackerHouse.city
     const finalCountry = (cleaned.country as string | null) ?? hackerHouse.country
     const finalAddress = (cleaned.address as string | null) ?? hackerHouse.address ?? undefined
     if (finalCity && finalCountry) {
-      geocodeAndUpdate("hacker_houses", id, finalCity, finalCountry, finalAddress ?? undefined)
+      const coords = await geocode(finalCity, finalCountry, finalAddress)
+      if (coords) {
+        await supabaseServer
+          .from("hacker_houses")
+          .update({ lat: coords.lat, lng: coords.lng })
+          .eq("id", id)
+        data.lat = coords.lat
+        data.lng = coords.lng
+      }
     }
   }
 

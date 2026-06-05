@@ -373,14 +373,14 @@ export default function CommunityDetailPage() {
         )}
 
         {/* ══════════════════════════════════════════════ */}
-        {/* ── BOARD (4chan-style imageboard) ── */}
+        {/* ── BOARD (Reddit-style imageboard) ── */}
         {/* ══════════════════════════════════════════════ */}
         {activeTab === "board" && (
           <PlaceholderSection
             icon={ImageIcon}
             title="Image Board"
             description="A thread-based image board for community discussions."
-            detail="Post threads with images, reply with text or images — 4chan-style bulletin board for builders."
+            detail="Post threads with images, reply with text or images — Reddit-style bulletin board for builders."
           />
         )}
 
