@@ -10,6 +10,21 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        pill: "rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90",
+        "pill-outline":
+          "rounded-full border-primary bg-transparent text-primary font-medium hover:bg-primary/10",
+        // Soft green pill — membership/success states ("Joined", "Connected").
+        // disabled:opacity-60 keeps the semantic color readable while clearly
+        // signaling the state is not clickable.
+        "pill-builder":
+          "rounded-full border-builder-archetype/30 bg-builder-archetype/10 text-builder-archetype font-medium hover:bg-builder-archetype/20 disabled:opacity-60",
+        // Muted pill — waiting states ("Pending").
+        "pill-muted":
+          "rounded-full bg-muted text-muted-foreground font-medium disabled:opacity-60",
+        "pill-ghost":
+          "rounded-full border-border bg-transparent text-muted-foreground font-medium hover:text-foreground",
+        "pill-destructive":
+          "rounded-full border-destructive/30 bg-destructive/10 text-destructive font-medium hover:bg-destructive/20",
         outline:
           "border-border bg-background shadow-xs hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

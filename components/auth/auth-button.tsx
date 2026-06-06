@@ -32,8 +32,9 @@ export function AuthButton({ className, label = "Join the protocol" }: AuthButto
     return (
       <Button
         size="sm"
+        variant="pill"
         onClick={login}
-        className={className ?? "rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5"}
+        className={className ?? "px-5"}
       >
         {label}
       </Button>

@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
+import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
+
+async function getPrivyUserId(req: NextRequest): Promise<string | null> {
+  const token = req.headers.get("authorization")?.replace("Bearer ", "")
+  if (!token) return null
+  try {
+    const claims = await privy.utils().auth().verifyAccessToken(token)
+    return claims.user_id
+  } catch {
+    return null
+  }
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -8,6 +20,37 @@ export async function GET(req: NextRequest) {
   const excludeId = searchParams.get("exclude_id")
   const limit = parseInt(searchParams.get("limit") ?? "12", 10)
   const offset = parseInt(searchParams.get("offset") ?? "0", 10)
+
+  // Best-effort auth: when a valid token is present, exclude the current user
+  // and anyone already connected (accepted) or with a pending request in
+  // either direction. Unauthenticated callers get the unfiltered list.
+  const excludeIds = new Set<string>()
+  if (excludeId) excludeIds.add(excludeId)
+
+  const privyUserId = await getPrivyUserId(req)
+  if (privyUserId) {
+    const { data: currentUser } = await supabaseServer
+      .from("users")
+      .select("id")
+      .eq("privy_id", privyUserId)
+      .single()
+
+    if (currentUser) {
+      excludeIds.add(currentUser.id)
+
+      const { data: friendshipRows } = await supabaseServer
+        .from("friendships")
+        .select("requester_id, receiver_id")
+        .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+        .in("status", ["accepted", "pending"])
+
+      for (const f of friendshipRows ?? []) {
+        excludeIds.add(
+          f.requester_id === currentUser.id ? f.receiver_id : f.requester_id,
+        )
+      }
+    }
+  }
 
   let query = supabaseServer
     .from("users")
@@ -26,8 +69,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (excludeId) {
-    query = query.neq("id", excludeId)
+  // Applied before .range() so the exact count and pagination stay correct
+  if (excludeIds.size > 0) {
+    query = query.not("id", "in", `(${[...excludeIds].join(",")})`)
   }
 
   query = query.range(offset, offset + limit - 1)

@@ -45,7 +45,8 @@ export function HackerHousesFeed({ currentUserId }: HackerHousesFeedProps) {
           <Link href="/dashboard/hacker-houses/create">
             <Button
               size="sm"
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-4 text-xs"
+              variant="pill"
+              className="px-4 text-xs"
             >
               + Create
             </Button>
@@ -81,7 +82,8 @@ export function HackerHousesFeed({ currentUserId }: HackerHousesFeedProps) {
           <Link href="/dashboard/hacker-houses/create">
             <Button
               size="sm"
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5 mt-2"
+              variant="pill"
+              className="px-5 mt-2"
             >
               Create the first House →
             </Button>

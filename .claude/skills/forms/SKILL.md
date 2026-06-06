@@ -657,13 +657,13 @@ async function onSubmit(values: MyInput) {
   </Button>
 
   {step === STEPS[STEPS.length - 1] ? (
-    <Button type="submit" disabled={isSubmitting}
-      className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6">
+    <Button type="submit" disabled={isSubmitting} variant="pill"
+      className="px-6">
       {isSubmitting ? submittingLabel : submitLabel}
     </Button>
   ) : (
-    <Button type="button" onClick={goNext}
-      className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6">
+    <Button type="button" onClick={goNext} variant="pill"
+      className="px-6">
       Continue →
     </Button>
   )}

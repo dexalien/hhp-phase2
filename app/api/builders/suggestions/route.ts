@@ -187,8 +187,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ suggestions: [] })
   }
 
+  // Exclude builders already connected (accepted) or with a pending request
+  // in either direction — rejected ones stay discoverable
+  const { data: friendshipRows } = await supabaseServer
+    .from("friendships")
+    .select("requester_id, receiver_id")
+    .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+    .in("status", ["accepted", "pending"])
+
+  const excludedIds = new Set(
+    (friendshipRows ?? []).map((f) =>
+      f.requester_id === currentUser.id ? f.receiver_id : f.requester_id,
+    ),
+  )
+
+  const candidates = allBuilders.filter((b) => !excludedIds.has(b.id))
+
+  if (candidates.length === 0) {
+    return NextResponse.json({ suggestions: [] })
+  }
+
   // Score and sort
-  const scored = allBuilders.map((builder) => {
+  const scored = candidates.map((builder) => {
     const { score, reasons } = scoreBuilder(
       currentUser as UserRow,
       builder as UserRow,

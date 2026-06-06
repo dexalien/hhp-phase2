@@ -48,7 +48,7 @@ export function EventCallout() {
             </div>
 
             {/* CTA */}
-            <AuthButton className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-11 px-8 w-fit" />
+            <AuthButton className="h-11 px-8 w-fit" />
           </div>
         </div>
       </div>

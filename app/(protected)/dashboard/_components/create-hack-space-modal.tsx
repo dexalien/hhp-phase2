@@ -228,8 +228,9 @@ export function CreateHackSpaceModal({
             </Button>
             <Button
               type="submit"
+              variant="pill"
               disabled={isSubmitting}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              className="px-6"
             >
               {isSubmitting ? "Creating..." : "Create Space →"}
             </Button>
