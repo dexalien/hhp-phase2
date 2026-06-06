@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { useCommunity, useJoinCommunity, useLeaveCommunity, useCommunityMembers, useUpdateCommunity } from "@/services/api/communities"
 import { CommunityForm } from "../create/_components/create-community-form"
+import { CommunityEventsTab } from "./_components/community-events-tab"
 import { ADMIN_USER_IDS } from "@/lib/admin"
 import { useProfile } from "@/services/api/profile"
 import { PageContainer } from "../../_components/page-container"
@@ -367,11 +368,10 @@ export default function CommunityDetailPage() {
         {/* ── EVENTS ── */}
         {/* ══════════════════════════════════════════════ */}
         {activeTab === "events" && (
-          <PlaceholderSection
-            icon={Calendar}
-            title="Events"
-            description="Hack Spaces and Hacker Houses created by this community will appear here."
-            detail="Communities can organize their own hackathons and co-livings."
+          <CommunityEventsTab
+            communityId={id}
+            isCreator={isCreator}
+            isMember={!!isMember}
           />
         )}
 

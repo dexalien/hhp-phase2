@@ -368,6 +368,35 @@ export interface CommunityListResponse {
   limit: number
 }
 
+/* ── Community / Hacker House mini-events ── */
+export type MiniEventLocationType = "online" | "in_person"
+export type MiniEventParentType = "community" | "hacker_house"
+
+export interface MiniEvent {
+  id: string
+  parent_type: MiniEventParentType
+  community_id: string | null
+  hacker_house_id: string | null
+  title: string
+  description: string | null
+  location_type: MiniEventLocationType
+  meeting_url: string | null
+  city: string | null
+  venue: string | null
+  start_at: string
+  end_at: string | null
+  capacity: number | null
+  attendees_count: number
+  is_attending: boolean
+  creator: {
+    id: string
+    handle: string | null
+    avatar_url: string | null
+  }
+  created_at: string
+  updated_at: string
+}
+
 /* ── Events ── */
 export type EventType = "Hackathon" | "Buildathon" | "Conference" | "Workshop" | "Meetup" | "Summit" | "Founder House" | "Other"
 

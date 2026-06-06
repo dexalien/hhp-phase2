@@ -8,8 +8,10 @@ import type {
   Community,
   CommunityListParams,
   CommunityListResponse,
+  MiniEvent,
 } from "@/lib/types"
 import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/schemas/community"
+import type { CreateMiniEventInput, UpdateMiniEventInput } from "@/lib/schemas/mini-event"
 
 const PAGE_SIZE = 12
 
@@ -145,6 +147,96 @@ export const useCommunityMembers = (communityId: string) => {
       return members
     },
     queryKey: [queryKeys.community, communityId, "members"],
+  })
+}
+
+/* ── Community mini-events ── */
+
+export const useCommunityEvents = (
+  communityId: string,
+  { past }: { past?: boolean } = {},
+) =>
+  useAppQuery<MiniEvent[]>({
+    fetcher: async () => {
+      const { events } = await genericAuthRequest<{ events: MiniEvent[] }>(
+        "get",
+        `/api/communities/${communityId}/events`,
+        past ? { past: true } : undefined,
+      )
+      return events
+    },
+    queryKey: [queryKeys.community, communityId, "events", { past: !!past }],
+  })
+
+export const useCreateCommunityEvent = (communityId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<CreateMiniEventInput, MiniEvent>({
+    fetcher: async (input) => {
+      const { event } = await genericAuthRequest<{ event: MiniEvent }>(
+        "post",
+        `/api/communities/${communityId}/events`,
+        input,
+      )
+      return event
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+      },
+    },
+  })
+}
+
+export const useUpdateCommunityEvent = (communityId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ eventId: string; data: UpdateMiniEventInput }, MiniEvent>({
+    fetcher: async ({ eventId, data }) => {
+      const { event } = await genericAuthRequest<{ event: MiniEvent }>(
+        "patch",
+        `/api/communities/${communityId}/events/${eventId}`,
+        data,
+      )
+      return event
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+      },
+    },
+  })
+}
+
+export const useDeleteCommunityEvent = (communityId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<string, { message: string }>({
+    fetcher: async (eventId) => {
+      return genericAuthRequest<{ message: string }>(
+        "delete",
+        `/api/communities/${communityId}/events/${eventId}`,
+      )
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+      },
+    },
+  })
+}
+
+export const useRsvpCommunityEvent = (communityId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ eventId: string; attend: boolean }, { message: string }>({
+    fetcher: async ({ eventId, attend }) => {
+      return genericAuthRequest<{ message: string }>(
+        attend ? "post" : "delete",
+        `/api/communities/${communityId}/events/${eventId}/attend`,
+      )
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+      },
+    },
   })
 }
 

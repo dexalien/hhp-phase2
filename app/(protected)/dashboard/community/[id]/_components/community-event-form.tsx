@@ -1,0 +1,346 @@
+"use client"
+
+import { useState } from "react"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Spinner } from "@/components/ui/spinner"
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "@/components/ui/field"
+import type { ZodType } from "zod"
+import {
+  createMiniEventSchema,
+  type CreateMiniEventInput,
+} from "@/lib/schemas/mini-event"
+
+const LOCATION_LABELS: Record<"online" | "in_person", string> = {
+  online: "Online",
+  in_person: "In person",
+}
+
+function TogglePill({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "text-xs px-3 py-1.5 rounded-md border font-mono transition-all cursor-pointer",
+        selected
+          ? "border-primary text-primary bg-primary/10"
+          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
+
+// Convert an ISO timestamp to the value a <input type="datetime-local"> expects (local time).
+function isoToLocalInput(iso?: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  const tzOffsetMs = d.getTimezoneOffset() * 60_000
+  return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 16)
+}
+
+// Convert a datetime-local value (local time, no tz) into an ISO UTC string.
+function localInputToIso(value: string): string {
+  if (!value) return ""
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toISOString()
+}
+
+interface CommunityEventFormProps {
+  defaultValues?: Partial<CreateMiniEventInput>
+  onFormSubmit: (values: CreateMiniEventInput) => Promise<void>
+  submitLabel: string
+  submittingLabel: string
+  onCancel: () => void
+  // Validation schema — create uses the future-start check, edit does not.
+  schema?: ZodType<CreateMiniEventInput>
+}
+
+export function CommunityEventForm({
+  defaultValues,
+  onFormSubmit,
+  submitLabel,
+  submittingLabel,
+  onCancel,
+  schema = createMiniEventSchema,
+}: CommunityEventFormProps) {
+  const [serverError, setServerError] = useState<string | null>(null)
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<CreateMiniEventInput>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      title: "",
+      description: "",
+      location_type: "online",
+      meeting_url: "",
+      city: "",
+      venue: "",
+      start_at: "",
+      end_at: "",
+      ...defaultValues,
+    },
+  })
+
+  const locationType = useWatch({ control, name: "location_type" })
+
+  async function onSubmit(values: CreateMiniEventInput) {
+    setServerError(null)
+    try {
+      await onFormSubmit(values)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Something went wrong"
+      setServerError(message)
+      toast.error(message)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+      {/* Title */}
+      <Controller
+        name="title"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+            <Input
+              {...field}
+              id={field.name}
+              aria-invalid={fieldState.invalid}
+              placeholder="Weekly community call"
+              maxLength={80}
+            />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      {/* Description */}
+      <Controller
+        name="description"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={field.name} optional>
+              Description
+            </FieldLabel>
+            <Textarea
+              {...field}
+              id={field.name}
+              aria-invalid={fieldState.invalid}
+              placeholder="What's this event about?"
+              maxLength={500}
+              rows={3}
+              className="resize-none"
+            />
+            <FieldDescription>{(field.value ?? "").length}/500</FieldDescription>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      {/* Location type */}
+      <Controller
+        name="location_type"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel>Location type</FieldLabel>
+            <div className="flex gap-2">
+              {(["online", "in_person"] as const).map((lt) => (
+                <TogglePill
+                  key={lt}
+                  selected={field.value === lt}
+                  onClick={() => field.onChange(lt)}
+                >
+                  {LOCATION_LABELS[lt]}
+                </TogglePill>
+              ))}
+            </div>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      {/* Conditional location fields */}
+      {locationType === "online" ? (
+        <div className="flex flex-col gap-4 pl-3 border-l-2 border-primary/30">
+          <Controller
+            name="meeting_url"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Meeting URL</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="https://meet.google.com/..."
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 pl-3 border-l-2 border-primary/30">
+          <Controller
+            name="city"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>City</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Lisbon"
+                  maxLength={80}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          <Controller
+            name="venue"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name} optional>
+                  Venue
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  aria-invalid={fieldState.invalid}
+                  placeholder="Second Home, Mercado da Ribeira"
+                  maxLength={120}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+        </div>
+      )}
+
+      {/* Start / End */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Controller
+          name="start_at"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Start</FieldLabel>
+              <Input
+                type="datetime-local"
+                id={field.name}
+                aria-invalid={fieldState.invalid}
+                value={isoToLocalInput(field.value)}
+                onChange={(e) => field.onChange(localInputToIso(e.target.value))}
+                onBlur={field.onBlur}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="end_at"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name} optional>
+                End
+              </FieldLabel>
+              <Input
+                type="datetime-local"
+                id={field.name}
+                aria-invalid={fieldState.invalid}
+                value={isoToLocalInput(field.value)}
+                onChange={(e) => field.onChange(localInputToIso(e.target.value))}
+                onBlur={field.onBlur}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+      </div>
+
+      {/* Capacity */}
+      <Controller
+        name="capacity"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={field.name} optional>
+              Capacity
+            </FieldLabel>
+            <Input
+              type="number"
+              id={field.name}
+              min={1}
+              aria-invalid={fieldState.invalid}
+              placeholder="No limit"
+              value={field.value ?? ""}
+              onChange={(e) => {
+                const v = e.target.value
+                field.onChange(v === "" ? undefined : Number(v))
+              }}
+              onBlur={field.onBlur}
+              className="max-w-40"
+            />
+            <FieldDescription>Maximum number of attendees.</FieldDescription>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+
+      {serverError && (
+        <p className="text-sm font-mono text-destructive border border-destructive/30 rounded-lg px-4 py-2.5 bg-destructive/5">
+          {serverError}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-2 pt-1">
+        <Button type="button" variant="pill-ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="pill" disabled={isSubmitting} className="px-6">
+          {isSubmitting ? (
+            <>
+              <Spinner className="mr-2" /> {submittingLabel}
+            </>
+          ) : (
+            submitLabel
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+export { isoToLocalInput, localInputToIso }
