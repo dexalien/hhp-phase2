@@ -7,7 +7,10 @@ import { useFilteredHackSpaces } from "@/services/api/hack-spaces"
 import { useFilteredHackerHouses } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
 import { PageContainer } from "../_components/page-container"
+import { buttonVariants } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import type { HackSpace, HackerHouse } from "@/lib/types"
 
 type Tab = "spaces" | "houses"
@@ -46,10 +49,10 @@ const PIXEL_WORLD_BANNERS = [
 function MyHackSpaceCard({ space, index = 0 }: { space: HackSpace; index?: number }) {
   const worldImg = PIXEL_WORLD_BANNERS[index % PIXEL_WORLD_BANNERS.length]
   return (
-    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col">
-      <div className="relative h-32 w-full flex-shrink-0">
+    <div className="min-w-[75vw] sm:min-w-75 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden shrink-0 flex flex-col">
+      <div className="relative h-32 w-full shrink-0">
         <img src={worldImg} alt={space.title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-card via-transparent to-transparent" />
         {/* Online indicator */}
         <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-background/70 backdrop-blur-sm rounded-full px-2 py-1">
           <span className="w-2 h-2 bg-[#6EE76E] rounded-full animate-pulse" />
@@ -71,14 +74,14 @@ function MyHackSpaceCard({ space, index = 0 }: { space: HackSpace; index?: numbe
         <div className="flex items-center gap-2">
           <Link
             href={`/dashboard/hack-spaces/${space.id}`}
-            className="flex-1 py-2 px-4 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            className={cn(buttonVariants({ variant: "pill" }), "flex-1")}
           >
             <Video className="w-4 h-4" />
             Enter
           </Link>
           <Link
             href={`/dashboard/hack-spaces/${space.id}`}
-            className="py-2 px-3 border border-border text-muted-foreground rounded-full text-sm hover:text-foreground hover:border-primary transition-colors"
+            className={cn(buttonVariants({ variant: "pill-ghost" }), "hover:border-primary")}
           >
             <Settings className="w-4 h-4" />
           </Link>
@@ -96,15 +99,15 @@ function HackSpaceInlineCard({ space }: { space: HackSpace }) {
   return (
     <Link
       href={`/dashboard/hack-spaces/${space.id}`}
-      className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col"
+      className="min-w-[75vw] sm:min-w-75 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors shrink-0 flex flex-col"
     >
-      <div className="relative h-32 w-full flex-shrink-0">
+      <div className="relative h-32 w-full shrink-0">
         {space.image_url ? (
           <img src={space.image_url} alt={space.title} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
+          <div className="w-full h-full bg-linear-to-br from-primary/20 via-muted to-card" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-card to-transparent" />
         <span
           className={`absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium ${
             space.status === "open"
@@ -152,14 +155,14 @@ function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
   const modeBadge = MODE_BADGE[house.modality] ?? MODE_BADGE["paid"]
 
   return (
-    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex-shrink-0 flex flex-col">
-      <div className="relative h-32 w-full flex-shrink-0">
+    <div className="min-w-[75vw] sm:min-w-75 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors shrink-0 flex flex-col">
+      <div className="relative h-32 w-full shrink-0">
         {banner ? (
           <img src={banner} alt={house.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
+          <div className="w-full h-full bg-linear-to-br from-primary/20 via-muted to-card" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-card to-transparent" />
         <span className={`absolute top-3 right-3 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${modeBadge}`}>
           {MODE_LABEL[house.modality] ?? house.modality}
         </span>
@@ -167,11 +170,11 @@ function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
       <div className="p-4 -mt-4 relative flex flex-col flex-1">
         <h3 className="font-display font-bold text-lg text-foreground mb-1 truncate">{house.name}</h3>
         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
+          <MapPin className="w-4 h-4 shrink-0" />
           <span className="truncate">{house.city}, {house.country}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
-          <Calendar className="w-4 h-4 flex-shrink-0" />
+          <Calendar className="w-4 h-4 shrink-0" />
           <span>{formatDateRange(house.start_date, house.end_date)}</span>
         </div>
         {house.event_name && (
@@ -186,7 +189,7 @@ function HackerHouseInlineCard({ house }: { house: HackerHouse }) {
           </div>
           <Link
             href={`/dashboard/hacker-houses/${house.id}`}
-            className="mt-1 w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors text-center"
+            className={cn(buttonVariants({ variant: "pill-outline" }), "mt-1 w-full")}
           >
             View details
           </Link>
@@ -203,7 +206,7 @@ function MyPlaceholder({ type }: { type: "hack-spaces" | "hacker-houses" }) {
   const action = type === "hack-spaces" ? "join or create one" : "apply or host one"
 
   return (
-    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col items-center justify-center text-center px-6"
+    <div className="min-w-[75vw] sm:min-w-75 lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden shrink-0 flex flex-col items-center justify-center text-center px-6"
       style={{ minHeight: "232px" }}
     >
       <p className="text-muted-foreground text-sm leading-relaxed">
@@ -211,7 +214,7 @@ function MyPlaceholder({ type }: { type: "hack-spaces" | "hacker-houses" }) {
       </p>
       <Link
         href={`/dashboard/${type}/create`}
-        className="mt-3 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+        className={cn(buttonVariants({ variant: "pill" }), "mt-3 px-5")}
       >
         + Create {type === "hack-spaces" ? "Space" : "House"}
       </Link>
@@ -223,7 +226,7 @@ function MyPlaceholder({ type }: { type: "hack-spaces" | "hacker-houses" }) {
 
 function CardSkeleton() {
   return (
-    <div className="min-w-[75vw] sm:min-w-[300px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0">
+    <div className="min-w-[75vw] sm:min-w-75 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden shrink-0">
       <Skeleton className="h-32 w-full rounded-none" />
       <div className="p-4 flex flex-col gap-3">
         <Skeleton className="h-5 w-2/3" />
@@ -269,30 +272,12 @@ export default function HacksPage() {
         <h1 className="font-display font-bold text-2xl text-foreground mb-6">Hacks</h1>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-card p-1 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setActiveTab("houses")}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-              activeTab === "houses"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Hacker Houses
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("spaces")}
-            className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-              activeTab === "spaces"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Hack Spaces
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)} className="mb-6">
+          <TabsList variant="pill">
+            <TabsTrigger value="houses">Hacker Houses</TabsTrigger>
+            <TabsTrigger value="spaces">Hack Spaces</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* ── Hack Spaces Tab ── */}
         {activeTab === "spaces" && (
@@ -337,7 +322,7 @@ export default function HacksPage() {
                   <p className="text-muted-foreground text-sm">No Hack Spaces available yet. Be the first to create one!</p>
                   <Link
                     href="/dashboard/hack-spaces/create"
-                    className="mt-2 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+                    className={cn(buttonVariants({ variant: "pill" }), "mt-2 px-5")}
                   >
                     Create Space
                   </Link>
@@ -405,7 +390,7 @@ export default function HacksPage() {
                   <p className="text-muted-foreground text-sm">No other Hacker Houses available yet.</p>
                   <Link
                     href="/dashboard/hacker-houses"
-                    className="mt-2 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+                    className={cn(buttonVariants({ variant: "pill" }), "mt-2 px-5")}
                   >
                     Browse all houses
                   </Link>
