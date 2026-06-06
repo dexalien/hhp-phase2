@@ -11,12 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Bell, Calendar, Code2, Home, Map, Settings, Shield, User, Users } from "lucide-react"
+import { Bell, Calendar, Code2, Home, LogOut, Map, Shield, User, Users } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import React from "react"
-import { SidebarUserCard } from "./sidebar-user-card"
 import { NotificationBadge } from "./notification-badge"
+import { useAuth } from "@/hooks/use-auth"
 import { useProfile } from "@/services/api/profile"
 import { ADMIN_USER_IDS } from "@/lib/admin"
 
@@ -37,7 +37,14 @@ const NAV_MAIN: {
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout } = useAuth()
   const { data: profile } = useProfile()
+
+  async function handleLogout() {
+    await logout()
+    router.replace("/")
+  }
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href
@@ -88,7 +95,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="px-4 pb-6">
         <SidebarMenu className="gap-1">
-          {profile && ADMIN_USER_IDS.includes(profile.id) && (
+          {profile && (ADMIN_USER_IDS.includes(profile.id) || profile.is_admin) && (
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -124,15 +131,13 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               size="lg"
-              tooltip="Settings"
-              className="h-12 text-base font-medium [&_svg]:size-5 px-4 gap-3 rounded-full hover:bg-transparent hover:text-sidebar-accent-foreground"
+              onClick={handleLogout}
+              tooltip="Log out"
+              className="h-12 text-base font-medium [&_svg]:size-5 px-4 gap-3 rounded-full cursor-pointer hover:bg-transparent hover:text-destructive"
             >
-              <Link href="/dashboard/profile">
-                <Settings />
-                <span>Settings</span>
-              </Link>
+              <LogOut />
+              <span>Log out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
