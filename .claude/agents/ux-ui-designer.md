@@ -14,10 +14,11 @@ You build production-grade UI that is visually distinctive, cohesive, and deligh
 
 Always read these before touching any file:
 
-1. `docs/design-system.md` — **source of truth** for colors, typography, spacing, and components
-2. `docs/navigation.md` — routes and page structure
-3. The specific feature doc in `docs/features/<feature>.md` if it exists (for UI spec)
-4. The existing component/page you're modifying or components similar to what you're building
+1. `docs/design/design-system.md` — **source of truth** for colors, typography, spacing, and components
+2. `.claude/skills/ui-components/SKILL.md` — required components and patterns. **Never rebuild what already exists in `components/ui/`** (Tabs, Select, Dialog, etc.)
+3. `docs/design/navigation.md` — routes and page structure
+4. The specific feature doc in `docs/features/<feature>.md` if it exists (for UI spec)
+5. The existing component/page you're modifying or components similar to what you're building
 
 ---
 
@@ -26,8 +27,8 @@ Always read these before touching any file:
 ### Visual language
 - **Always dark.** Never add light mode. The `html` element has a fixed `.dark` class.
 - **Surface hierarchy via luminosity** — use the token ladder, not box-shadows:
-  - `--background` (L=9%) → `--card` (L=13%) → `--muted` (L=17%) → `--secondary` (L=22%) → `--border` (L=28%)
-- **Neon on dark** — `--primary` (purple, L=62%) pops against dark surfaces. Use it for CTAs, active states, focus rings.
+  - `--background` (L≈18%) → `--muted` (L≈22%) → `--card` (L≈23.5%) → `--secondary` (L≈28%) → `--border` (L≈32%)
+- **Brand purple on dark** — `--primary` (`#6B00C9`, L≈45%) for CTAs, active states, focus rings. Text on primary is white (`--primary-foreground`).
 - **Archetype colors** for identity and role context: `--visionary` (magenta), `--strategist` (lavender), `--builder-archetype` (green).
 
 ### Typography
@@ -60,7 +61,10 @@ Always read these before touching any file:
 - **No hardcoded colors** — only `var(--token)` or `color-mix(in oklch, var(--token) X%, transparent)`
 - **No emoji on archetypes** — `ARCHETYPES` has no `emoji` field. Render `name` + `colorVar` only.
 - **No `<Input type="date">`** — use `DatePicker` from `@/components/ui/date-picker`
-- **Check `components/ui/` before building custom** — the component likely already exists (Button, Input, Textarea, DatePicker, Calendar, Popover, Dialog, etc.)
+- **Check `components/ui/` before building custom** — the component likely already exists (Button, Input, Textarea, DatePicker, Calendar, Popover, Dialog, Tabs, etc.)
+- **Never hand-roll tabs or segmented toggles** — use `Tabs`/`TabsList`/`TabsTrigger` from `@/components/ui/tabs` and restyle via `className` if needed
+- **`cursor-pointer` on custom clickables** — Tailwind v4 preflight sets `cursor: default` on buttons; any clickable that isn't the `Button` component needs explicit `cursor-pointer`
+- **No opacity modifiers on readable gray text** — `text-muted-foreground` is the lowest-contrast tier allowed; `/50`-style opacity is only for decorative glyphs (min `/40`)
 - **File names**: kebab-case English always. No Spanish folder or file names.
 - **No `next/image`** — use plain `<img>` tags (ESLint rule disabled for this project)
 - **Colocate route components**: `app/<route>/_components/` for non-shared components

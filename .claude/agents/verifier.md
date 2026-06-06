@@ -46,6 +46,11 @@ For every changed file, check the following. Report only actual violations.
 - [ ] Pages use `<PageContainer>` — no inline `max-w-* mx-auto px-* py-*` on `<main>`
 - [ ] No `<header>` blocks in pages
 
+### UI components
+- [ ] Tabs / segmented toggles use `Tabs`/`TabsList`/`TabsTrigger` from `@/components/ui/tabs` — never hand-rolled `<button>` toggles with manual active-state classes
+- [ ] Custom clickable elements that aren't the `Button` component include `cursor-pointer` (Tailwind v4 preflight sets `cursor: default` on buttons)
+- [ ] No opacity modifiers on readable `text-muted-foreground` text — opacity only on decorative glyphs (min `/40`)
+
 ### TypeScript
 - [ ] No `any` — use `unknown` + narrowing or proper interfaces
 - [ ] New entities typed in `lib/types.ts`
