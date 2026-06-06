@@ -88,7 +88,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="px-4 pb-6">
         <SidebarMenu className="gap-1">
-          {profile && (profile.is_admin || ADMIN_USER_IDS?.includes(profile.id)) && (
+          {profile && ADMIN_USER_IDS.includes(profile.id) && (
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
