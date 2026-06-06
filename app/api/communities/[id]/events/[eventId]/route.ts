@@ -22,7 +22,7 @@ type EventRow = Omit<MiniEvent, "attendees_count" | "is_attending" | "creator"> 
 
 const EVENT_SELECT = `
   id, parent_type, community_id, hacker_house_id, title, description,
-  location_type, meeting_url, city, venue, start_at, end_at, capacity,
+  location_type, meeting_url, country, city, venue, start_at, end_at, capacity,
   created_at, updated_at,
   creator:users!creator_id(id, handle, avatar_url)
 `
@@ -94,9 +94,11 @@ export async function PATCH(
   // Null fields not applicable to the effective location; otherwise apply provided values.
   if (effectiveLocation === "online") {
     if (d.meeting_url !== undefined) updates.meeting_url = d.meeting_url || null
+    updates.country = null
     updates.city = null
     updates.venue = null
   } else {
+    if (d.country !== undefined) updates.country = d.country || null
     if (d.city !== undefined) updates.city = d.city || null
     if (d.venue !== undefined) updates.venue = d.venue || null
     updates.meeting_url = null

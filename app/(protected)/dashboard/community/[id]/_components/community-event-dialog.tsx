@@ -43,6 +43,7 @@ export function CommunityEventDialog({
         description: event.description ?? "",
         location_type: event.location_type,
         meeting_url: event.meeting_url ?? "",
+        country: event.country ?? "",
         city: event.city ?? "",
         venue: event.venue ?? "",
         start_at: event.start_at,

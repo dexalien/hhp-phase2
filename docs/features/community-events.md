@@ -28,6 +28,7 @@ These are **deliberately separate** from the global `events` system (`HHPEvent`)
 - Members toggle RSVP (attend / un-attend); card shows attendee count
 - Optional capacity: when set, RSVP is blocked once full ("Event full")
 - Empty state with "New event" CTA for the creator, informative copy for others
+- Map integration: the community marker popup on `/dashboard/map` lists up to 3 upcoming mini-events (title + date + online/in-person icon) — no separate event markers, no geocoding
 
 ### Out of scope (Phase 2)
 - Mini-events inside Hacker Houses (table already supports it via nullable `hacker_house_id` — only routes + UI pending)
@@ -65,6 +66,7 @@ interface MiniEvent {
   description: string | null
   location_type: MiniEventLocationType
   meeting_url: string | null      // required when online
+  country: string | null          // required when in_person (combobox cascade)
   city: string | null             // required when in_person
   venue: string | null            // optional free text, in_person only
   start_at: string                // timestamptz ISO
@@ -94,6 +96,7 @@ interface MiniEvent {
 | description | text | | max 500 chars (API-validated) |
 | location_type | text | NOT NULL, CHECK IN ('online','in_person') | |
 | meeting_url | text | | |
+| country | text | | required for in_person at API/Zod layer |
 | city | text | | |
 | venue | text | | |
 | start_at | timestamptz | NOT NULL | |
@@ -131,7 +134,8 @@ Form per `.claude/skills/forms/SKILL.md` — react-hook-form + Zod schema in `li
 - Description (`description`) — textarea, optional, max 500
 - Location type (`location_type`) — toggle pills: Online / In person, required
 - Meeting URL (`meeting_url`) — url input, **shown + required only when online**
-- City (`city`) — text, **shown + required only when in_person**
+- Country (`country`) — `Combobox` over `LOCATION_DATA`, **shown + required only when in_person**; selecting resets city
+- City (`city`) — `Combobox` cascade filtered by country, **shown + required only when in_person**
 - Venue (`venue`) — text, optional, in_person only
 - Start (`start_at`) — datetime, required, must be in the future (create only)
 - End (`end_at`) — datetime, optional, must be after start

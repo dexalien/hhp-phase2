@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import type { MapMarkerData } from "@/lib/types"
+import type { MapMarkerData, MapMarkerMiniEvent } from "@/lib/types"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -110,6 +110,29 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Upcoming mini-events per community — shown in the community popup (max 3, soonest first)
+  const communityEventsMap: Record<string, MapMarkerMiniEvent[]> = {}
+  if (communityIds.length > 0) {
+    const { data: miniEvents } = await supabaseServer
+      .from("mini_events")
+      .select("id, community_id, title, start_at, location_type")
+      .in("community_id", communityIds)
+      .gte("start_at", new Date().toISOString())
+      .order("start_at", { ascending: true })
+    for (const ev of miniEvents ?? []) {
+      const cid = ev.community_id as string
+      const list = (communityEventsMap[cid] ??= [])
+      if (list.length < 3) {
+        list.push({
+          id: ev.id as string,
+          title: ev.title as string,
+          start_at: ev.start_at as string,
+          location_type: ev.location_type as MapMarkerMiniEvent["location_type"],
+        })
+      }
+    }
+  }
+
   const today = new Date().toISOString().slice(0, 10)
 
   // Blur to 3dp (~100m) — same as high-zoom cluster precision so blurred pins still group
@@ -211,6 +234,7 @@ export async function GET(req: NextRequest) {
       image_url: c.image_url as string | null,
       description: c.description as string | null,
       category: c.category as string | null,
+      upcoming_events: communityEventsMap[c.id] ?? [],
     })),
   ]
 

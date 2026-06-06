@@ -33,7 +33,7 @@ export async function GET(
     .from("mini_events")
     .select(`
       id, parent_type, community_id, hacker_house_id, title, description,
-      location_type, meeting_url, city, venue, start_at, end_at, capacity,
+      location_type, meeting_url, country, city, venue, start_at, end_at, capacity,
       created_at, updated_at,
       creator:users!creator_id(id, handle, avatar_url)
     `)
@@ -151,6 +151,7 @@ export async function POST(
     description: d.description || null,
     location_type: d.location_type,
     meeting_url: isOnline ? (d.meeting_url || null) : null,
+    country: isOnline ? null : (d.country || null),
     city: isOnline ? null : (d.city || null),
     venue: isOnline ? null : (d.venue || null),
     start_at: d.start_at,
@@ -163,7 +164,7 @@ export async function POST(
     .insert(insert)
     .select(`
       id, parent_type, community_id, hacker_house_id, title, description,
-      location_type, meeting_url, city, venue, start_at, end_at, capacity,
+      location_type, meeting_url, country, city, venue, start_at, end_at, capacity,
       created_at, updated_at,
       creator:users!creator_id(id, handle, avatar_url)
     `)

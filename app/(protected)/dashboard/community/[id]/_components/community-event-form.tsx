@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -10,11 +10,20 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import {
   Field,
   FieldLabel,
   FieldDescription,
   FieldError,
 } from "@/components/ui/field"
+import { LOCATION_DATA } from "@/lib/constants/location"
 import type { ZodType } from "zod"
 import {
   createMiniEventSchema,
@@ -24,6 +33,18 @@ import {
 const LOCATION_LABELS: Record<"online" | "in_person", string> = {
   online: "Online",
   in_person: "In person",
+}
+
+const ALL_COUNTRIES = LOCATION_DATA.flatMap((r) =>
+  r.countries.map((c) => c.name),
+).sort((a, b) => a.localeCompare(b))
+
+function getCitiesForCountryName(country: string): string[] {
+  for (const region of LOCATION_DATA) {
+    const match = region.countries.find((c) => c.name === country)
+    if (match) return match.cities.map((city) => city.name)
+  }
+  return []
 }
 
 function TogglePill({
@@ -87,9 +108,13 @@ export function CommunityEventForm({
   schema = createMiniEventSchema,
 }: CommunityEventFormProps) {
   const [serverError, setServerError] = useState<string | null>(null)
+  // Combobox popups portal into the form so they work inside the Radix Dialog
+  // (Base UI portals to body by default, which the modal dialog makes inert).
+  const portalRef = useRef<HTMLFormElement>(null)
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { isSubmitting },
   } = useForm<CreateMiniEventInput>({
     resolver: zodResolver(schema),
@@ -98,6 +123,7 @@ export function CommunityEventForm({
       description: "",
       location_type: "online",
       meeting_url: "",
+      country: "",
       city: "",
       venue: "",
       start_at: "",
@@ -107,6 +133,8 @@ export function CommunityEventForm({
   })
 
   const locationType = useWatch({ control, name: "location_type" })
+  const watchedCountry = useWatch({ control, name: "country" })
+  const availableCities = watchedCountry ? getCitiesForCountryName(watchedCountry) : []
 
   async function onSubmit(values: CreateMiniEventInput) {
     setServerError(null)
@@ -120,7 +148,7 @@ export function CommunityEventForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+    <form ref={portalRef} onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       {/* Title */}
       <Controller
         name="title"
@@ -210,22 +238,64 @@ export function CommunityEventForm({
       ) : (
         <div className="flex flex-col gap-4 pl-3 border-l-2 border-primary/30">
           <Controller
-            name="city"
+            name="country"
             control={control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>City</FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Lisbon"
-                  maxLength={80}
-                />
+                <FieldLabel>Country</FieldLabel>
+                <Combobox
+                  items={ALL_COUNTRIES}
+                  value={field.value ?? ""}
+                  onValueChange={(val) => {
+                    field.onChange(val)
+                    setValue("city", "")
+                  }}
+                >
+                  <ComboboxInput placeholder="Search country..." showClear />
+                  <ComboboxContent container={portalRef}>
+                    <ComboboxEmpty>No country found.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(name: string) => (
+                        <ComboboxItem key={name} value={name} className="font-mono text-sm">
+                          {name}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />
+          {watchedCountry && availableCities.length > 0 && (
+            <Controller
+              name="city"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>City</FieldLabel>
+                  <Combobox
+                    items={availableCities}
+                    value={field.value ?? ""}
+                    onValueChange={(val) => field.onChange(val)}
+                  >
+                    <ComboboxInput placeholder="Search city..." showClear />
+                    <ComboboxContent container={portalRef}>
+                      <ComboboxEmpty>No city found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(name: string) => (
+                          <ComboboxItem key={name} value={name} className="font-mono text-sm">
+                            {name}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+          )}
           <Controller
             name="venue"
             control={control}

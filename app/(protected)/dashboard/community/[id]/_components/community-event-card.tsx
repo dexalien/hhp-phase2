@@ -181,7 +181,7 @@ export function CommunityEventCard({
         ) : (
           <span className="flex items-center gap-1.5 font-mono">
             <MapPin className="w-3.5 h-3.5 shrink-0" />
-            {event.venue ? `${event.venue}, ${event.city}` : event.city}
+            {[event.venue, event.city, event.country].filter(Boolean).join(", ")}
           </span>
         )}
       </div>

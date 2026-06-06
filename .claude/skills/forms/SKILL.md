@@ -474,6 +474,21 @@ For fields with many options, use `Combobox` from `@/components/ui/combobox`:
 />
 ```
 
+### Combobox inside a Dialog — portal it into the form
+
+The `Combobox` is **Base UI** and portals its popup to `document.body`; the `Dialog` is **Radix** in modal mode and makes everything outside its content inert — the dropdown opens but clicks on items do nothing. When a Combobox lives inside a `Dialog`, pass a `container` ref so the popup portals inside the dialog:
+
+```tsx
+const portalRef = useRef<HTMLFormElement>(null)
+
+<form ref={portalRef} onSubmit={handleSubmit(onSubmit)}>
+  ...
+  <ComboboxContent container={portalRef}>...</ComboboxContent>
+</form>
+```
+
+On regular pages (no dialog) omit `container` — the default body portal is correct.
+
 ---
 
 ## Cascading field resets

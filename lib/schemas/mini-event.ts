@@ -6,6 +6,7 @@ export const miniEventBaseSchema = z.object({
   description: z.string().max(500, "Maximum 500 characters").optional().or(z.literal("")),
   location_type: z.enum(["online", "in_person"], { required_error: "Select a location type" }),
   meeting_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  country: z.string().max(80, "Maximum 80 characters").optional().or(z.literal("")),
   city: z.string().max(80, "Maximum 80 characters").optional().or(z.literal("")),
   venue: z.string().max(120, "Maximum 120 characters").optional().or(z.literal("")),
   start_at: z.string().min(1, "Start date and time is required"),
@@ -14,7 +15,7 @@ export const miniEventBaseSchema = z.object({
 })
 
 function refineLocation(
-  data: { location_type?: "online" | "in_person"; meeting_url?: string; city?: string },
+  data: { location_type?: "online" | "in_person"; meeting_url?: string; country?: string; city?: string },
   ctx: z.RefinementCtx,
 ) {
   if (data.location_type === "online" && !data.meeting_url) {
@@ -22,6 +23,13 @@ function refineLocation(
       code: z.ZodIssueCode.custom,
       message: "Meeting URL is required for online events",
       path: ["meeting_url"],
+    })
+  }
+  if (data.location_type === "in_person" && !data.country) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Country is required for in-person events",
+      path: ["country"],
     })
   }
   if (data.location_type === "in_person" && !data.city) {

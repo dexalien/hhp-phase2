@@ -309,8 +309,17 @@ export interface MapMarkerData {
   website_url?: string | null
   prizes?: string | null
   category?: string | null
+  // community extras — upcoming mini-events shown in the popup
+  upcoming_events?: MapMarkerMiniEvent[]
   // location privacy
   location_revealed?: boolean
+}
+
+export interface MapMarkerMiniEvent {
+  id: string
+  title: string
+  start_at: string
+  location_type: MiniEventLocationType
 }
 
 export interface MapMarkersResponse {
@@ -381,6 +390,7 @@ export interface MiniEvent {
   description: string | null
   location_type: MiniEventLocationType
   meeting_url: string | null
+  country: string | null
   city: string | null
   venue: string | null
   start_at: string

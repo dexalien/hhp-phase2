@@ -1,5 +1,10 @@
 import Link from "next/link"
+import { Calendar, Globe, MapPin } from "lucide-react"
 import type { MapMarkerData } from "@/lib/types"
+
+function formatEventDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
 
 export function CommunityPopup({ marker }: { marker: MapMarkerData }) {
   return (
@@ -30,6 +35,25 @@ export function CommunityPopup({ marker }: { marker: MapMarkerData }) {
       )}
       {marker.member_count !== null && (
         <p className="text-[11px] font-mono text-muted-foreground">{marker.member_count} members</p>
+      )}
+      {marker.upcoming_events && marker.upcoming_events.length > 0 && (
+        <div className="flex flex-col gap-1 border-t border-border pt-2">
+          <p className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground uppercase tracking-wide">
+            <Calendar className="w-3 h-3" />
+            Upcoming events
+          </p>
+          {marker.upcoming_events.map((ev) => (
+            <div key={ev.id} className="flex items-center gap-1.5 text-[11px] font-mono text-foreground">
+              {ev.location_type === "online" ? (
+                <Globe className="w-3 h-3 shrink-0 text-primary" />
+              ) : (
+                <MapPin className="w-3 h-3 shrink-0 text-primary" />
+              )}
+              <span className="truncate">{ev.title}</span>
+              <span className="text-muted-foreground shrink-0">· {formatEventDate(ev.start_at)}</span>
+            </div>
+          ))}
+        </div>
       )}
       <Link
         href={`/dashboard/community/${marker.id}`}
