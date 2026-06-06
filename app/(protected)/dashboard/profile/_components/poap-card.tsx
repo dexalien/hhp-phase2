@@ -33,7 +33,7 @@ export function PoapCard({ poap }: PoapCardProps) {
         <p className="text-[10px] font-mono text-foreground leading-tight line-clamp-2">
           {poap.name}
         </p>
-        <p className="text-[9px] font-mono text-muted-foreground/50">
+        <p className="text-[9px] font-mono text-muted-foreground">
           {new Date(poap.event_date).getFullYear()}
         </p>
       </div>

@@ -83,7 +83,7 @@ export function ProfileIdentity({ profile }: ProfileIdentityProps) {
 
           {/* Identity block */}
           <div className="flex flex-col gap-2 pt-1 min-w-0 flex-1">
-            <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-muted-foreground/40">
+            <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-muted-foreground">
               Builder ID
             </p>
 
@@ -115,8 +115,8 @@ export function ProfileIdentity({ profile }: ProfileIdentityProps) {
             )}
 
             {profile.wallet_address && (
-              <p className="text-[11px] font-mono text-muted-foreground/50 mt-1">
-                <span className="text-muted-foreground/25">⬡ </span>
+              <p className="text-[11px] font-mono text-muted-foreground mt-1">
+                <span className="text-muted-foreground/40">⬡ </span>
                 {truncateWallet(profile.wallet_address)}
               </p>
             )}
@@ -132,7 +132,7 @@ export function ProfileIdentity({ profile }: ProfileIdentityProps) {
               {profile.bio}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground/30 italic">
+            <p className="text-sm text-muted-foreground italic">
               No bio yet.
             </p>
           )}

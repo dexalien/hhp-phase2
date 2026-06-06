@@ -15,7 +15,7 @@ export function ProfileTags({ tags }: ProfileTagsProps) {
         <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
           Verified Tags
         </p>
-        <p className="text-[10px] font-mono text-muted-foreground/50">
+        <p className="text-[10px] font-mono text-muted-foreground">
           via Talent Protocol
         </p>
       </div>

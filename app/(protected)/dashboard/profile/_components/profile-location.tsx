@@ -23,13 +23,13 @@ export function ProfileLocation({ profile }: ProfileLocationProps) {
       <div className="flex flex-col gap-2.5">
         {hasLocation && (
           <div className="flex items-start gap-2">
-            <span className="text-muted-foreground/30 text-xs mt-px leading-none select-none">◎</span>
+            <span className="text-muted-foreground/40 text-xs mt-px leading-none select-none">◎</span>
             <div className="flex flex-col gap-0.5">
               <p className="text-sm text-foreground font-mono leading-tight">
                 {locationParts.join(" · ")}
               </p>
               {profile.timezone && (
-                <p className="text-xs text-muted-foreground/60 font-mono">
+                <p className="text-xs text-muted-foreground font-mono">
                   {profile.timezone}
                 </p>
               )}

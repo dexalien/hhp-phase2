@@ -133,7 +133,7 @@
   --secondary: oklch(0.28 0.08 282);         /* between card and border */
   --secondary-foreground: oklch(0.955 0.012 291);
   --muted: oklch(0.22 0.07 282);             /* between bg and card */
-  --muted-foreground: oklch(0.587 0.030 288);/* #7B7A8E */
+  --muted-foreground: oklch(0.70 0.030 288); /* lightened from #7B7A8E for AA contrast on card */
   --accent: oklch(0.26 0.13 285);            /* hover highlights */
   --accent-foreground: oklch(0.955 0.012 291);
 
@@ -158,7 +158,7 @@
 
   /* Sidebar */
   --sidebar: oklch(0.235 0.075 282);         /* = card = #1A1740 */
-  --sidebar-foreground: oklch(0.587 0.030 288);/* = muted-foreground = #7B7A8E */
+  --sidebar-foreground: oklch(0.70 0.030 288);/* = muted-foreground */
   --sidebar-primary: oklch(0.452 0.246 297); /* = primary */
   --sidebar-primary-foreground: oklch(0.955 0.012 291);
   --sidebar-accent: oklch(0.452 0.246 297);  /* = primary — active nav bg */

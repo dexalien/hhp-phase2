@@ -128,7 +128,7 @@ export function CypherIdentityCard({ profile }: CypherIdentityCardProps) {
       ) : (
         <Link
           href="/dashboard/profile"
-          className="flex items-center gap-2 px-3 py-2.5 rounded-sm border border-dashed border-border text-xs font-mono text-muted-foreground/50 hover:text-muted-foreground hover:border-primary/30 transition-colors"
+          className="flex items-center gap-2 px-3 py-2.5 rounded-sm border border-dashed border-border text-xs font-mono text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
         >
           <span>Link wallet in profile</span>
         </Link>

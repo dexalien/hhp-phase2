@@ -91,7 +91,7 @@ export function NotificationItem({ notification }: NotificationItemProps) {
             {notification.body}
           </p>
         )}
-        <p className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">
+        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
           {getRelativeTime(notification.created_at)}
         </p>
       </div>
