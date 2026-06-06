@@ -8,11 +8,70 @@ import {
   type CreateCommunityInput,
 } from "@/lib/schemas/community"
 import { useUploadCommunityImage } from "@/services/api/communities"
+import { LOCATION_DATA } from "@/lib/constants/location"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Field,
+  FieldLabel,
+  FieldDescription,
+  FieldError,
+} from "@/components/ui/field"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 import { cn } from "@/lib/utils"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { toast } from "sonner"
 import { Upload, X, BadgeCheck, Star, Globe } from "lucide-react"
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+
+const ALL_COUNTRIES = LOCATION_DATA.flatMap((r) =>
+  r.countries.map((c) => c.name),
+).sort((a, b) => a.localeCompare(b))
+
+function getCitiesForCountryName(country: string): string[] {
+  for (const region of LOCATION_DATA) {
+    const match = region.countries.find((c) => c.name === country)
+    if (match) return match.cities.map((city) => city.name)
+  }
+  return []
+}
+
+function TogglePill({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer",
+        selected
+          ? "bg-primary text-primary-foreground"
+          : "border border-border text-muted-foreground hover:border-primary hover:text-primary",
+      )}
+    >
+      {children}
+    </button>
+  )
+}
 
 interface CommunityFormProps {
   onFormSubmit: (values: CreateCommunityInput) => Promise<void>
@@ -28,12 +87,10 @@ export function CommunityForm({
   defaultValues,
 }: CommunityFormProps) {
   const {
-    register,
     handleSubmit,
     control,
     setValue,
-    watch,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<CreateCommunityInput>({
     resolver: zodResolver(createCommunitySchema),
     defaultValues: {
@@ -48,107 +105,153 @@ export function CommunityForm({
   })
 
   const uploadImage = useUploadCommunityImage()
-  const [previewUrl, setPreviewUrl] = useState<string | null>(defaultValues?.image_url ?? null)
+  const [pendingFile, setPendingFile] = useState<{ file: File; preview: string } | null>(null)
+  const [serverError, setServerError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const imageUrl = watch("image_url")
+  const imageUrl = useWatch({ control, name: "image_url" })
   const isWorldwide = useWatch({ control, name: "is_worldwide" })
+  const watchedCountry = useWatch({ control, name: "country" })
+  const availableCities = watchedCountry
+    ? getCitiesForCountryName(watchedCountry)
+    : []
 
-  async function handleImageUpload(file: File) {
-    const result = await uploadImage.mutateAsync(file)
-    setValue("image_url", result.image_url)
-    setPreviewUrl(URL.createObjectURL(file))
+  useEffect(() => {
+    return () => {
+      if (pendingFile) URL.revokeObjectURL(pendingFile.preview)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleFileAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Use JPEG, PNG, WebP or GIF")
+      return
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error("Image exceeds 5MB")
+      return
+    }
+
+    setPendingFile((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview)
+      return { file, preview: URL.createObjectURL(file) }
+    })
+  }
+
+  function removeImage() {
+    if (pendingFile) URL.revokeObjectURL(pendingFile.preview)
+    setPendingFile(null)
+    setValue("image_url", "")
+  }
+
+  async function onSubmit(values: CreateCommunityInput) {
+    setServerError(null)
+    try {
+      let finalImageUrl = values.image_url
+      if (pendingFile) {
+        const result = await uploadImage.mutateAsync(pendingFile.file)
+        finalImageUrl = result.image_url
+      }
+      await onFormSubmit({ ...values, image_url: finalImageUrl })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Something went wrong"
+      setServerError(message)
+      toast.error(message)
+    }
   }
 
   return (
     <form
-      onSubmit={handleSubmit(onFormSubmit)}
+      onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-6"
     >
       {/* Name */}
-      <div className="flex flex-col gap-2">
-        <label className="font-display font-bold text-sm text-foreground">
-          Community name
-        </label>
-        <input
-          {...register("name")}
-          placeholder="e.g. DeFi Builders Guild"
-          className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-        />
-        {errors.name && (
-          <p className="text-destructive text-xs">{errors.name.message}</p>
+      <Controller
+        name="name"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={field.name}>Community name</FieldLabel>
+            <Input
+              {...field}
+              id={field.name}
+              aria-invalid={fieldState.invalid}
+              placeholder="e.g. DeFi Builders Guild"
+            />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
         )}
-      </div>
+      />
 
       {/* Description */}
-      <div className="flex flex-col gap-2">
-        <label className="font-display font-bold text-sm text-foreground">
-          Description
-        </label>
-        <textarea
-          {...register("description")}
-          rows={4}
-          placeholder="What is this community about?"
-          className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors resize-none"
-        />
-        {errors.description && (
-          <p className="text-destructive text-xs">{errors.description.message}</p>
+      <Controller
+        name="description"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={field.name}>Description</FieldLabel>
+            <Textarea
+              {...field}
+              id={field.name}
+              aria-invalid={fieldState.invalid}
+              placeholder="What is this community about?"
+              maxLength={500}
+              rows={4}
+              className="resize-none"
+            />
+            <FieldDescription>{(field.value ?? "").length}/500</FieldDescription>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
         )}
-      </div>
+      />
 
       {/* Category */}
-      <div className="flex flex-col gap-2">
-        <label className="font-display font-bold text-sm text-foreground">
-          Category
-        </label>
-        <Controller
-          name="category"
-          control={control}
-          render={({ field }) => (
+      <Controller
+        name="category"
+        control={control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel>Category</FieldLabel>
             <div className="flex flex-wrap gap-2">
               {COMMUNITY_CATEGORIES.map((cat) => (
-                <button
+                <TogglePill
                   key={cat}
-                  type="button"
+                  selected={field.value === cat}
                   onClick={() => field.onChange(cat)}
-                  className={cn(
-                    "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                    field.value === cat
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border text-muted-foreground hover:border-primary hover:text-primary",
-                  )}
                 >
                   {cat}
-                </button>
+                </TogglePill>
               ))}
             </div>
-          )}
-        />
-        {errors.category && (
-          <p className="text-destructive text-xs">{errors.category.message}</p>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
         )}
-      </div>
+      />
 
       {/* Location (optional) */}
-      <div className="flex flex-col gap-2">
-        <label className="font-display font-bold text-sm text-foreground">
-          Location <span className="text-muted-foreground font-normal">(optional — shows on map)</span>
-        </label>
+      <Field>
+        <FieldLabel optional>Location</FieldLabel>
+        <FieldDescription>
+          Add a location to show your community on the interactive map.
+        </FieldDescription>
         <Controller
           name="is_worldwide"
           control={control}
           render={({ field }) => (
             <label className="flex items-center gap-2.5 cursor-pointer w-fit">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={field.value ?? false}
-                onChange={(e) => {
-                  field.onChange(e.target.checked)
-                  if (e.target.checked) {
+                onCheckedChange={(checked) => {
+                  field.onChange(checked === true)
+                  if (checked === true) {
                     setValue("city", "")
                     setValue("country", "")
                   }
                 }}
-                className="accent-[var(--primary)]"
               />
               <span className="flex items-center gap-1.5 text-sm text-foreground">
                 <Globe className="size-4 text-primary" />
@@ -158,53 +261,100 @@ export function CommunityForm({
           )}
         />
         {!isWorldwide && (
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              {...register("city")}
-              placeholder="City"
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
+          <div className="flex flex-col gap-3">
+            <Controller
+              name="country"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <Combobox
+                    items={ALL_COUNTRIES}
+                    value={field.value ?? ""}
+                    onValueChange={(val) => {
+                      field.onChange(val)
+                      setValue("city", "")
+                    }}
+                  >
+                    <ComboboxInput placeholder="Search country..." showClear />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No country found.</ComboboxEmpty>
+                      <ComboboxList>
+                        {(name: string) => (
+                          <ComboboxItem
+                            key={name}
+                            value={name}
+                            className="font-mono text-sm"
+                          >
+                            {name}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
             />
-            <input
-              {...register("country")}
-              placeholder="Country"
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none transition-colors"
-            />
+            {watchedCountry && availableCities.length > 0 && (
+              <Controller
+                name="city"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <Combobox
+                      items={availableCities}
+                      value={field.value ?? ""}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
+                      <ComboboxInput placeholder="Search city..." showClear />
+                      <ComboboxContent>
+                        <ComboboxEmpty>No city found.</ComboboxEmpty>
+                        <ComboboxList>
+                          {(name: string) => (
+                            <ComboboxItem
+                              key={name}
+                              value={name}
+                              className="font-mono text-sm"
+                            >
+                              {name}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+            )}
           </div>
         )}
         {isWorldwide && (
           <p className="text-xs text-muted-foreground font-mono">This community won&apos;t appear on the map.</p>
         )}
-      </div>
+      </Field>
 
       {/* Cover Image */}
-      <div className="flex flex-col gap-2">
-        <label className="font-display font-bold text-sm text-foreground">
-          Cover image
-        </label>
+      <Field>
+        <FieldLabel>Cover image</FieldLabel>
         <input
           ref={fileRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void handleImageUpload(file)
-          }}
+          onChange={handleFileAdd}
         />
-        {previewUrl || imageUrl ? (
+        {pendingFile || imageUrl ? (
           <div className="relative h-40 rounded-lg overflow-hidden border border-border">
             <img
-              src={previewUrl ?? imageUrl}
+              src={pendingFile?.preview ?? imageUrl}
               alt="Cover preview"
               className="w-full h-full object-cover"
             />
             <button
               type="button"
-              onClick={() => {
-                setPreviewUrl(null)
-                setValue("image_url", "")
-              }}
-              className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background"
+              onClick={removeImage}
+              className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -213,36 +363,35 @@ export function CommunityForm({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            disabled={uploadImage.isPending}
-            className="h-40 border border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+            className="h-40 border border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
           >
-            {uploadImage.isPending ? (
-              <Spinner className="size-6" />
-            ) : (
-              <>
-                <Upload className="w-6 h-6" />
-                <span className="text-sm">Upload cover image</span>
-              </>
-            )}
+            <Upload className="w-6 h-6" />
+            <span className="text-sm">Upload cover image</span>
           </button>
         )}
-      </div>
+      </Field>
 
       {/* Request verification */}
       <Controller
         name="verification_requested"
         control={control}
         render={({ field }) => (
-          <label className="flex items-start gap-3 p-4 rounded-lg border border-border hover:border-primary/40 transition-colors cursor-pointer">
-            <input
-              type="checkbox"
+          <label
+            className={cn(
+              "flex items-start gap-3 p-4 rounded-lg border transition-colors cursor-pointer",
+              field.value
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/40",
+            )}
+          >
+            <Checkbox
               checked={field.value ?? false}
-              onChange={(e) => field.onChange(e.target.checked)}
-              className="mt-0.5 accent-[var(--primary)]"
+              onCheckedChange={(checked) => field.onChange(checked === true)}
+              className="mt-0.5"
             />
             <div className="flex flex-col gap-0.5">
               <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                <BadgeCheck className="size-4 text-[#6EE76E]" />
+                <BadgeCheck className="size-4 text-builder-archetype" />
                 Request verified check
               </span>
               <span className="text-xs text-muted-foreground">
@@ -258,12 +407,18 @@ export function CommunityForm({
         name="featured_requested"
         control={control}
         render={({ field }) => (
-          <label className="flex items-start gap-3 p-4 rounded-lg border border-border hover:border-primary/40 transition-colors cursor-pointer">
-            <input
-              type="checkbox"
+          <label
+            className={cn(
+              "flex items-start gap-3 p-4 rounded-lg border transition-colors cursor-pointer",
+              field.value
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/40",
+            )}
+          >
+            <Checkbox
               checked={field.value ?? false}
-              onChange={(e) => field.onChange(e.target.checked)}
-              className="mt-0.5 accent-[var(--primary)]"
+              onCheckedChange={(checked) => field.onChange(checked === true)}
+              className="mt-0.5"
             />
             <div className="flex flex-col gap-0.5">
               <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -277,6 +432,13 @@ export function CommunityForm({
           </label>
         )}
       />
+
+      {/* Server error */}
+      {serverError && (
+        <p className="text-sm font-mono text-destructive border border-destructive/30 rounded-lg px-4 py-2.5 bg-destructive/5">
+          {serverError}
+        </p>
+      )}
 
       {/* Submit */}
       <Button

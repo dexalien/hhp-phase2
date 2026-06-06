@@ -14,17 +14,19 @@ import {
   Calendar,
   Briefcase,
   ArrowRight,
-  BadgeCheck,
   Star,
 } from "lucide-react"
 import {
   useProfile,
   useSuggestedBuilders,
 } from "@/services/api/profile"
-import { useFriendships } from "@/services/api/friendships"
+import { useFriendships, useSendFriendRequest } from "@/services/api/friendships"
 import { useFilteredCommunities, useJoinCommunity } from "@/services/api/communities"
 import { ConnectButton } from "../_components/connect-button"
+import { CommunityCard } from "../_components/community-card"
 import { PageContainer } from "../_components/page-container"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { ARCHETYPES } from "@/lib/onboarding"
@@ -105,62 +107,6 @@ function NetworkBuilderCard({
   )
 }
 
-/* ── Community Card ── */
-function CommunityCard({ community }: { community: Community }) {
-  const joinMutation = useJoinCommunity(community.id)
-
-  return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex flex-col">
-      <Link href={`/dashboard/community/${community.id}`} className="block">
-        <div className="relative h-32 w-full flex-shrink-0">
-          {community.image_url ? (
-            <img src={community.image_url} alt={community.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-          <span className="absolute top-3 right-3 px-2 py-1 bg-primary/90 text-primary-foreground rounded text-xs font-medium">
-            {community.category}
-          </span>
-        </div>
-        <div className="p-4 -mt-4 relative">
-          <h3 className="font-display font-bold text-foreground text-sm mb-1 line-clamp-1 flex items-center gap-1">
-            <span className="truncate">{community.name}</span>
-            {community.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
-            {community.is_featured && <Star className="w-3 h-3 text-strategist shrink-0" />}
-          </h3>
-          <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{community.description}</p>
-          <div className="flex items-center gap-1 text-muted-foreground text-xs">
-            <Users className="w-3 h-3" />
-            <span>{community.member_count} members</span>
-          </div>
-        </div>
-      </Link>
-      <div className="px-4 pb-4">
-        {community.is_member ? (
-          <button
-            type="button"
-            disabled
-            className="w-full py-2 px-4 bg-builder-archetype/10 text-builder-archetype border border-builder-archetype/30 rounded-full text-sm font-medium flex items-center justify-center gap-2 cursor-default"
-          >
-            <Check className="size-3.5" />
-            Joined
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={joinMutation.isPending}
-            onClick={() => joinMutation.mutate(undefined)}
-            className="w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {joinMutation.isPending ? "Joining..." : "Join"}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
 /* ── Builders Swipe Card ── */
 function BuildersSwipeCard({
   builder,
@@ -224,6 +170,15 @@ function BuildersSwipeCard({
     [dragging, isExpanded, onSwipe],
   )
 
+  const triggerSwipe = useCallback(
+    (direction: "left" | "right") => {
+      setIsExpanded(false)
+      setDragX(direction === "right" ? 400 : -400)
+      setTimeout(() => onSwipe(direction), 200)
+    },
+    [onSwipe],
+  )
+
   const rotation = isExpanded ? 0 : dragX * 0.08
   const skipOpacity = Math.min(1, Math.max(0, -dragX / 150))
   const connectOpacity = Math.min(1, Math.max(0, dragX / 150))
@@ -245,7 +200,7 @@ function BuildersSwipeCard({
       <div className="h-full bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
         {!isExpanded ? (
           <div className="h-full flex flex-col">
-            <div className="relative flex-1 bg-gradient-to-b from-primary/20 to-card flex items-center justify-center min-h-[250px]">
+            <div className="relative flex-1 bg-linear-to-b from-primary/20 to-card flex items-center justify-center min-h-62.5">
               <div
                 className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 overflow-hidden bg-muted"
                 style={{ borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)" }}
@@ -298,17 +253,22 @@ function BuildersSwipeCard({
               {isTop && (
                 <button
                   onClick={() => setIsExpanded(true)}
-                  className="flex items-center justify-center gap-2 text-primary text-sm mb-4"
+                  className="flex items-center justify-center gap-2 text-primary text-sm mb-4 cursor-pointer"
                 >
                   <ChevronUp className="w-4 h-4 animate-bounce" />
                   Swipe up for more details
                 </button>
               )}
 
-              <button className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                <UserPlus className="w-5 h-5" />
+              <Button
+                type="button"
+                variant="pill"
+                onClick={() => triggerSwipe("right")}
+                className="w-full h-11"
+              >
+                <UserPlus className="size-5" />
                 Connect
-              </button>
+              </Button>
             </div>
 
             {isTop && (
@@ -371,7 +331,7 @@ function BuildersSwipeCard({
               </div>
               <button
                 onClick={() => setIsExpanded(false)}
-                className="p-2 rounded-full bg-muted text-muted-foreground hover:text-foreground"
+                className="p-2 rounded-full bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <ChevronDown className="w-5 h-5" />
               </button>
@@ -452,10 +412,15 @@ function BuildersSwipeCard({
             </div>
 
             <div className="p-4 border-t border-border sticky bottom-0 bg-card">
-              <button className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                <UserPlus className="w-5 h-5" />
+              <Button
+                type="button"
+                variant="pill"
+                onClick={() => triggerSwipe("right")}
+                className="w-full h-11"
+              >
+                <UserPlus className="size-5" />
                 Connect with {displayName}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -477,6 +442,25 @@ function CommunitySwipeCard({
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
   const startRef = useRef({ x: 0, y: 0 })
+  const joinMutation = useJoinCommunity(community.id)
+
+  const handleSwipe = useCallback(
+    (direction: "left" | "right") => {
+      if (direction === "right" && !community.is_member) {
+        joinMutation.mutate(undefined)
+      }
+      onSwipe(direction)
+    },
+    [community.is_member, joinMutation, onSwipe],
+  )
+
+  const triggerSwipe = useCallback(
+    (direction: "left" | "right") => {
+      setDragX(direction === "right" ? 400 : -400)
+      setTimeout(() => handleSwipe(direction), 200)
+    },
+    [handleSwipe],
+  )
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -504,12 +488,12 @@ function CommunitySwipeCard({
 
       if (Math.abs(dx) > 100) {
         setDragX(dx > 0 ? 400 : -400)
-        setTimeout(() => onSwipe(dx > 0 ? "right" : "left"), 200)
+        setTimeout(() => handleSwipe(dx > 0 ? "right" : "left"), 200)
       } else {
         setDragX(0)
       }
     },
-    [dragging, onSwipe],
+    [dragging, handleSwipe],
   )
 
   const rotation = dragX * 0.08
@@ -529,13 +513,13 @@ function CommunitySwipeCard({
       onPointerUp={handlePointerUp}
     >
       <div className="h-full bg-card border border-border rounded-2xl overflow-hidden flex flex-col">
-        <div className="relative h-48 w-full flex-shrink-0">
+        <div className="relative h-48 w-full shrink-0">
           {community.image_url ? (
             <img src={community.image_url} alt={community.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/30 via-muted to-card" />
+            <div className="w-full h-full bg-linear-to-br from-primary/30 via-muted to-card" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-card via-transparent to-transparent" />
           <span className="absolute top-4 right-4 px-3 py-1 bg-primary/90 text-primary-foreground rounded-full text-sm font-medium">
             {community.category}
           </span>
@@ -550,19 +534,21 @@ function CommunitySwipeCard({
           <p className="text-foreground/80 text-sm mb-6 flex-1">{community.description}</p>
 
           {community.is_member ? (
-            <button
-              type="button"
-              disabled
-              className="w-full py-3 px-4 bg-builder-archetype/10 text-builder-archetype border border-builder-archetype/30 rounded-full text-sm font-medium flex items-center justify-center gap-2 cursor-default"
-            >
-              <Check className="w-5 h-5" />
+            <Button type="button" variant="pill-builder" disabled className="w-full h-11">
+              <Check className="size-5" />
               Joined
-            </button>
+            </Button>
           ) : (
-            <button className="w-full py-3 px-4 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-              <UserPlus className="w-5 h-5" />
-              Join Community
-            </button>
+            <Button
+              type="button"
+              variant="pill"
+              disabled={joinMutation.isPending}
+              onClick={() => triggerSwipe("right")}
+              className="w-full h-11"
+            >
+              <UserPlus className="size-5" />
+              {joinMutation.isPending ? "Joining..." : "Join Community"}
+            </Button>
           )}
         </div>
 
@@ -603,7 +589,7 @@ function CardSkeleton({ variant = "builder" }: { variant?: "builder" | "communit
     )
   }
   return (
-    <div className="min-w-[200px] lg:min-w-0 bg-card border border-border rounded-lg p-4 flex-shrink-0 flex flex-col items-center gap-3">
+    <div className="min-w-50 lg:min-w-0 bg-card border border-border rounded-lg p-4 shrink-0 flex flex-col items-center gap-3">
       <Skeleton className="w-12 h-12 rounded-full" />
       <Skeleton className="h-4 w-20" />
       <Skeleton className="h-5 w-14 rounded" />
@@ -619,7 +605,7 @@ function EmptyPlaceholder({ type }: { type: "network" | "community" }) {
 
   return (
     <div
-      className="min-w-[260px] lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col items-center justify-center text-center px-6"
+      className="min-w-65 lg:min-w-0 w-full bg-card border border-dashed border-border rounded-lg overflow-hidden shrink-0 flex flex-col items-center justify-center text-center px-6"
       style={{ minHeight: "180px" }}
     >
       <p className="text-muted-foreground text-sm leading-relaxed">
@@ -633,13 +619,14 @@ function EmptyPlaceholder({ type }: { type: "network" | "community" }) {
 export default function BuildersPage() {
   const [activeTab, setActiveTab] = useState<Tab>("builders")
   const [viewMode, setViewMode] = useState<"list" | "swipe">("list")
-  const [buildersCardIndex, setBuildersCardIndex] = useState(0)
-  const [communityCardIndex, setCommunityCardIndex] = useState(0)
+  const [swipedBuilderIds, setSwipedBuilderIds] = useState<Set<string>>(new Set())
+  const [swipedCommunityIds, setSwipedCommunityIds] = useState<Set<string>>(new Set())
 
   // Data hooks
   const { data: profile } = useProfile({ enabled: true })
   const { data: suggestedBuilders, isLoading: suggestedLoading } = useSuggestedBuilders()
   const { data: acceptedFriends, isLoading: friendsLoading } = useFriendships("accepted")
+  const sendFriendRequest = useSendFriendRequest()
 
   const {
     data: communityData,
@@ -647,17 +634,32 @@ export default function BuildersPage() {
   } = useFilteredCommunities({})
   const communities = communityData?.pages.flatMap((p) => p.communities) ?? []
   const myCommunities = communities.filter((c) => c.is_member)
+  // Featured stays visible even after a left swipe — curated content is never
+  // hidden by discovery rejections
   const featuredCommunities = communities.filter((c) => !c.is_member && c.is_featured)
-  const otherCommunities = communities.filter((c) => !c.is_member && !c.is_featured)
+  const otherCommunities = communities.filter(
+    (c) => !c.is_member && !c.is_featured && !swipedCommunityIds.has(c.id),
+  )
 
-  // Builders swipe
-  const allBuildersForSwipe = [
-    ...(suggestedBuilders ?? []),
-  ]
-  const remainingBuildersCards = allBuildersForSwipe.slice(buildersCardIndex)
+  // Builders — swiped ids hide cards in BOTH views for the session
+  // (refetch-safe: after connecting, the suggestions list shrinks
+  // server-side without skipping cards)
+  const visibleSuggestedBuilders = (suggestedBuilders ?? []).filter(
+    (b) => !swipedBuilderIds.has(b.id),
+  )
+  const remainingBuildersCards = visibleSuggestedBuilders
 
-  // Community swipe
-  const remainingCommunityCards = communities.slice(communityCardIndex)
+  function handleBuilderSwipe(builderId: string, direction: "left" | "right") {
+    if (direction === "right") {
+      sendFriendRequest.mutate({ receiver_id: builderId })
+    }
+    setSwipedBuilderIds((prev) => new Set(prev).add(builderId))
+  }
+
+  // Community swipe — only non-members, minus the ones swiped this session
+  const remainingCommunityCards = communities.filter(
+    (c) => !c.is_member && !swipedCommunityIds.has(c.id),
+  )
 
   return (
     <PageContainer className="flex flex-col gap-6">
@@ -668,7 +670,7 @@ export default function BuildersPage() {
           <button
             onClick={() => setViewMode("list")}
             className={cn(
-              "p-2 rounded-full transition-colors",
+              "p-2 rounded-full transition-colors cursor-pointer",
               viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -677,7 +679,7 @@ export default function BuildersPage() {
           <button
             onClick={() => setViewMode("swipe")}
             className={cn(
-              "p-2 rounded-full transition-colors",
+              "p-2 rounded-full transition-colors cursor-pointer",
               viewMode === "swipe" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -687,32 +689,12 @@ export default function BuildersPage() {
       </div>
 
       {/* ── Tab Toggle ── */}
-      <div className="flex gap-2 bg-card p-1 rounded-lg">
-        <button
-          type="button"
-          onClick={() => setActiveTab("builders")}
-          className={cn(
-            "flex-1 py-3 px-4 rounded-lg font-medium transition-colors",
-            activeTab === "builders"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          Builders
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("community")}
-          className={cn(
-            "flex-1 py-3 px-4 rounded-lg font-medium transition-colors",
-            activeTab === "community"
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          Communities
-        </button>
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+        <TabsList variant="pill">
+          <TabsTrigger value="builders">Builders</TabsTrigger>
+          <TabsTrigger value="community">Communities</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* ══════════════════════════════════════════════ */}
       {/* ── HOMIES TAB ── */}
@@ -725,7 +707,7 @@ export default function BuildersPage() {
               <p className="text-center text-muted-foreground text-sm mb-4">
                 {remainingBuildersCards.length} builders left
               </p>
-              <div className="relative h-[calc(100dvh-280px)] min-h-[420px] max-h-[600px]">
+              <div className="relative h-[calc(100dvh-280px)] min-h-105 max-h-150">
                 {remainingBuildersCards.length > 0 ? (
                   <>
                     {remainingBuildersCards
@@ -735,7 +717,7 @@ export default function BuildersPage() {
                         <BuildersSwipeCard
                           key={builder.id}
                           builder={builder}
-                          onSwipe={() => setBuildersCardIndex((prev) => prev + 1)}
+                          onSwipe={(direction) => handleBuilderSwipe(builder.id, direction)}
                           isTop={index === remainingBuildersCards.slice(0, 2).length - 1}
                         />
                       ))}
@@ -750,19 +732,22 @@ export default function BuildersPage() {
                     </div>
                     <h3 className="font-display font-bold text-xl text-foreground mb-2">All caught up!</h3>
                     <p className="text-muted-foreground mb-6">You have seen all builders</p>
-                    <button
-                      onClick={() => setBuildersCardIndex(0)}
-                      className="px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-opacity"
+                    <Button
+                      type="button"
+                      variant="pill"
+                      size="lg"
+                      onClick={() => setSwipedBuilderIds(new Set())}
+                      className="px-6"
                     >
                       Start Over
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
               <div className="mt-14 text-center">
                 <button
                   onClick={() => setViewMode("list")}
-                  className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-2"
+                  className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-2 cursor-pointer"
                 >
                   <List className="w-4 h-4" />
                   See the full list
@@ -826,9 +811,9 @@ export default function BuildersPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
                   </div>
-                ) : suggestedBuilders && suggestedBuilders.length > 0 ? (
+                ) : visibleSuggestedBuilders.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {suggestedBuilders.slice(0, 4).map((builder) => (
+                    {visibleSuggestedBuilders.slice(0, 4).map((builder) => (
                       <NetworkBuilderCard
                         key={builder.id}
                         builder={builder}
@@ -859,7 +844,7 @@ export default function BuildersPage() {
               <p className="text-center text-muted-foreground text-sm mb-4">
                 {remainingCommunityCards.length} communities left
               </p>
-              <div className="relative h-[calc(100dvh-280px)] min-h-[420px] max-h-[600px]">
+              <div className="relative h-[calc(100dvh-280px)] min-h-105 max-h-150">
                 {remainingCommunityCards.length > 0 ? (
                   <>
                     {remainingCommunityCards
@@ -869,7 +854,9 @@ export default function BuildersPage() {
                         <CommunitySwipeCard
                           key={community.id}
                           community={community}
-                          onSwipe={() => setCommunityCardIndex((prev) => prev + 1)}
+                          onSwipe={() =>
+                            setSwipedCommunityIds((prev) => new Set(prev).add(community.id))
+                          }
                           isTop={index === remainingCommunityCards.slice(0, 2).length - 1}
                         />
                       ))}
@@ -884,19 +871,22 @@ export default function BuildersPage() {
                     </div>
                     <h3 className="font-display font-bold text-xl text-foreground mb-2">No more communities</h3>
                     <p className="text-muted-foreground mb-6">You have seen all communities</p>
-                    <button
-                      onClick={() => setCommunityCardIndex(0)}
-                      className="px-6 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-opacity"
+                    <Button
+                      type="button"
+                      variant="pill"
+                      size="lg"
+                      onClick={() => setSwipedCommunityIds(new Set())}
+                      className="px-6"
                     >
                       Start Over
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
               <div className="mt-14 text-center">
                 <button
                   onClick={() => setViewMode("list")}
-                  className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-2"
+                  className="text-primary text-sm font-medium hover:underline inline-flex items-center gap-2 cursor-pointer"
                 >
                   <List className="w-4 h-4" />
                   See the full list
@@ -982,7 +972,7 @@ export default function BuildersPage() {
                     <p className="text-muted-foreground text-sm">No communities to explore yet. Be the first to create one!</p>
                     <Link
                       href="/dashboard/community/create"
-                      className="mt-2 px-5 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity"
+                      className={cn(buttonVariants({ variant: "pill" }), "mt-2 px-5")}
                     >
                       Create Community
                     </Link>

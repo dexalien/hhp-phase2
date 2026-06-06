@@ -73,7 +73,7 @@ export default function HackerHousesPage() {
           </p>
         </div>
         <Link href="/dashboard/hacker-houses/create">
-          <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5">
+          <Button variant="pill" className="px-5">
             + Create House
           </Button>
         </Link>
@@ -247,7 +247,7 @@ export default function HackerHousesPage() {
           </div>
           {!hasActiveFilters && (
             <Link href="/dashboard/hacker-houses/create">
-              <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5 mt-2">
+              <Button variant="pill" className="px-5 mt-2">
                 Create the first House →
               </Button>
             </Link>

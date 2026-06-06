@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { UserPlus, Check, Clock, UserMinus } from "lucide-react"
 import {
@@ -34,11 +35,12 @@ export function ConnectButton({ targetUserId }: ConnectButtonProps) {
   // No friendship exists or was rejected
   if (!status || status === "rejected") {
     return (
-      <button
+      <Button
         type="button"
+        variant="pill-outline"
         disabled={sendRequest.isPending}
         onClick={() => sendRequest.mutate({ receiver_id: targetUserId })}
-        className="w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full"
       >
         {sendRequest.isPending ? (
           <>
@@ -50,21 +52,17 @@ export function ConnectButton({ targetUserId }: ConnectButtonProps) {
             Connect
           </>
         )}
-      </button>
+      </Button>
     )
   }
 
   // Pending - I sent the request
   if (status === "pending" && direction === "sent") {
     return (
-      <button
-        type="button"
-        disabled
-        className="w-full py-2 px-4 bg-muted text-muted-foreground rounded-full text-sm font-medium flex items-center justify-center gap-2 cursor-not-allowed"
-      >
+      <Button type="button" variant="pill-muted" disabled className="w-full">
         <Clock className="size-3.5" />
         Pending
-      </button>
+      </Button>
     )
   }
 
@@ -72,23 +70,25 @@ export function ConnectButton({ targetUserId }: ConnectButtonProps) {
   if (status === "pending" && direction === "received") {
     return (
       <div className="flex items-center gap-2 w-full">
-        <button
+        <Button
           type="button"
+          variant="pill"
           disabled={updateFriendship.isPending}
           onClick={() => updateFriendship.mutate({ status: "accepted" })}
-          className="flex-1 py-2 px-3 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5 disabled:opacity-50"
+          className="flex-1"
         >
           {updateFriendship.isPending ? <Spinner className="size-3.5" /> : <Check className="size-3.5" />}
           Accept
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="pill-ghost"
           disabled={updateFriendship.isPending}
           onClick={() => updateFriendship.mutate({ status: "rejected" })}
-          className="py-2 px-3 border border-border text-muted-foreground rounded-full text-sm font-medium hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+          className="hover:border-destructive hover:text-destructive"
         >
           Decline
-        </button>
+        </Button>
       </div>
     )
   }
@@ -98,35 +98,37 @@ export function ConnectButton({ targetUserId }: ConnectButtonProps) {
     if (showRemoveConfirm) {
       return (
         <div className="flex items-center gap-2 w-full">
-          <button
+          <Button
             type="button"
+            variant="pill-destructive"
             disabled={removeFriendship.isPending}
             onClick={() => removeFriendship.mutate(undefined)}
-            className="flex-1 py-2 px-3 bg-destructive/10 text-destructive border border-destructive/30 rounded-full text-sm font-medium hover:bg-destructive/20 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+            className="flex-1"
           >
             {removeFriendship.isPending ? <Spinner className="size-3.5" /> : <UserMinus className="size-3.5" />}
             Remove
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="pill-ghost"
             onClick={() => setShowRemoveConfirm(false)}
-            className="py-2 px-3 border border-border text-muted-foreground rounded-full text-sm font-medium hover:text-foreground transition-colors"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )
     }
 
     return (
-      <button
+      <Button
         type="button"
+        variant="pill-builder"
         onClick={() => setShowRemoveConfirm(true)}
-        className="w-full py-2 px-4 bg-builder-archetype/10 text-builder-archetype border border-builder-archetype/30 rounded-full text-sm font-medium hover:bg-builder-archetype/20 transition-colors flex items-center justify-center gap-2"
+        className="w-full"
       >
         <Check className="size-3.5" />
         Connected
-      </button>
+      </Button>
     )
   }
 

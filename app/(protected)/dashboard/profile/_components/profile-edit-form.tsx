@@ -166,7 +166,7 @@ export function ProfileEditForm({
             <p className="font-mono text-foreground text-sm">
               {profile.handle}
             </p>
-            <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground/50 px-1.5 py-0">
+            <Badge variant="outline" className="font-mono text-[10px] text-muted-foreground px-1.5 py-0">
               permanent
             </Badge>
           </div>

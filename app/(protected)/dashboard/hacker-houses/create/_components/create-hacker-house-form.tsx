@@ -1422,8 +1422,9 @@ export function CreateHackerHouseForm({
           <div className="flex justify-end pt-2">
             <Button
               type="submit"
+              variant="pill"
               disabled={isSubmitting}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              className="px-6"
             >
               {isSubmitting ? (
                 <>
@@ -1449,8 +1450,9 @@ export function CreateHackerHouseForm({
               <Button
                 key="submit"
                 type="submit"
+                variant="pill"
                 disabled={isSubmitting}
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+                className="px-6"
               >
                 {isSubmitting ? (
                   <>
@@ -1465,7 +1467,8 @@ export function CreateHackerHouseForm({
                 key="continue"
                 type="button"
                 onClick={goNext}
-                className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+                variant="pill"
+                className="px-6"
               >
                 Continue →
               </Button>

@@ -94,7 +94,7 @@ export default function HackSpacesPage() {
         {/* Create button */}
         <div className="flex justify-end">
           <Link href="/dashboard/hack-spaces/create">
-            <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5">
+            <Button variant="pill" className="px-5">
               + Create Space
             </Button>
           </Link>
@@ -317,7 +317,7 @@ export default function HackSpacesPage() {
             </div>
             {!hasActiveFilters && (
               <Link href="/dashboard/hack-spaces/create">
-                <Button className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-5 mt-2">
+                <Button variant="pill" className="px-5 mt-2">
                   Create the first Space →
                 </Button>
               </Link>

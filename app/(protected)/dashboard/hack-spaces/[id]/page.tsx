@@ -433,7 +433,8 @@ export default function HackSpaceDetailPage({
                         )
                       }
                       disabled={apply.isPending}
-                      className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+                      variant="pill"
+                      className="px-6"
                     >
                       {apply.isPending ? "Sending..." : "Send application →"}
                     </Button>

@@ -37,14 +37,14 @@ export function ProfileLinks({ profile }: ProfileLinksProps) {
               style={{ borderBottom: isLast ? "none" : "1px solid var(--border)" }}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40 w-16 shrink-0">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground w-16 shrink-0">
                   {label}
                 </span>
                 <span className="text-sm font-mono text-muted-foreground group-hover:text-foreground transition-colors truncate">
                   {username}
                 </span>
               </div>
-              <span className="text-muted-foreground/20 group-hover:text-muted-foreground/60 text-xs ml-2 transition-colors">
+              <span className="text-muted-foreground/40 group-hover:text-muted-foreground text-xs ml-2 transition-colors">
                 ↗
               </span>
             </a>

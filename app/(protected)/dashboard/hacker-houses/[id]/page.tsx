@@ -1,46 +1,45 @@
 "use client"
 
-import { use, useState } from "react"
-import dynamic from "next/dynamic"
-import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import { ARCHETYPES } from "@/lib/onboarding"
+import type { HouseModality } from "@/lib/types"
+import { cn, parseLocalDate } from "@/lib/utils"
 import {
-  useHackerHouse,
   useApplyToHackerHouse,
+  useHackerHouse,
   useUpdateHackerHouse,
 } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
-import { PageContainer } from "../../_components/page-container"
-import { ARCHETYPES } from "@/lib/onboarding"
-import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { cn, parseLocalDate } from "@/lib/utils"
 import {
-  PenLine,
-  Users,
-  Globe,
-  CalendarDays,
-  ExternalLink,
-  MapPin,
-  Sparkles,
-  Home,
-  Wifi,
-  Utensils,
   Briefcase,
+  CalendarDays,
+  Check,
   ChevronLeft,
   ChevronRight,
-  X,
   Clock,
-  Lock,
   Copy,
-  Check,
+  ExternalLink,
   Gift,
+  Globe,
+  Home,
+  Lock,
+  MapPin,
+  PenLine,
   Shield,
+  Sparkles,
+  Users,
+  Utensils,
   Wallet,
+  Wifi,
+  X,
 } from "lucide-react"
-import { BackButton } from "../../../_components/back-button"
-import type { HouseModality, HouseContractType } from "@/lib/types"
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { use, useState } from "react"
+import { PageContainer } from "../../_components/page-container"
+import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
 
 const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.MiniMap), {
   ssr: false,
@@ -259,7 +258,7 @@ export default function HackerHouseDetailPage({
   }
 
   return (
-    <PageContainer className="!p-0 !pt-0">
+    <PageContainer className="p-0! pt-0!">
       <div className="max-w-4xl mx-auto pb-32">
         {/* ── Image Carousel ── */}
         <div className="relative h-72 md:h-96 w-full bg-card overflow-hidden">
@@ -460,7 +459,7 @@ export default function HackerHouseDetailPage({
 
           {/* ── Sponsor Card (free/sponsored houses) ── */}
           {hackerHouse.modality === "free" && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-builder-archetype/20 to-builder-archetype/10 border border-builder-archetype/50 rounded-xl">
+            <div className="mb-6 p-4 bg-linear-to-r from-builder-archetype/20 to-builder-archetype/10 border border-builder-archetype/50 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="size-12 bg-builder-archetype rounded-xl flex items-center justify-center">
                   <Gift className="size-6 text-background" />
@@ -490,7 +489,7 @@ export default function HackerHouseDetailPage({
 
           {/* ── Event Link Card ── */}
           {hackerHouse.event_name && (
-            <div className="mb-8 p-4 bg-gradient-to-r from-primary/20 to-strategist/20 border border-primary/50 rounded-xl">
+            <div className="mb-8 p-4 bg-linear-to-r from-primary/20 to-strategist/20 border border-primary/50 rounded-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="size-12 bg-primary rounded-xl flex items-center justify-center">
@@ -561,7 +560,7 @@ export default function HackerHouseDetailPage({
               <div className="mb-4">
                 <div className="h-2 bg-border rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-primary to-strategist rounded-full transition-all"
+                    className="h-full bg-linear-to-r from-primary to-strategist rounded-full transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -848,7 +847,8 @@ export default function HackerHouseDetailPage({
                         )
                       }
                       disabled={apply.isPending}
-                      className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+                      variant="pill"
+                      className="px-6"
                     >
                       {apply.isPending ? "Sending..." : "Send application →"}
                     </Button>
@@ -957,7 +957,7 @@ export default function HackerHouseDetailPage({
               </button>
 
               {/* Key visual */}
-              <div className="relative h-56 bg-gradient-to-br from-primary/30 via-strategist/20 to-card flex items-center justify-center overflow-hidden">
+              <div className="relative h-56 bg-linear-to-br from-primary/30 via-strategist/20 to-card flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--primary) 40%, transparent) 0%, transparent 70%)" }} />
                 <img
                   src="/assets/nft-key.png"

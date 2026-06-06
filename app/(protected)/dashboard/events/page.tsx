@@ -6,13 +6,14 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { MapPin, Calendar, ArrowRight, Plus, X, Star, BadgeCheck, ChevronDown, Archive } from "lucide-react"
 import { PageContainer } from "../_components/page-container"
+import { buttonVariants } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useEvents, usePastEvents, useSubmitEventRequest } from "@/services/api/events"
 import { toast } from "sonner"
 import { createEventRequestSchema, EVENT_TYPES } from "@/lib/schemas/event"
 import type { CreateEventRequestInput } from "@/lib/schemas/event"
 import { COUNTRY_LIST, COUNTRIES_CITIES } from "@/lib/countries"
-import { parseLocalDate } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 
 const REGION_FILTERS = ["All", "LATAM", "Europe", "Asia", "North America", "Africa"] as const
 
@@ -197,9 +198,9 @@ function EventCard({ event, muted = false }: { event: import("@/lib/types").HHPE
         {event.banner_url ? (
           <img src={event.banner_url} alt={event.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
+          <div className="w-full h-full bg-linear-to-br from-primary/20 via-muted to-card" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-card to-transparent" />
         {event.is_featured && !muted && (
           <span className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 bg-primary/90 text-primary-foreground rounded text-xs font-medium">
             <Star className="w-3 h-3" /> Featured
@@ -232,7 +233,7 @@ function EventCard({ event, muted = false }: { event: import("@/lib/types").HHPE
           <span className="px-2 py-0.5 rounded-full border border-border">{event.type}</span>
           {event.prizes && <span className="text-primary font-medium">{event.prizes}</span>}
         </div>
-        <span className="w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors text-center block">
+        <span className={cn(buttonVariants({ variant: "pill-outline" }), "w-full")}>
           View event <ArrowRight className="w-4 h-4 inline ml-1" />
         </span>
       </div>

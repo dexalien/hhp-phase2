@@ -18,17 +18,36 @@ Always dark. Never add a light mode class or `light:` variant. The `.dark` class
 | Text input | `Input` | `@/components/ui/input` | Always inside `Field` + `FieldLabel` wrapper. |
 | Textarea | `Textarea` | `@/components/ui/textarea` | Same as Input. |
 | Select dropdown | `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` | `@/components/ui/select` | Never native `<select>`. |
+| Tabs / segmented toggle | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | `@/components/ui/tabs` | Never hand-rolled `<button>` toggles with manual active-state classes. Use `<TabsList variant="pill">` for the full-width purple-pill segmented toggle (active = `bg-primary`). |
 | Form field wrapper | `Field`, `FieldLabel`, `FieldError`, `FieldDescription` | `@/components/ui/field` | Wrap every form control. |
 | Divider | `Separator` | `@/components/ui/separator` | Never `<div className="h-px bg-border">` or `style={{ background: "var(--border)" }}`. |
 | Date field | `DatePicker` | `@/components/ui/date-picker` | Never `<Input type="date">`. Accepts `value: string` (ISO `YYYY-MM-DD`), `onChange`, `placeholder`, `fromDate`. Works with react-hook-form `Controller`. |
 | Page content wrapper | `PageContainer` | `@/app/(protected)/dashboard/_components/page-container` | Use in every dashboard page for consistent `max-w-6xl` width. |
 | Skeleton | `Skeleton` | `@/components/ui/skeleton` | Always use for loading states — never manual `animate-pulse` divs. |
 
+**Cursor rule:** Tailwind v4 preflight sets `cursor: default` on `<button>`. Any custom clickable element that isn't the `Button` component must include `cursor-pointer` in its className.
+
 ## Button variants
 
 | Variant | When to use |
 |---|---|
 | `default` | Primary CTA — filled with `bg-primary` |
+| `pill` | Rounded-full primary CTA — "Create X", swipe Connect, hero actions |
+| `pill-outline` | Rounded-full purple border + text — secondary actions ("Join", "View event") |
+| `pill-builder` | Soft green pill — membership/success states ("Joined", "Connected"). `disabled` renders at opacity-60 (keeps semantic color, clearly non-clickable) |
+| `pill-muted` | Muted filled pill — waiting states ("Pending"). `disabled` renders at opacity-60 |
+| `pill-ghost` | Rounded-full neutral border — tertiary actions ("Cancel", "Decline") |
+| `pill-destructive` | Soft red pill — destructive confirmations ("Remove") |
+
+**Pill on a `<Link>`:** don't wrap with `<Button asChild>` — apply the styles directly with `buttonVariants`:
+
+```tsx
+import { buttonVariants } from "@/components/ui/button"
+
+<Link href="..." className={cn(buttonVariants({ variant: "pill" }), "px-5")}>
+  Create Community
+</Link>
+```
 | `outline` | Secondary / Back actions |
 | `ghost` | Tertiary / Skip actions — no border |
 | `destructive` | Destructive actions |

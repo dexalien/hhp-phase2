@@ -37,6 +37,7 @@ import type { HHPEvent, AdminUser, EventRequest } from "@/lib/types"
 import { ADMIN_USER_IDS } from "@/lib/admin"
 import Link from "next/link"
 import { PageContainer } from "../_components/page-container"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import {
   Calendar, Users, Code2, Home, Shield, Plus, Trash2, Pencil,
@@ -1528,24 +1529,22 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b mb-6 overflow-x-auto no-scrollbar" style={{ borderColor: "var(--border)" }}>
-        {tabs.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className="px-4 py-2.5 text-sm font-medium transition-colors relative"
-            style={{ color: activeTab === key ? "var(--foreground)" : "var(--muted-foreground)" }}
-          >
-            {label}
-            {activeTab === key && (
-              <span
-                className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                style={{ background: "var(--accent)" }}
-              />
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)} className="mb-6">
+        <TabsList
+          variant="line"
+          className="group-data-horizontal/tabs:h-auto w-full justify-start gap-1 border-b border-border overflow-x-auto no-scrollbar"
+        >
+          {tabs.map(({ key, label }) => (
+            <TabsTrigger
+              key={key}
+              value={key}
+              className="h-auto flex-none px-4 py-2.5 group-data-horizontal/tabs:after:bottom-0"
+            >
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {activeTab === "overview" && <OverviewTab />}
       {activeTab === "events" && <EventsTab />}

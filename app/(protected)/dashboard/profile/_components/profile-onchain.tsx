@@ -91,7 +91,7 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
         />
 
         <div className="relative flex flex-col gap-1">
-          <p className="text-[10px] font-mono text-muted-foreground/60 uppercase tracking-[0.18em]">
+          <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.18em]">
             Builder Score · Talent Protocol
           </p>
           {profile.talent_protocol_score !== null ? (
@@ -102,12 +102,12 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
               >
                 {profile.talent_protocol_score}
               </span>
-              <span className="text-xs font-mono text-muted-foreground/40 mb-1">pts</span>
+              <span className="text-xs font-mono text-muted-foreground mb-1">pts</span>
             </div>
           ) : (
             <div className="mt-1">
               {profile.wallet_address ? (
-                <p className="text-sm text-muted-foreground/50 italic">No score found.</p>
+                <p className="text-sm text-muted-foreground italic">No score found.</p>
               ) : isOwner ? (
                 <Button
                   type="button"
@@ -126,11 +126,11 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
                   )}
                 </Button>
               ) : (
-                <p className="text-sm text-muted-foreground/50 italic">No wallet connected.</p>
+                <p className="text-sm text-muted-foreground italic">No wallet connected.</p>
               )}
             </div>
           )}
-          <p className="text-xs text-muted-foreground/60 font-mono">Used for team matching</p>
+          <p className="text-xs text-muted-foreground font-mono">Used for team matching</p>
         </div>
       </div>
 
@@ -179,14 +179,14 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
                 >
                   +{profile.poaps.length - visiblePoaps}
                 </span>
-                <span className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-wider">
+                <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
                   Show more
                 </span>
               </button>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground/40 italic">
+          <p className="text-sm text-muted-foreground italic">
             {profile.wallet_address
               ? "No POAPs found on this wallet."
               : isOwner

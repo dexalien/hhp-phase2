@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
 import { isAdmin } from "@/lib/admin"
+import { geocodeAndUpdate } from "@/lib/geocode"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -98,6 +99,17 @@ export async function PATCH(
   if (parsed.data.image_url !== undefined)   updates.image_url = parsed.data.image_url || null
   if (parsed.data.city !== undefined)        updates.city = parsed.data.city || null
   if (parsed.data.country !== undefined)     updates.country = parsed.data.country || null
+  if (parsed.data.is_worldwide !== undefined)            updates.is_worldwide = parsed.data.is_worldwide
+  if (parsed.data.verification_requested !== undefined)  updates.verification_requested = parsed.data.verification_requested
+  if (parsed.data.featured_requested !== undefined)      updates.featured_requested = parsed.data.featured_requested
+
+  // Worldwide overrides any specific location (mirrors POST semantics)
+  if (parsed.data.is_worldwide === true) {
+    updates.city = null
+    updates.country = null
+    updates.lat = null
+    updates.lng = null
+  }
 
   const { data: updated, error } = await supabaseServer
     .from("communities")
@@ -107,6 +119,13 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 })
+
+  // Re-geocode if a specific location was set (not worldwide)
+  const cityVal = typeof updates.city === "string" ? updates.city : null
+  const countryVal = typeof updates.country === "string" ? updates.country : null
+  if (parsed.data.is_worldwide !== true && cityVal && countryVal) {
+    geocodeAndUpdate("communities", id, cityVal, countryVal)
+  }
 
   return NextResponse.json({ community: updated })
 }

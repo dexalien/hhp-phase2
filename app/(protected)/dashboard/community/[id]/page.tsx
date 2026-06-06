@@ -23,7 +23,7 @@ import { PageContainer } from "../../_components/page-container"
 import { BackButton } from "../../../_components/back-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ARCHETYPES } from "@/lib/onboarding"
 
 type Tab = "about" | "members" | "events" | "board" | "projects" | "tools"
@@ -129,14 +129,16 @@ export default function CommunityDetailPage() {
 
               {/* Edit (creator only) */}
               {isCreator && (
-                <button
+                <Button
+                  type="button"
+                  variant="pill-ghost"
+                  size="sm"
                   onClick={() => setIsEditing((v) => !v)}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors hover:border-primary hover:text-primary"
-                  style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}
+                  className="shrink-0 gap-1.5"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   {isEditing ? "Cancel" : "Edit"}
-                </button>
+                </Button>
               )}
 
               {/* Join / Leave */}
@@ -182,6 +184,9 @@ export default function CommunityDetailPage() {
                 image_url: community.image_url ?? "",
                 city: community.city ?? "",
                 country: community.country ?? "",
+                is_worldwide: community.is_worldwide,
+                verification_requested: community.verification_requested,
+                featured_requested: community.featured_requested,
               }}
               onFormSubmit={async (values) => {
                 await updateMutation.mutateAsync(values)
@@ -194,28 +199,26 @@ export default function CommunityDetailPage() {
         )}
 
         {/* ── Tabs ── */}
-        <div className="flex gap-1 overflow-x-auto no-scrollbar border-b border-border pb-0">
-          {TABS.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-[1px]",
-                  isActive
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as Tab)}>
+          <TabsList
+            variant="line"
+            className="group-data-horizontal/tabs:h-auto w-full justify-start gap-1 border-b border-border overflow-x-auto no-scrollbar"
+          >
+            {TABS.map((tab) => {
+              const Icon = tab.icon
+              return (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="h-auto flex-none px-4 py-2.5 group-data-horizontal/tabs:after:bottom-0"
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </Tabs>
 
         {/* ══════════════════════════════════════════════ */}
         {/* ── ABOUT ── */}
@@ -230,7 +233,7 @@ export default function CommunityDetailPage() {
               </p>
             </section>
 
-            {/* Info grid */}
+            {/* Info grid + Entry Requirements — single grid for consistent spacing */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="bg-card border border-border rounded-lg p-4">
                 <p className="text-muted-foreground text-xs mb-1">Category</p>
@@ -250,21 +253,21 @@ export default function CommunityDetailPage() {
                   })}
                 </p>
               </div>
-            </div>
 
-            {/* Entry Requirements (placeholder) */}
-            <section className="bg-card border border-border rounded-lg p-5">
-              <h3 className="font-display font-bold text-sm text-foreground mb-3 flex items-center gap-2">
-                <Check className="w-4 h-4 text-primary" />
-                Entry Requirements
-              </h3>
-              <p className="text-muted-foreground text-sm">
-                Open to all — no requirements set.
-              </p>
-              <p className="text-muted-foreground/60 text-xs mt-2">
-                Soon: token gating, POAP verification, NFT requirements
-              </p>
-            </section>
+              {/* Entry Requirements (placeholder) */}
+              <section className="col-span-full bg-card border border-border rounded-lg p-5">
+                <h3 className="font-display font-bold text-sm text-foreground mb-3 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-primary" />
+                  Entry Requirements
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Open to all — no requirements set.
+                </p>
+                <p className="text-muted-foreground text-xs mt-2">
+                  Soon: token gating, POAP verification, NFT requirements
+                </p>
+              </section>
+            </div>
           </div>
         )}
 
@@ -433,7 +436,7 @@ function PlaceholderSection({
         <h3 className="font-display font-bold text-lg text-foreground">{title}</h3>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      <p className="text-muted-foreground/60 text-xs max-w-md">{detail}</p>
+      <p className="text-muted-foreground text-xs max-w-md">{detail}</p>
       <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
         Coming soon
       </span>

@@ -398,7 +398,7 @@ export function HackSpaceForm({
                         <span className="text-sm text-muted-foreground font-mono">
                           Upload cover image
                         </span>
-                        <span className="text-xs text-muted-foreground/60 font-mono px-2 py-0.5 rounded border border-border">
+                        <span className="text-xs text-muted-foreground font-mono px-2 py-0.5 rounded border border-border">
                           Optional
                         </span>
                       </>
@@ -1096,8 +1096,9 @@ export function HackSpaceForm({
             <Button
               key="submit"
               type="submit"
+              variant="pill"
               disabled={isSubmitting}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              className="px-6"
             >
               {isSubmitting ? (
                 <>
@@ -1112,7 +1113,8 @@ export function HackSpaceForm({
               key="continue"
               type="button"
               onClick={goNext}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6"
+              variant="pill"
+              className="px-6"
             >
               Continue →
             </Button>

@@ -76,6 +76,8 @@ export const useSendFriendRequest = () => {
       queryClient.invalidateQueries({
         queryKey: [queryKeys.friendshipStatus, variables.receiver_id],
       })
+      // Discovery lists exclude friends/pending server-side — refresh them
+      queryClient.invalidateQueries({ queryKey: [queryKeys.builders] })
     },
   })
 }
@@ -100,6 +102,7 @@ export const useUpdateFriendship = (friendshipId: string) => {
         queryClient.invalidateQueries({
           queryKey: [queryKeys.unreadNotificationCount],
         })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.builders] })
       },
     },
   })
@@ -120,6 +123,8 @@ export const useRemoveFriendship = (friendshipId: string) => {
         queryClient.invalidateQueries({
           queryKey: [queryKeys.friendshipStatus],
         })
+        // Removed friends become discoverable again
+        queryClient.invalidateQueries({ queryKey: [queryKeys.builders] })
       },
     },
   })

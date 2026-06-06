@@ -33,14 +33,14 @@ export function ProfileSkills({ profile }: ProfileSkillsProps) {
           Skills
         </p>
         {skills.length > 0 && (
-          <span className="text-[10px] font-mono text-muted-foreground/40">
+          <span className="text-[10px] font-mono text-muted-foreground">
             {skills.length}
           </span>
         )}
       </div>
 
       {skills.length === 0 ? (
-        <p className="text-sm text-muted-foreground/40 italic">No skills added yet.</p>
+        <p className="text-sm text-muted-foreground italic">No skills added yet.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {skills.map((skill) => {

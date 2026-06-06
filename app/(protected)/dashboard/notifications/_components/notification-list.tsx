@@ -38,7 +38,7 @@ export function NotificationList() {
   if (notifications.length === 0) {
     return (
       <div className="bg-card border border-dashed border-border rounded-xl p-16 flex flex-col items-center gap-4 text-center">
-        <Bell className="size-10 text-muted-foreground/30" />
+        <Bell className="size-10 text-muted-foreground/40" />
         <div className="flex flex-col gap-1">
           <p className="font-display font-semibold text-foreground">
             No notifications yet.

@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { ArrowRight, MapPin, Calendar, Users, BadgeCheck } from "lucide-react"
+import { buttonVariants } from "@/components/ui/button"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useEvents } from "@/services/api/events"
-import { parseLocalDate } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 
 export function UpcomingEventsFeed() {
   const { data, isLoading } = useEvents()
@@ -29,7 +30,7 @@ export function UpcomingEventsFeed() {
         <div className="flex gap-4 pb-3 w-max lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
           {isLoading
             ? [...Array(4)].map((_, i) => (
-                <div key={i} className="min-w-[72vw] sm:min-w-[280px] lg:min-w-0 rounded-lg overflow-hidden border border-border flex flex-col flex-shrink-0">
+                <div key={i} className="min-w-[72vw] sm:min-w-70 lg:min-w-0 rounded-lg overflow-hidden border border-border flex flex-col shrink-0">
                   <Skeleton className="h-32 w-full rounded-none" />
                   <div className="p-4 flex flex-col gap-2">
                     <Skeleton className="h-5 w-3/4" />
@@ -41,9 +42,9 @@ export function UpcomingEventsFeed() {
             : events.map((event) => (
                 <div
                   key={event.id}
-                  className="min-w-[72vw] sm:min-w-[280px] lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden flex-shrink-0 flex flex-col"
+                  className="min-w-[72vw] sm:min-w-70 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden shrink-0 flex flex-col"
                 >
-                  <div className="relative h-32 w-full flex-shrink-0">
+                  <div className="relative h-32 w-full shrink-0">
                     {event.banner_url ? (
                       <img
                         src={event.banner_url}
@@ -51,9 +52,9 @@ export function UpcomingEventsFeed() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 via-muted to-card" />
+                      <div className="w-full h-full bg-linear-to-br from-primary/20 via-muted to-card" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-card to-transparent" />
                     {event.is_featured && (
                       <span className="absolute top-2 left-2 px-2 py-0.5 bg-primary/90 text-primary-foreground rounded text-xs font-medium">
                         Featured
@@ -69,23 +70,23 @@ export function UpcomingEventsFeed() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
-                      <MapPin className="size-4 flex-shrink-0" />
+                      <MapPin className="size-4 shrink-0" />
                       <span className="truncate">{event.city}</span>
                       <span>·</span>
-                      <Calendar className="size-4 flex-shrink-0" />
+                      <Calendar className="size-4 shrink-0" />
                       <span className="whitespace-nowrap">
                         {parseLocalDate(event.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     </div>
                     <div className="h-6 mb-4">
                       <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                        <Users className="size-4 flex-shrink-0" />
+                        <Users className="size-4 shrink-0" />
                         <span>{event.type}</span>
                       </div>
                     </div>
                     <Link
                       href={`/dashboard/events/${event.id}`}
-                      className="w-full py-2 px-4 border border-primary text-primary rounded-full text-sm font-medium hover:bg-primary/10 transition-colors text-center block mt-auto"
+                      className={cn(buttonVariants({ variant: "pill-outline" }), "w-full mt-auto")}
                     >
                       View event
                     </Link>

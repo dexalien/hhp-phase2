@@ -107,11 +107,12 @@ export function ApplicationManager({ hackSpaceId }: ApplicationManagerProps) {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
+                    variant="pill"
                     onClick={() =>
                       review.mutate({ appId: app.id, status: "accepted" })
                     }
                     disabled={review.isPending}
-                    className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs px-4"
+                    className="text-xs px-4"
                   >
                     Accept
                   </Button>
