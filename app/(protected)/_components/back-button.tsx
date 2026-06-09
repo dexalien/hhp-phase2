@@ -15,7 +15,7 @@ export function BackButton({ href }: BackButtonProps) {
       type="button"
       onClick={() => router.push(href)}
       aria-label="Go back"
-      className="md:hidden flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors mb-4 cursor-pointer"
+      className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors mb-4 cursor-pointer"
     >
       <ArrowLeft className="size-4" />
       <span className="text-sm font-mono">Back</span>

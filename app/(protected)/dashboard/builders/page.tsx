@@ -15,12 +15,14 @@ import {
   Briefcase,
   ArrowRight,
   Star,
+  X,
 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import {
   useProfile,
   useSuggestedBuilders,
 } from "@/services/api/profile"
-import { useFriendships, useSendFriendRequest } from "@/services/api/friendships"
+import { useFriendships, useSendFriendRequest, useRemoveFriendship } from "@/services/api/friendships"
 import { useFilteredCommunities, useJoinCommunity } from "@/services/api/communities"
 import { ConnectButton } from "../_components/connect-button"
 import { CommunityCard } from "../_components/community-card"
@@ -30,9 +32,65 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { ARCHETYPES } from "@/lib/onboarding"
-import type { UserProfile, SuggestedBuilder, Community } from "@/lib/types"
+import type { UserProfile, SuggestedBuilder, Community, FriendshipWithUser } from "@/lib/types"
 
 type Tab = "builders" | "community"
+
+/* ── Pending Request Card ── */
+function PendingRequestCard({ friendship }: { friendship: FriendshipWithUser }) {
+  const { other_user, direction } = friendship
+  const removeMutation = useRemoveFriendship(friendship.id)
+  const archetype = ARCHETYPES.find((a) => a.id === other_user.archetype)
+  const displayName = other_user.handle ? `@${other_user.handle}` : "Anonymous"
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 flex flex-col items-center text-center relative">
+      {direction === "sent" && (
+        <div className="group absolute top-2 right-2">
+          <button
+            type="button"
+            onClick={() => removeMutation.mutate(undefined)}
+            disabled={removeMutation.isPending}
+            className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+          <span className="absolute right-0 top-full mt-1 px-2 py-0.5 bg-popover border border-border rounded text-xs font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+            Remove
+          </span>
+        </div>
+      )}
+      <div
+        className="w-12 h-12 rounded-full border-[3px] overflow-hidden mb-3"
+        style={{ borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)" }}
+      >
+        {other_user.avatar_url ? (
+          <img src={other_user.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundColor: archetype
+                ? `color-mix(in oklch, var(${archetype.colorVar}) 20%, transparent)`
+                : "var(--muted)",
+            }}
+          />
+        )}
+      </div>
+      <h3 className="font-display font-bold text-foreground text-sm mb-1">{displayName}</h3>
+      <span
+        className={cn(
+          "px-2 py-0.5 rounded text-xs font-mono",
+          direction === "sent"
+            ? "bg-muted text-muted-foreground"
+            : "bg-primary/20 text-primary",
+        )}
+      >
+        {direction === "sent" ? "Request sent" : "Wants to connect"}
+      </span>
+    </div>
+  )
+}
 
 /* ── Builder Card (carousel) ── */
 function NetworkBuilderCard({
@@ -617,7 +675,9 @@ function EmptyPlaceholder({ type }: { type: "network" | "community" }) {
 
 /* ── Main Page ── */
 export default function BuildersPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("builders")
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as Tab | null) ?? "builders"
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [viewMode, setViewMode] = useState<"list" | "swipe">("list")
   const [swipedBuilderIds, setSwipedBuilderIds] = useState<Set<string>>(new Set())
   const [swipedCommunityIds, setSwipedCommunityIds] = useState<Set<string>>(new Set())
@@ -626,6 +686,7 @@ export default function BuildersPage() {
   const { data: profile } = useProfile({ enabled: true })
   const { data: suggestedBuilders, isLoading: suggestedLoading } = useSuggestedBuilders()
   const { data: acceptedFriends, isLoading: friendsLoading } = useFriendships("accepted")
+  const { data: pendingFriendships, isLoading: pendingLoading } = useFriendships("pending")
   const sendFriendRequest = useSendFriendRequest()
 
   const {
@@ -828,6 +889,24 @@ export default function BuildersPage() {
                   </div>
                 )}
               </section>
+
+              {/* Pending Requests */}
+              {(pendingLoading || (pendingFriendships && pendingFriendships.length > 0)) && (
+                <section>
+                  <h2 className="font-display font-bold text-lg text-foreground mb-4">Pending requests</h2>
+                  {pendingLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[1, 2].map((i) => <CardSkeleton key={i} />)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {(pendingFriendships ?? []).map((f) => (
+                        <PendingRequestCard key={f.id} friendship={f} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
             </div>
           )}
         </>

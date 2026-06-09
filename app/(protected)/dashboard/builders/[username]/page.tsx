@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useBuilderProfile } from "@/services/api/profile"
 import { ProfileView } from "../../profile/_components/profile-view"
 import { PageContainer } from "../../_components/page-container"
+import { BackButton } from "../../../_components/back-button"
 
 interface BuilderProfilePageProps {
   params: Promise<{ username: string }>
@@ -17,6 +18,7 @@ export default function BuilderProfilePage({ params }: BuilderProfilePageProps) 
 
   return (
     <PageContainer>
+      <BackButton href="/dashboard/builders" />
       {isLoading ? (
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-5">

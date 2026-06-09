@@ -304,13 +304,13 @@ export interface MapMarkerData {
   member_count: number | null
   track: string | null
   image_url: string | null
-  // event/community extras
+  // event extras
   description?: string | null
   website_url?: string | null
   prizes?: string | null
   category?: string | null
-  // community extras — upcoming mini-events shown in the popup
-  upcoming_events?: MapMarkerMiniEvent[]
+  // community mini-event extras — the pin IS the mini-event, this is its parent community
+  community_id?: string | null
   // location privacy
   location_revealed?: boolean
 }
@@ -393,6 +393,9 @@ export interface MiniEvent {
   country: string | null
   city: string | null
   venue: string | null
+  address: string | null
+  lat: number | null
+  lng: number | null
   start_at: string
   end_at: string | null
   capacity: number | null

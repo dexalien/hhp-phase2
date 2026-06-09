@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   Calendar,
   Clock,
@@ -179,10 +180,20 @@ export function CommunityEventCard({
             </span>
           )
         ) : (
-          <span className="flex items-center gap-1.5 font-mono">
-            <MapPin className="w-3.5 h-3.5 shrink-0" />
-            {[event.venue, event.city, event.country].filter(Boolean).join(", ")}
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="flex items-center gap-1.5 font-mono">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              {[event.venue, event.city, event.country].filter(Boolean).join(", ")}
+            </span>
+            {event.lat != null && event.lng != null && (
+              <Link
+                href="/dashboard/map?filter=community"
+                className="text-xs font-mono text-primary hover:underline"
+              >
+                View on map →
+              </Link>
+            )}
+          </div>
         )}
       </div>
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   Users,
@@ -40,7 +40,9 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 export default function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [activeTab, setActiveTab] = useState<Tab>("about")
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as Tab | null) ?? "about"
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [isEditing, setIsEditing] = useState(false)
   const { data: community, isLoading } = useCommunity(id)
   const { data: profile } = useProfile()
@@ -49,7 +51,9 @@ export default function CommunityDetailPage() {
   const leaveMutation = useLeaveCommunity(id)
   const updateMutation = useUpdateCommunity(id)
 
-  const isCreator = community?.creator?.id === profile?.id || ADMIN_USER_IDS.includes(profile?.id ?? "")
+  const isActualCreator = community?.creator?.id === profile?.id
+  const isAdminUser = ADMIN_USER_IDS.includes(profile?.id ?? "") || profile?.is_admin === true
+  const isCreator = isActualCreator || isAdminUser
   const isMember = community?.is_member
 
   if (isLoading) {
@@ -83,7 +87,7 @@ export default function CommunityDetailPage() {
   return (
     <PageContainer>
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
-        <BackButton href="/dashboard/builders" />
+        <BackButton href="/dashboard/community/explore" />
 
         {/* ── Cover + Header ── */}
         <div className="relative rounded-xl overflow-hidden">
@@ -142,8 +146,8 @@ export default function CommunityDetailPage() {
                 </Button>
               )}
 
-              {/* Join / Leave */}
-              {!isCreator && (
+              {/* Join / Leave — actual creator can't leave; admins who aren't the creator can */}
+              {!isActualCreator && (
                 <div className="shrink-0">
                   {isMember ? (
                     <Button

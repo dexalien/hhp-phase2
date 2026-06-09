@@ -39,6 +39,7 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { use, useState } from "react"
 import { PageContainer } from "../../_components/page-container"
+import { BackButton } from "../../../_components/back-button"
 import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
 
 const MiniMap = dynamic(() => import("@/components/mini-map").then((m) => m.MiniMap), {
@@ -260,6 +261,11 @@ export default function HackerHouseDetailPage({
   return (
     <PageContainer className="p-0! pt-0!">
       <div className="max-w-4xl mx-auto pb-32">
+        {/* ── Back Button ── */}
+        <div className="px-4 pt-4">
+          <BackButton href="/dashboard/hacks?tab=houses" />
+        </div>
+
         {/* ── Image Carousel ── */}
         <div className="relative h-72 md:h-96 w-full bg-card overflow-hidden">
           <img

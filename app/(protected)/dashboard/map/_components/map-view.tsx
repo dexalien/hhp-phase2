@@ -98,7 +98,7 @@ const TYPE_LABEL: Record<MapMarkerType, string> = {
   hacker_house: "Hacker House",
   hack_space:   "Hack Space",
   event:        "Event",
-  community:    "Community",
+  community:    "Community Event",
 }
 
 function ClusterPopupContent({ group }: { group: MapMarkerData[] }) {
@@ -169,12 +169,17 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
 export function MapView({
   initialCenter,
   initialZoom,
+  initialFilter,
 }: {
   initialCenter?: [number, number]
   initialZoom?: number
+  initialFilter?: string
 } = {}) {
   const { data: markers, isLoading } = useMapMarkers()
-  const [filter, setFilter] = useState<FilterType>("all")
+  const validFilter = (initialFilter as FilterType | undefined)
+  const [filter, setFilter] = useState<FilterType>(
+    validFilter && FILTER_OPTIONS.some((o) => o.value === validFilter) ? validFilter : "all"
+  )
   const [zoom, setZoom] = useState(initialZoom ?? 2)
 
   const handleZoom = useCallback((z: number) => setZoom(z), [])
@@ -221,13 +226,25 @@ export function MapView({
 
       {/* Empty state */}
       {filteredMarkers.length === 0 && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1000 bg-card/90 backdrop-blur-sm border border-border rounded-xl px-6 py-4 text-center">
-          <p className="font-display font-semibold text-foreground text-sm">No locations found</p>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-1000 bg-card/90 backdrop-blur-sm border border-border rounded-xl px-6 py-4 text-center max-w-64">
+          {filter !== "community" && (
+            <p className="font-display font-semibold text-foreground text-sm">No locations found</p>
+          )}
           <p className="text-muted-foreground text-xs mt-1">
-            {filter !== "all"
+            {filter === "community"
+              ? "Join a community to see their in-person events here."
+              : filter !== "all"
               ? "Try selecting a different filter."
               : "Create a Hacker House or Hack Space with a location to see it here."}
           </p>
+          {filter === "community" && (
+            <a
+              href="/dashboard/community/explore"
+              className="inline-block mt-3 text-xs font-mono text-primary hover:underline"
+            >
+              Join communities →
+            </a>
+          )}
         </div>
       )}
 

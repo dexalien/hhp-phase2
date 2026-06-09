@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import type { MapMarkerData, MapMarkerMiniEvent } from "@/lib/types"
+import type { MapMarkerData } from "@/lib/types"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -15,20 +15,17 @@ async function getPrivyUserId(req: NextRequest): Promise<string | null> {
 }
 
 export async function GET(req: NextRequest) {
-  // Resolve attending event IDs for the current user (optional auth)
+  // Resolve the internal user row once (used for event attendance + community membership)
   const attendedEventIds = new Set<string>()
   const privyUserId = await getPrivyUserId(req)
+  let internalUserId: string | null = null
   if (privyUserId) {
     const { data: userRow } = await supabaseServer
-      .from("users")
-      .select("id")
-      .eq("privy_id", privyUserId)
-      .single()
+      .from("users").select("id").eq("privy_id", privyUserId).single()
     if (userRow) {
+      internalUserId = userRow.id
       const { data: attended } = await supabaseServer
-        .from("event_attendees")
-        .select("event_id")
-        .eq("user_id", userRow.id)
+        .from("event_attendees").select("event_id").eq("user_id", userRow.id)
       for (const row of attended ?? []) attendedEventIds.add(row.event_id as string)
     }
   }
@@ -57,12 +54,43 @@ export async function GET(req: NextRequest) {
     .not("lat", "is", null)
     .not("lng", "is", null)
 
-  // Fetch communities with coordinates
-  const { data: communities } = await supabaseServer
-    .from("communities")
-    .select("id, name, city, country, lat, lng, category, image_url, description")
-    .not("lat", "is", null)
-    .not("lng", "is", null)
+  // Fetch in-person upcoming mini-events from communities the user is a member of
+  const communityMiniEvents: {
+    id: string; title: string; start_at: string; lat: number; lng: number
+    city: string | null; country: string | null; community_id: string
+    community_name: string; community_image_url: string | null
+  }[] = []
+  if (internalUserId) {
+    const { data: memberships } = await supabaseServer
+      .from("community_members").select("community_id").eq("user_id", internalUserId)
+    const memberCommunityIds = (memberships ?? []).map((m) => m.community_id as string)
+    if (memberCommunityIds.length > 0) {
+      const { data: miniEvs } = await supabaseServer
+        .from("mini_events")
+        .select("id, title, start_at, lat, lng, city, country, community_id, communities(name, image_url)")
+        .in("community_id", memberCommunityIds)
+        .eq("location_type", "in_person")
+        .not("lat", "is", null)
+        .not("lng", "is", null)
+        .gte("start_at", new Date().toISOString())
+        .order("start_at", { ascending: true })
+      for (const ev of miniEvs ?? []) {
+        const comm = ev.communities as unknown as { name: string; image_url: string | null } | null
+        communityMiniEvents.push({
+          id: ev.id as string,
+          title: ev.title as string,
+          start_at: ev.start_at as string,
+          lat: ev.lat as number,
+          lng: ev.lng as number,
+          city: ev.city as string | null,
+          country: ev.country as string | null,
+          community_id: ev.community_id as string,
+          community_name: comm?.name ?? "",
+          community_image_url: comm?.image_url ?? null,
+        })
+      }
+    }
+  }
 
   // Get participant counts for houses
   const houseIds = (houses ?? []).map((h) => h.id)
@@ -93,43 +121,6 @@ export async function GET(req: NextRequest) {
     for (const app of spaceApps ?? []) {
       const sid = app.hack_space_id as string
       spaceCountMap[sid] = (spaceCountMap[sid] ?? 0) + 1
-    }
-  }
-
-  // Get member counts for communities
-  const communityIds = (communities ?? []).map((c) => c.id)
-  const communityCountMap: Record<string, number> = {}
-  if (communityIds.length > 0) {
-    const { data: communityMembers } = await supabaseServer
-      .from("community_members")
-      .select("community_id")
-      .in("community_id", communityIds)
-    for (const m of communityMembers ?? []) {
-      const cid = m.community_id as string
-      communityCountMap[cid] = (communityCountMap[cid] ?? 0) + 1
-    }
-  }
-
-  // Upcoming mini-events per community — shown in the community popup (max 3, soonest first)
-  const communityEventsMap: Record<string, MapMarkerMiniEvent[]> = {}
-  if (communityIds.length > 0) {
-    const { data: miniEvents } = await supabaseServer
-      .from("mini_events")
-      .select("id, community_id, title, start_at, location_type")
-      .in("community_id", communityIds)
-      .gte("start_at", new Date().toISOString())
-      .order("start_at", { ascending: true })
-    for (const ev of miniEvents ?? []) {
-      const cid = ev.community_id as string
-      const list = (communityEventsMap[cid] ??= [])
-      if (list.length < 3) {
-        list.push({
-          id: ev.id as string,
-          title: ev.title as string,
-          start_at: ev.start_at as string,
-          location_type: ev.location_type as MapMarkerMiniEvent["location_type"],
-        })
-      }
     }
   }
 
@@ -214,27 +205,25 @@ export async function GET(req: NextRequest) {
       prizes: e.prizes as string | null,
       }
     }),
-    ...(communities ?? []).map((c) => ({
-      id: c.id as string,
+    ...communityMiniEvents.map((ev) => ({
+      id: ev.id,
       type: "community" as const,
-      name: c.name as string,
-      city: c.city as string | null,
-      country: c.country as string | null,
-      lat: c.lat as number,
-      lng: c.lng as number,
+      name: ev.title,
+      city: ev.city,
+      country: ev.country,
+      lat: ev.lat,
+      lng: ev.lng,
       status: "active",
-      event_name: null,
-      event_start_date: null,
+      event_name: ev.community_name,
+      event_start_date: ev.start_at,
       event_end_date: null,
       capacity: null,
       participants_count: null,
       max_team_size: null,
-      member_count: communityCountMap[c.id] ?? 0,
+      member_count: null,
       track: null,
-      image_url: c.image_url as string | null,
-      description: c.description as string | null,
-      category: c.category as string | null,
-      upcoming_events: communityEventsMap[c.id] ?? [],
+      image_url: ev.community_image_url,
+      community_id: ev.community_id,
     })),
   ]
 

@@ -182,6 +182,7 @@ export const useCreateCommunityEvent = (communityId: string) => {
     options: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.mapMarkers] })
       },
     },
   })
@@ -201,6 +202,7 @@ export const useUpdateCommunityEvent = (communityId: string) => {
     options: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.mapMarkers] })
       },
     },
   })
@@ -218,6 +220,7 @@ export const useDeleteCommunityEvent = (communityId: string) => {
     options: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.community, communityId, "events"] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.mapMarkers] })
       },
     },
   })

@@ -97,10 +97,15 @@ export async function PATCH(
     updates.country = null
     updates.city = null
     updates.venue = null
+    updates.lat = null
+    updates.lng = null
   } else {
     if (d.country !== undefined) updates.country = d.country || null
     if (d.city !== undefined) updates.city = d.city || null
     if (d.venue !== undefined) updates.venue = d.venue || null
+    if (d.address !== undefined) updates.address = d.address || null
+    if (d.lat !== undefined) updates.lat = d.lat ?? null
+    if (d.lng !== undefined) updates.lng = d.lng ?? null
     updates.meeting_url = null
   }
 

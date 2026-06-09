@@ -29,9 +29,9 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 import { cn } from "@/lib/utils"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
-import { Upload, X, BadgeCheck, Star, Globe } from "lucide-react"
+import { Upload, X, BadgeCheck, Star, Globe, MapPin } from "lucide-react"
 
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
@@ -107,13 +107,37 @@ export function CommunityForm({
   const uploadImage = useUploadCommunityImage()
   const [pendingFile, setPendingFile] = useState<{ file: File; preview: string } | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const imageUrl = useWatch({ control, name: "image_url" })
   const isWorldwide = useWatch({ control, name: "is_worldwide" })
   const watchedCountry = useWatch({ control, name: "country" })
+  const watchedCity = useWatch({ control, name: "city" })
   const availableCities = watchedCountry
     ? getCitiesForCountryName(watchedCountry)
     : []
+
+  const geocodeLocation = useCallback(async (city: string, country: string) => {
+    if (!city || !country) return
+    setGeocoding(true)
+    try {
+      const q = encodeURIComponent(`${city}, ${country}`)
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+        { headers: { "User-Agent": "HackerHouseProtocol/1.0" } },
+      )
+      const results: { lat: string; lon: string }[] = await res.json()
+      if (results.length > 0) {
+        setValue("lat", parseFloat(results[0].lat))
+        setValue("lng", parseFloat(results[0].lon))
+        toast.success("Map pin set")
+      }
+    } catch {
+      // silent — geocoding failure shouldn't block community creation
+    } finally {
+      setGeocoding(false)
+    }
+  }, [setValue])
 
   useEffect(() => {
     return () => {
@@ -304,7 +328,10 @@ export function CommunityForm({
                     <Combobox
                       items={availableCities}
                       value={field.value ?? ""}
-                      onValueChange={(val) => field.onChange(val)}
+                      onValueChange={(val) => {
+                        field.onChange(val)
+                        if (val && watchedCountry) void geocodeLocation(val, watchedCountry)
+                      }}
                     >
                       <ComboboxInput placeholder="Search city..." showClear />
                       <ComboboxContent>
@@ -328,6 +355,12 @@ export function CommunityForm({
               />
             )}
           </div>
+        )}
+        {!isWorldwide && watchedCity && watchedCountry && (
+          <p className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+            <MapPin className="size-3 text-primary" />
+            {geocoding ? "Setting map pin..." : "Map pin set"}
+          </p>
         )}
         {isWorldwide && (
           <p className="text-xs text-muted-foreground font-mono">This community won&apos;t appear on the map.</p>

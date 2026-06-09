@@ -24,10 +24,11 @@ export default function MapPage() {
 
   const initialCenter = !isNaN(lat) && !isNaN(lng) ? ([lat, lng] as [number, number]) : undefined
   const initialZoom = !isNaN(zoom) ? zoom : undefined
+  const initialFilter = params.get("filter") ?? undefined
 
   return (
     <div className="h-dvh w-full overflow-hidden">
-      <MapView initialCenter={initialCenter} initialZoom={initialZoom} />
+      <MapView initialCenter={initialCenter} initialZoom={initialZoom} initialFilter={initialFilter} />
     </div>
   )
 }

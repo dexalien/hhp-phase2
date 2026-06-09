@@ -11,6 +11,7 @@ import { useProfile } from "@/services/api/profile"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PageContainer } from "../_components/page-container"
+import { BackButton } from "../../_components/back-button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { ARCHETYPES } from "@/lib/onboarding"
@@ -62,6 +63,7 @@ export default function HackerHousesPage() {
 
   return (
     <PageContainer className="flex flex-col gap-8">
+      <BackButton href="/dashboard/hacks?tab=houses" />
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-col gap-1 min-w-0">

@@ -26,6 +26,37 @@ export async function GET(
 ) {
   const { id } = await params
 
+  // Only members and creators can see mini-events
+  const privyUserId = await getPrivyUserId(req)
+  if (!privyUserId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+  const { data: user } = await supabaseServer
+    .from("users")
+    .select("id")
+    .eq("privy_id", privyUserId)
+    .single()
+  if (!user) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+  const { data: membership } = await supabaseServer
+    .from("community_members")
+    .select("user_id")
+    .eq("community_id", id)
+    .eq("user_id", user.id)
+    .maybeSingle()
+
+  const { data: community } = await supabaseServer
+    .from("communities")
+    .select("creator_id")
+    .eq("id", id)
+    .single()
+
+  const isMemberOrCreator =
+    !!membership || community?.creator_id === user.id || isAdmin(user.id)
+
+  if (!isMemberOrCreator) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  }
+
   const past = req.nextUrl.searchParams.get("past") === "true"
   const nowIso = new Date().toISOString()
 
@@ -33,8 +64,8 @@ export async function GET(
     .from("mini_events")
     .select(`
       id, parent_type, community_id, hacker_house_id, title, description,
-      location_type, meeting_url, country, city, venue, start_at, end_at, capacity,
-      created_at, updated_at,
+      location_type, meeting_url, country, city, venue, address, lat, lng,
+      start_at, end_at, capacity, created_at, updated_at,
       creator:users!creator_id(id, handle, avatar_url)
     `)
     .eq("community_id", id)
@@ -79,22 +110,12 @@ export async function GET(
       countsByEvent[eid] = (countsByEvent[eid] ?? 0) + 1
     }
 
-    // is_attending — only if authenticated
-    const privyUserId = await getPrivyUserId(req)
-    if (privyUserId) {
-      const { data: user } = await supabaseServer
-        .from("users")
-        .select("id")
-        .eq("privy_id", privyUserId)
-        .single()
-      if (user) {
-        attendingSet = new Set(
-          (attendees ?? [])
-            .filter((a) => a.user_id === user.id)
-            .map((a) => a.event_id as string),
-        )
-      }
-    }
+    // is_attending — user is already resolved above
+    attendingSet = new Set(
+      (attendees ?? [])
+        .filter((a) => a.user_id === user.id)
+        .map((a) => a.event_id as string),
+    )
   }
 
   const events: MiniEvent[] = filtered.map((row) => ({
@@ -154,6 +175,9 @@ export async function POST(
     country: isOnline ? null : (d.country || null),
     city: isOnline ? null : (d.city || null),
     venue: isOnline ? null : (d.venue || null),
+    address: isOnline ? null : (d.address || null),
+    lat: isOnline ? null : (d.lat ?? null),
+    lng: isOnline ? null : (d.lng ?? null),
     start_at: d.start_at,
     end_at: d.end_at || null,
     capacity: d.capacity ?? null,
@@ -164,8 +188,8 @@ export async function POST(
     .insert(insert)
     .select(`
       id, parent_type, community_id, hacker_house_id, title, description,
-      location_type, meeting_url, country, city, venue, start_at, end_at, capacity,
-      created_at, updated_at,
+      location_type, meeting_url, country, city, venue, address, lat, lng,
+      start_at, end_at, capacity, created_at, updated_at,
       creator:users!creator_id(id, handle, avatar_url)
     `)
     .single()

@@ -9,6 +9,7 @@ import {
 } from "@/services/api/hack-spaces"
 import { useProfile } from "@/services/api/profile"
 import { PageContainer } from "../../_components/page-container"
+import { BackButton } from "../../../_components/back-button"
 import { ARCHETYPES } from "@/lib/onboarding"
 import { ApplicationManager } from "./_components/application-manager"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -121,6 +122,11 @@ export default function HackSpaceDetailPage({
   return (
     <PageContainer className="!p-0 !pt-0">
       <div className="max-w-4xl mx-auto pb-32">
+        {/* ── Back Button ── */}
+        <div className="px-4 pt-4">
+          <BackButton href="/dashboard/hacks?tab=spaces" />
+        </div>
+
         {/* ── Banner ── */}
         <div className="relative h-40 md:h-56 w-full overflow-hidden">
           {hackSpace.image_url ? (

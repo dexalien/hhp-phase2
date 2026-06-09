@@ -1,10 +1,11 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useCallback } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -108,6 +109,7 @@ export function CommunityEventForm({
   schema = createMiniEventSchema,
 }: CommunityEventFormProps) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
   // Combobox popups portal into the form so they work inside the Radix Dialog
   // (Base UI portals to body by default, which the modal dialog makes inert).
   const portalRef = useRef<HTMLFormElement>(null)
@@ -126,15 +128,69 @@ export function CommunityEventForm({
       country: "",
       city: "",
       venue: "",
+      address: "",
       start_at: "",
       end_at: "",
+      lat: undefined,
+      lng: undefined,
       ...defaultValues,
     },
   })
 
   const locationType = useWatch({ control, name: "location_type" })
   const watchedCountry = useWatch({ control, name: "country" })
+  const watchedCity = useWatch({ control, name: "city" })
+  const watchedVenue = useWatch({ control, name: "venue" })
+  const watchedAddress = useWatch({ control, name: "address" })
   const availableCities = watchedCountry ? getCitiesForCountryName(watchedCountry) : []
+
+  const geocodeFromVenueName = useCallback(async () => {
+    const q = [watchedVenue, watchedCity, watchedCountry].filter(Boolean).join(", ")
+    if (!q) return
+    setGeocoding(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`,
+        { headers: { "User-Agent": "HackerHouseProtocol/1.0" } },
+      )
+      const results: { display_name: string; lat: string; lon: string }[] = await res.json()
+      if (results.length > 0) {
+        setValue("address", results[0].display_name)
+        setValue("lat", parseFloat(results[0].lat))
+        setValue("lng", parseFloat(results[0].lon))
+        toast.success("Address & map pin set from venue name")
+      } else {
+        toast.error("Venue not found — enter address manually")
+      }
+    } catch {
+      toast.error("Lookup failed")
+    } finally {
+      setGeocoding(false)
+    }
+  }, [watchedVenue, watchedCity, watchedCountry, setValue])
+
+  const geocodeFromAddress = useCallback(async () => {
+    if (!watchedAddress) return
+    setGeocoding(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(watchedAddress)}&format=json&limit=1`,
+        { headers: { "User-Agent": "HackerHouseProtocol/1.0" } },
+      )
+      const results: { lat: string; lon: string }[] = await res.json()
+      if (results.length > 0) {
+        setValue("lat", parseFloat(results[0].lat))
+        setValue("lng", parseFloat(results[0].lon))
+        toast.success("Map pin set")
+      } else {
+        toast.error("Could not locate this address")
+      }
+    } catch {
+      toast.error("Geocoding failed")
+    } finally {
+      setGeocoding(false)
+    }
+  }, [watchedAddress, setValue])
 
   async function onSubmit(values: CreateMiniEventInput) {
     setServerError(null)
@@ -302,15 +358,58 @@ export function CommunityEventForm({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name} optional>
-                  Venue
+                  Venue name
                 </FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  placeholder="Second Home, Mercado da Ribeira"
-                  maxLength={120}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    maxLength={120}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void geocodeFromVenueName()}
+                    disabled={!watchedVenue || geocoding}
+                    title="Auto-fill address from venue name"
+                    className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                  >
+                    <MapPin className="size-3.5" />
+                    {geocoding ? "..." : "Look up"}
+                  </button>
+                </div>
+                <FieldDescription>Enter the venue name and click Look up to auto-fill the address.</FieldDescription>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+          <Controller
+            name="address"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>
+                  Address
+                </FieldLabel>
+                <div className="flex gap-2">
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    maxLength={255}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void geocodeFromAddress()}
+                    disabled={!watchedAddress || geocoding}
+                    title="Set map pin from this address"
+                    className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                  >
+                    <MapPin className="size-3.5" />
+                    {geocoding ? "..." : "Set pin"}
+                  </button>
+                </div>
+                <FieldDescription>Or enter the address manually and click Set pin.</FieldDescription>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}

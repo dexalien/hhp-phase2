@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Calendar, MapPin, ArrowRight, Settings, Video } from "lucide-react"
 import { useFilteredHackSpaces } from "@/services/api/hack-spaces"
 import { useFilteredHackerHouses } from "@/services/api/hacker-houses"
@@ -241,7 +242,9 @@ function CardSkeleton() {
 /* ── Main Page ── */
 
 export default function HacksPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("houses")
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as Tab | null) ?? "houses"
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const { data: profile } = useProfile()
 
   const { data: hsData, isLoading: hsLoading } = useFilteredHackSpaces({})

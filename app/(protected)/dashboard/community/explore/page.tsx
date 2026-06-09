@@ -8,6 +8,7 @@ import { useFilteredCommunities } from "@/services/api/communities"
 import { useDebounce } from "@/hooks/use-debounce"
 import { CommunityCard } from "../../_components/community-card"
 import { PageContainer } from "../../_components/page-container"
+import { BackButton } from "../../../_components/back-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -42,6 +43,7 @@ export default function CommunityExplorePage() {
 
   return (
     <PageContainer className="flex flex-col gap-6">
+      <BackButton href="/dashboard/builders?tab=community" />
       <div className="flex items-center justify-between">
         <h1 className="font-display font-bold text-foreground text-2xl">Communities</h1>
         <Link href="/dashboard/community/create">

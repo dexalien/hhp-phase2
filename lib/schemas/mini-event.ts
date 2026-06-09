@@ -9,9 +9,12 @@ export const miniEventBaseSchema = z.object({
   country: z.string().max(80, "Maximum 80 characters").optional().or(z.literal("")),
   city: z.string().max(80, "Maximum 80 characters").optional().or(z.literal("")),
   venue: z.string().max(120, "Maximum 120 characters").optional().or(z.literal("")),
+  address: z.string().max(255, "Maximum 255 characters").optional().or(z.literal("")),
   start_at: z.string().min(1, "Start date and time is required"),
   end_at: z.string().optional().or(z.literal("")),
   capacity: z.number().int().positive("Capacity must be at least 1").optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 function refineLocation(
@@ -37,6 +40,13 @@ function refineLocation(
       code: z.ZodIssueCode.custom,
       message: "City is required for in-person events",
       path: ["city"],
+    })
+  }
+  if (data.location_type === "in_person" && !data.address) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Address is required for in-person events",
+      path: ["address"],
     })
   }
 }

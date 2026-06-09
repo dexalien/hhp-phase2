@@ -22,6 +22,8 @@ export const createCommunitySchema = z.object({
   is_worldwide: z.boolean().optional(),
   verification_requested: z.boolean().optional(),
   featured_requested: z.boolean().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>

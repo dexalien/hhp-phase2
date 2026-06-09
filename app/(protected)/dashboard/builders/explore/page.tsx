@@ -13,6 +13,7 @@ import { useFriendships } from "@/services/api/friendships"
 import { useDebounce } from "@/hooks/use-debounce"
 import { ConnectButton } from "../../_components/connect-button"
 import { PageContainer } from "../../_components/page-container"
+import { BackButton } from "../../../_components/back-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -128,6 +129,7 @@ export default function BuildersExplorePage() {
 
   return (
     <PageContainer className="flex flex-col gap-6">
+      <BackButton href="/dashboard/builders" />
       <h1 className="font-display font-bold text-foreground text-2xl">Explore Builders</h1>
 
       <div className="flex flex-col gap-6">
