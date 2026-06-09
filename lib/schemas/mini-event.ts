@@ -18,7 +18,7 @@ export const miniEventBaseSchema = z.object({
 })
 
 function refineLocation(
-  data: { location_type?: "online" | "in_person"; meeting_url?: string; country?: string; city?: string },
+  data: { location_type?: "online" | "in_person"; meeting_url?: string; country?: string; city?: string; address?: string },
   ctx: z.RefinementCtx,
 ) {
   if (data.location_type === "online" && !data.meeting_url) {
