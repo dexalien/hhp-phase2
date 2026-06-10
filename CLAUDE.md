@@ -22,6 +22,8 @@ All product and design documentation lives in `docs/`. **Always read the relevan
 | [`docs/features/hacker-houses.md`](./docs/features/hacker-houses.md) | Hacker Houses — modalities, flow, UI card |
 | [`docs/features/matching-and-feed.md`](./docs/features/matching-and-feed.md) | Matching algorithm, feed, Builder card |
 | [`docs/features/link-wallet.md`](./docs/features/link-wallet.md) | Link wallet from profile, auto-import on-chain data |
+| [`docs/web3/contracts-spec.md`](./docs/web3/contracts-spec.md) | Smart contract spec for HackerHouseEscrow, Factory, SpotNFT |
+| [`docs/web3/zerodev-integration.md`](./docs/web3/zerodev-integration.md) | ZeroDev hooks, env vars, pending decisions |
 
 ## Skills — detailed rules for implementation
 
