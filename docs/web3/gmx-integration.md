@@ -21,7 +21,26 @@ No new on-chain writes — this is read-only data surfacing. Yield distribution 
 
 | File | Change |
 |---|---|
-| `app/(protected)/dashboard/hacker-houses/[id]/payment/page.tsx` | Adds `usePendingYield` hook + renders `YieldSection` when `yield_mode === 'gmx'` |
+| `app/(protected)/dashboard/hacker-houses/[id]/payment/page.tsx` | GMX yield wired; deposit success screen (confetti + floating logo); reservation card redesign; Hacker Homies list; "Do Later" button |
+| `app/(protected)/dashboard/hacker-houses/[id]/payment/_components/deposit-section.tsx` | CTA renamed to "Pay My Share" / "Stake to Join" based on `house_type`; `onDepositSuccess` callback |
+| `app/(protected)/dashboard/hacker-houses/[id]/page.tsx` | `hasPaid` now includes on-chain deposit via `useBuilderSpot` — Key NFT button appears after web3 deposit |
+
+---
+
+## UI changes (payment page)
+
+**Reservation card** — hybrid design: gradient background, "RESERVATION" label, large house name, total USDC pool + homies count in footer row.
+
+**Hacker Homies list** — shows `creator` + `participants` from DB with archetype-colored avatar borders. No mocked status labels.
+
+**Deposit success screen** — full-screen takeover on successful deposit:
+- CSS confetti (40 pieces, design system colors)
+- Floating HHP logo with `floatUp` + `popIn` + sparkle animations
+- "Deposit Successful" / "Stake Successful" depending on `house_type`
+- Deposit summary card
+- "Back to House" → house detail page
+
+**CTA buttons** — "Pay My Share" (co_payment) or "Stake to Join" (staking) + "Do Later" secondary link.
 
 ---
 
