@@ -88,20 +88,40 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
 
         <div className="absolute inset-0 bg-linear-to-t from-card/80 to-transparent" />
 
+        {/* Invisible tap zones for left/right navigation */}
+        {hasMultiple && (
+          <>
+            <button
+              type="button"
+              className="absolute left-0 top-0 w-1/2 h-full z-10"
+              onClick={(e) => { e.preventDefault(); setImageIndex((imageIndex - 1 + images.length) % images.length) }}
+              aria-label="Previous photo"
+            />
+            <button
+              type="button"
+              className="absolute right-0 top-0 w-1/2 h-full z-10"
+              onClick={(e) => { e.preventDefault(); setImageIndex((imageIndex + 1) % images.length) }}
+              aria-label="Next photo"
+            />
+          </>
+        )}
+
         {/* Dot indicators */}
         {hasMultiple && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
             {images.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={(e) => { e.preventDefault(); setImageIndex(i) }}
-                className={cn(
-                  "rounded-full transition-all",
-                  i === imageIndex ? "bg-white w-4 h-1.5" : "bg-white/50 size-1.5 hover:bg-white/80",
-                )}
+                className="p-3 -m-3 flex items-center justify-center"
                 aria-label={`Photo ${i + 1}`}
-              />
+              >
+                <span className={cn(
+                  "rounded-full transition-all block",
+                  i === imageIndex ? "bg-white w-4 h-1.5" : "bg-white/50 size-1.5 hover:bg-white/80",
+                )} />
+              </button>
             ))}
           </div>
         )}
