@@ -10,7 +10,7 @@ export function CommunityCard({ community }: { community: Community }) {
   const joinMutation = useJoinCommunity(community.id)
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex flex-col h-full w-67.5">
+    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex flex-col h-full max-w-67.5 lg:max-w-full">
       <Link href={`/dashboard/community/${community.id}`} className="block">
         <div className="relative h-32 w-full shrink-0">
           {community.image_url ? (
