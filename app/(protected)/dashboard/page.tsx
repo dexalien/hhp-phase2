@@ -20,11 +20,11 @@ export default function DashboardPage() {
   return (
     <PageContainer>
       {/* Mobile-only top bar: logo centered, bell top-right */}
-      <div className="md:hidden relative flex items-center justify-center mb-6 h-10">
+      <div className="md:hidden relative flex items-center justify-start mb-6 h-10">
         <img
           src="/assets/hacker-house-protocol-logo.svg"
           alt="Hacker House Protocol"
-          className="h-8 w-8"
+          className="h-12 w-12"
         />
         <Link
           href="/dashboard/notifications"
@@ -38,7 +38,7 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-8 lg:gap-10">
         <WelcomeHeader />
         <ContextBanner />
         <UpcomingEventsFeed />

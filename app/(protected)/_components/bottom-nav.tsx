@@ -44,7 +44,7 @@ export function BottomNav() {
           background: "var(--card)",
         }}
       >
-        <div className="flex h-16 items-center justify-around px-2">
+        <div className="flex items-center justify-around px-2 pt-3 pb-6">
           {/* First two tabs */}
           {NAV_TABS.slice(0, 2).map(({ href, label, icon: Icon, exact }) => {
             const active = isActive(href, exact)

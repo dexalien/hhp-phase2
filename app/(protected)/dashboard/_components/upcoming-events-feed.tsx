@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { ArrowRight, MapPin, Calendar, Users, BadgeCheck } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useEvents } from "@/services/api/events"
 import { cn, parseLocalDate } from "@/lib/utils"
@@ -18,19 +17,16 @@ export function UpcomingEventsFeed() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="font-display font-bold text-foreground text-lg">Upcoming events</h2>
-        <Link
-          href="/dashboard/events"
-          className="text-primary text-sm font-medium flex items-center gap-1 hover:opacity-80 transition-opacity"
-        >
+        <Link href="/dashboard/events" className="flex text-primary text-sm font-medium items-center gap-1 hover:opacity-80 transition-opacity">
           See all <ArrowRight className="size-4" />
         </Link>
       </div>
 
-      <ScrollArea>
-        <div className="flex gap-4 pb-3 w-max lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
+      <div className="overflow-x-auto lg:overflow-visible">
+        <div className="flex gap-4 pb-2 w-max lg:grid lg:grid-cols-4 lg:gap-6 lg:w-full">
           {isLoading
             ? [...Array(4)].map((_, i) => (
-                <div key={i} className="min-w-[72vw] sm:min-w-70 lg:min-w-0 rounded-lg overflow-hidden border border-border flex flex-col shrink-0">
+                <div key={i} className="w-[72vw] sm:w-70 lg:w-auto lg:min-w-0 rounded-lg overflow-hidden border border-border flex flex-col shrink-0">
                   <Skeleton className="h-32 w-full rounded-none" />
                   <div className="p-4 flex flex-col gap-2">
                     <Skeleton className="h-5 w-3/4" />
@@ -42,7 +38,7 @@ export function UpcomingEventsFeed() {
             : events.map((event) => (
                 <div
                   key={event.id}
-                  className="min-w-[72vw] sm:min-w-70 lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden shrink-0 flex flex-col"
+                  className="w-[72vw] sm:w-70 lg:w-auto lg:min-w-0 bg-card border border-border rounded-lg overflow-hidden shrink-0 flex flex-col"
                 >
                   <div className="relative h-32 w-full shrink-0">
                     {event.banner_url ? (
@@ -62,11 +58,11 @@ export function UpcomingEventsFeed() {
                     )}
                   </div>
 
-                  <div className="p-4 -mt-6 relative flex flex-col flex-1">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <h3 className="font-display font-bold text-foreground">{event.name}</h3>
+                  <div className="p-4 -mt-2 sm:-mt-3 relative flex flex-col flex-1">
+                    <div className="flex items-start gap-1.5 mb-2">
+                      <h3 className="font-display font-bold text-foreground line-clamp-2 h-[3rem] leading-6">{event.name}</h3>
                       {event.is_verified && (
-                        <BadgeCheck className="size-4 shrink-0 text-[#6EE76E]" />
+                        <BadgeCheck className="size-4 shrink-0 text-[#6EE76E] mt-1" />
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm mb-3">
@@ -94,8 +90,7 @@ export function UpcomingEventsFeed() {
                 </div>
               ))}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
     </div>
   )
 }

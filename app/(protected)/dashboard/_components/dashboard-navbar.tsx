@@ -23,9 +23,9 @@ export function DashboardNavbar() {
           <Image
             src="/assets/hacker-house-protocol-logo.svg"
             alt="Hacker House Protocol"
-            width={28}
-            height={26}
-            className="shrink-0"
+            width={36}
+            height={34}
+            className="shrink-0 w-9 h-9 sm:w-7 sm:h-7"
           />
           <span className="font-display font-bold text-foreground text-sm tracking-tight hidden sm:block">
             HHP
