@@ -27,7 +27,7 @@ export default function MapPage() {
   const initialFilter = params.get("filter") ?? undefined
 
   return (
-    <div className="h-dvh w-full overflow-hidden">
+    <div className="h-[calc(100dvh-4rem)] md:h-dvh w-full overflow-hidden isolate">
       <MapView initialCenter={initialCenter} initialZoom={initialZoom} initialFilter={initialFilter} />
     </div>
   )

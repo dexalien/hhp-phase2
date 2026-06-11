@@ -26,7 +26,7 @@ export function HackSpacesFeed({ currentUserId }: HackSpacesFeedProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-display font-bold text-foreground text-lg">Hack Spaces looking for you</h2>
+          <h2 className="font-display font-bold text-foreground text-lg">Hack Spaces</h2>
           {!isLoading && total > 0 && (
             <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-sm">
               {total}
@@ -59,7 +59,7 @@ export function HackSpacesFeed({ currentUserId }: HackSpacesFeedProps) {
         <ScrollArea>
           <div className="flex gap-4 pb-3 w-max items-stretch lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="min-w-[280px] lg:min-w-0 shrink-0">
+              <div key={i} className="min-w-67.5 lg:min-w-0 shrink-0">
                 <div className="bg-card border border-border rounded-lg p-5 flex flex-col gap-4 h-[220px]">
                   <Skeleton className="h-5 w-3/4" />
                   <Skeleton className="h-3 w-32" />
@@ -93,7 +93,7 @@ export function HackSpacesFeed({ currentUserId }: HackSpacesFeedProps) {
         <ScrollArea>
           <div className="flex gap-4 pb-3 w-max items-stretch lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
             {preview.map((hs) => (
-              <div key={hs.id} className="min-w-[280px] lg:min-w-0 shrink-0">
+              <div key={hs.id} className="min-w-67.5 lg:min-w-0 shrink-0">
                 <HackSpaceCard hackSpace={hs} currentUserId={currentUserId} />
               </div>
             ))}

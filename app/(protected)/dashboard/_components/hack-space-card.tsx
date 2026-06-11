@@ -46,7 +46,7 @@ export function HackSpaceCard({
   void currentUserId
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col hover:border-primary/30 transition-all duration-200 h-full">
+    <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col hover:border-primary/30 transition-all duration-200 h-full w-full">
       {/* Cover image */}
       <div className="relative h-28 w-full overflow-hidden">
         {hackSpace.image_url ? (
@@ -66,7 +66,7 @@ export function HackSpaceCard({
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <Link href={`/dashboard/hack-spaces/${hackSpace.id}`} className="hover:text-primary transition-colors flex-1">
+              <Link href={`/dashboard/hack-spaces/${hackSpace.id}`} className="hover:text-primary transition-colors flex-1 min-w-0">
                 <h3 className="font-display font-bold text-foreground text-base leading-snug line-clamp-1">
                   {hackSpace.title}
                 </h3>
@@ -101,7 +101,7 @@ export function HackSpaceCard({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 break-words">
           {hackSpace.description}
         </p>
 
@@ -177,9 +177,9 @@ export function HackSpaceCard({
                 {memberCount}/{hackSpace.max_team_size}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-mono text-muted-foreground min-w-0">
               {hackSpace.language.length > 0 && (
-                <span>{hackSpace.language.slice(0, 2).join(" · ")}</span>
+                <span className="truncate max-w-full">{hackSpace.language.slice(0, 2).join(" · ")}</span>
               )}
               {(hackSpace.city || hackSpace.country || hackSpace.region) && (
                 <>

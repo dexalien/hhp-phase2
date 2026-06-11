@@ -54,7 +54,7 @@ export function CommunitiesFeed() {
         <ScrollArea>
           <div className="flex gap-4 pb-3 w-max items-stretch lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="min-w-[260px] lg:min-w-0 shrink-0">
+              <div key={i} className="min-w-67.5 lg:min-w-0 shrink-0">
                 <div className="bg-card border border-border rounded-lg overflow-hidden h-[260px]">
                   <Skeleton className="h-32 w-full rounded-none" />
                   <div className="p-4 flex flex-col gap-2">
@@ -90,7 +90,7 @@ export function CommunitiesFeed() {
         <ScrollArea>
           <div className="flex gap-4 pb-3 w-max items-stretch lg:grid lg:grid-cols-4 lg:overflow-visible lg:w-auto">
             {preview.map((c) => (
-              <div key={c.id} className="min-w-[260px] lg:min-w-0 shrink-0">
+              <div key={c.id} className="min-w-67.5 lg:min-w-0 shrink-0">
                 <CommunityCard community={c} />
               </div>
             ))}

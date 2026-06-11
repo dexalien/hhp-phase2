@@ -10,7 +10,7 @@ export function CommunityCard({ community }: { community: Community }) {
   const joinMutation = useJoinCommunity(community.id)
 
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex flex-col h-full">
+    <div className="bg-card border border-border rounded-lg overflow-hidden hover:border-primary transition-colors flex flex-col h-full w-full">
       <Link href={`/dashboard/community/${community.id}`} className="block">
         <div className="relative h-32 w-full shrink-0">
           {community.image_url ? (
@@ -29,7 +29,7 @@ export function CommunityCard({ community }: { community: Community }) {
             {community.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6EE76E] shrink-0" />}
             {community.is_featured && <Star className="w-3 h-3 text-strategist shrink-0" />}
           </h3>
-          <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{community.description}</p>
+          <p className="text-muted-foreground text-xs mb-2 line-clamp-2 break-words">{community.description}</p>
           <div className="flex items-center gap-1 text-muted-foreground text-xs">
             <Users className="w-3 h-3" />
             <span>{community.member_count} members</span>

@@ -98,14 +98,14 @@ export function CreateModal({ open, onClose }: CreateModalProps) {
               className="flex size-11 shrink-0 items-center justify-center rounded-lg"
               style={{
                 background:
-                  "color-mix(in oklch, var(--strategist-archetype) 15%, transparent)",
+                  "color-mix(in oklch, var(--strategist) 15%, transparent)",
                 border:
-                  "1px solid color-mix(in oklch, var(--strategist-archetype) 30%, transparent)",
+                  "1px solid color-mix(in oklch, var(--strategist) 30%, transparent)",
               }}
             >
               <Users
                 className="size-5"
-                style={{ color: "var(--strategist-archetype)" }}
+                style={{ color: "var(--strategist)" }}
               />
             </div>
             <div className="flex flex-col gap-0.5">

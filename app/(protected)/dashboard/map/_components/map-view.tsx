@@ -206,14 +206,14 @@ export function MapView({
   return (
     <div className="relative w-full h-full">
       {/* Filter pills */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 max-w-[calc(100vw-2rem)] overflow-x-auto no-scrollbar flex items-center gap-1.5 bg-card/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
         {FILTER_OPTIONS.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => setFilter(opt.value)}
             className={cn(
-              "text-xs px-3 py-1 rounded-full border font-mono transition-all cursor-pointer whitespace-nowrap",
+              "text-xs px-3 py-1 rounded-full border font-mono transition-all cursor-pointer whitespace-nowrap shrink-0",
               filter === opt.value
                 ? "border-primary text-primary bg-primary/10"
                 : "border-transparent text-muted-foreground hover:text-foreground"
