@@ -45,7 +45,7 @@ CO-LIVE   Once accepted, coordinate your spot on-chain on Arbitrum.
 | Requirement | Who gets in |
 |---|---|
 | Talent Protocol score ≥ 60 | Verified builders with reputation |
-| ETHGlobal POAP | Builders who've shipped at a hackathon |
+| Web3 event POAP | Builders who've shipped at a hackathon |
 | 5+ POAPs | Builders with a track record in the ecosystem |
 
 ---
@@ -165,8 +165,8 @@ The protocol charges those who want access to builders — not the builders them
 
 | Phase | Focus |
 |---|---|
-| **Buildathon (now)** | On-chain pool + escrow + Booking NFT + Communities as growth layer |
-| **Phase 2** | Staking yield · Sponsored houses · On-chain access filters (score, POAPs) |
+| **Buildathon (now)** | On-chain pool + escrow + Booking NFT + Staking yield via GMX + Communities as growth layer |
+| **Phase 2** | Sponsored houses · On-chain access filters (score, POAPs) |
 | **V2** | In-app chat · Community governance · Gamified experience · Cypher Kittens NFT |
 | **V3** | ZK Matching · ZK Identity · Cross-chain |
 
@@ -178,7 +178,7 @@ The protocol charges those who want access to builders — not the builders them
 | Hacker Houses created | 15 |
 | Houses with completed on-chain pool | 8 |
 | ETH coordinated via contract | 5 ETH |
-| Events covered | 3 (ETHGlobal + 2 regional) |
+| Events covered | 3 Web3 events |
 | Communities onboarded | 3 |
 
 ---
