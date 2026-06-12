@@ -5,9 +5,6 @@ import { encodeFunctionData } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 import { env } from "@/env"
 
-// USDC on Arbitrum Sepolia
-// Mainnet: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
-const USDC_ADDRESS_SEPOLIA = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d" as const
 
 // Enums must match the order declared in HackerHouseEscrow.sol
 // Solidity encodes enums as uint8 starting at 0
@@ -32,7 +29,6 @@ export type YieldModeValue = (typeof YieldMode)[keyof typeof YieldMode]
 export type YieldDestValue = (typeof YieldDest)[keyof typeof YieldDest]
 
 // HackerHouseFactory ABI — createHouse function only
-// Must match exactly what Julio deploys (see docs/contracts-spec.md)
 const factoryCreateHouseAbi = [
   {
     name: "createHouse",
@@ -127,7 +123,7 @@ export function useCreateHouse() {
                 abi: factoryCreateHouseAbi,
                 functionName: "createHouse",
                 args: [
-                  USDC_ADDRESS_SEPOLIA,
+                  env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`,
                   hostSafe,
                   depositAmount,
                   withdrawDate,

@@ -3,13 +3,10 @@
 import { useState, useCallback } from "react"
 import { encodeFunctionData, parseUnits } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
+import { env } from "@/env"
 
 // USDC has 6 decimals (not 18 like ETH)
 const USDC_DECIMALS = 6
-
-// USDC contract on Arbitrum Sepolia
-// Mainnet: 0xaf88d065e77c8cC2239327C5EDb3A432268e5831
-const USDC_ADDRESS_SEPOLIA = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d" as const
 
 // Minimal ERC-20 ABI — only the approve function
 const erc20ApproveAbi = [
@@ -25,7 +22,6 @@ const erc20ApproveAbi = [
 ] as const
 
 // HackerHouseEscrow ABI — only the deposit function
-// Must match exactly what Julio deploys (see docs/contracts-spec.md)
 const escrowDepositAbi = [
   {
     name: "deposit",
@@ -81,7 +77,7 @@ export function useDeposit() {
           calls: [
             {
               // Step 1: approve the escrow to spend USDC on behalf of the user
-              to: USDC_ADDRESS_SEPOLIA,
+              to: env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`,
               data: encodeFunctionData({
                 abi: erc20ApproveAbi,
                 functionName: "approve",

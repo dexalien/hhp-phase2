@@ -137,6 +137,33 @@ The yield display is already visible on house detail pages and house cards when 
 
 ---
 
+## Wiring — Frontend ↔ Contract
+
+All hooks are connected to the deployed contracts on Arbitrum Sepolia. No mocks, no stubs (except GMX yield which returns 0 by design in Phase 1).
+
+**Contract addresses** are configured via environment variables (`env.ts`):
+- `NEXT_PUBLIC_FACTORY_ADDRESS` — HackerHouseFactory
+- `NEXT_PUBLIC_USDC_ADDRESS` — MockUSDC (ERC-20, 6 decimals)
+
+**Create House flow:**
+```
+Form submit → DB record created → Factory.createHouse() via ZeroDev
+  → waitForUserOperationReceipt → parse HouseCreated event
+  → extract escrowAddress → PATCH /api/hacker-houses/:id with escrow_address
+```
+
+**ABI compatibility:** All hook ABIs have been verified against the deployed contract bytecode:
+- Function signatures match exactly (deposit, release, cancelHouse, transferSpot)
+- Public variable getters match (totalDeposited, cancelled, withdrawDate, etc.)
+- Mapping getters match (hasDeposited, deposits, builderBooking)
+- Event `HouseCreated(address indexed creator, address escrowAddress, address spotNFTAddress)` — indexed fields match
+
+**DB columns** for web3 data exist in `hacker_houses`:
+- `escrow_address` — populated after factory deploy
+- `deposit_amount_usdc`, `withdraw_date`, `house_type`, `yield_mode`, `yield_dest`, `host_safe`
+
+---
+
 ## Demo Flow (Buildathon)
 
 ```

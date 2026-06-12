@@ -8,8 +8,9 @@ const envSchema = z.object({
   NEXT_PUBLIC_ZERODEV_PROJECT_ID: z.string().min(1),
   NEXT_PUBLIC_ZERODEV_BUNDLER_URL: z.string().url(),
   NEXT_PUBLIC_ZERODEV_PASSKEYS_URL: z.string().url(),
-  // Set to the deployed HackerHouseFactory address — update after Julio deploys
+  // Smart Contracts — Arbitrum Sepolia
   NEXT_PUBLIC_FACTORY_ADDRESS: z.string().min(1),
+  NEXT_PUBLIC_USDC_ADDRESS: z.string().min(1),
 })
 
 export const env = envSchema.parse({
@@ -20,4 +21,5 @@ export const env = envSchema.parse({
   NEXT_PUBLIC_ZERODEV_BUNDLER_URL: process.env.NEXT_PUBLIC_ZERODEV_BUNDLER_URL,
   NEXT_PUBLIC_ZERODEV_PASSKEYS_URL: process.env.NEXT_PUBLIC_ZERODEV_PASSKEYS_URL,
   NEXT_PUBLIC_FACTORY_ADDRESS: process.env.NEXT_PUBLIC_FACTORY_ADDRESS,
+  NEXT_PUBLIC_USDC_ADDRESS: process.env.NEXT_PUBLIC_USDC_ADDRESS,
 })

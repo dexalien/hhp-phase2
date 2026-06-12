@@ -4,9 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 import { getPublicClient } from "@/lib/zerodev"
 import { queryKeys } from "@/lib/query-keys"
 
-// Phase 1 assumption: the escrow exposes pendingYield() and yieldDest() directly.
-// If Julio implements the YieldAdapter as a separate contract, update this hook to
-// accept a `yieldAdapterAddress` param instead of `escrowAddress`.
+// The escrow exposes pendingYield() and yieldDest() directly.
+// Phase 1: stub returns 0. Phase 2: GMXStrategy implements IYieldAdapter.
 //
 // IYieldAdapter interface (from contracts-spec.md):
 //   function pendingYield() external view returns (uint256);

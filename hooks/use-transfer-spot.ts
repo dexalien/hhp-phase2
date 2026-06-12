@@ -5,7 +5,6 @@ import { encodeFunctionData } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 
 // HackerHouseEscrow ABI — transferSpot function only
-// Must match exactly what Julio deploys (see docs/contracts-spec.md)
 const escrowTransferSpotAbi = [
   {
     name: "transferSpot",

@@ -37,7 +37,8 @@ const HOUSE_CREATED_ABI = [
     type: "event",
     inputs: [
       { name: "creator", type: "address", indexed: true },
-      { name: "escrowAddress", type: "address", indexed: true },
+      { name: "escrowAddress", type: "address", indexed: false },
+      { name: "spotNFTAddress", type: "address", indexed: false },
     ],
   },
 ] as const
