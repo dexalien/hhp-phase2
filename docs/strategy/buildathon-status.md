@@ -54,6 +54,12 @@
 - [x] GMX badge en house cards
 - [x] Nota: stub retorna 0 — GMX real es Phase 2
 
+### Privacy by Design (diferenciador para jueces)
+- [x] ZeroDev kernel wallets — builders interactúan con contratos via smart account, nunca exponen wallet personal
+- [x] Host payout por defecto va a kernel wallet (no a main wallet) — privacidad protegida sin config extra
+- [x] Ninguna wallet personal aparece en eventos o transacciones on-chain
+- [ ] **Private Bridge** — withdraw anónimo via Railgun (coming soon, mostrado en UI)
+
 ### Documentación
 - [x] README.md — profesional, para jueces
 - [x] INTEGRATION.md — overview técnico completo
@@ -79,13 +85,29 @@
   - **Owner:** Dex
   - **Completado:** 11 Jun
 
-- [ ] **Test E2E en Sepolia** — flujo completo con USDC real de testnet
-  - [ ] Crear house via factory desde la UI
-  - [ ] Builder deposita USDC → recibe SpotNFT
-  - [ ] Host hace release → fondos llegan
+- [x] **Test E2E en Sepolia** — flujo completo con USDC real de testnet
+  - [x] Crear house via factory desde la UI ✅
+  - [x] Builder deposita USDC → recibe SpotNFT ✅
+  - [ ] Host hace release → fondos llegan (withdraw date mañana)
   - [ ] Probar cancel → refund llega
-  - **Owner:** Dex + Nait
-  - **Estimado:** ~1 hora
+  - **Owner:** Dex
+  - **Completado parcial:** 12 Jun (create + deposit done, release/cancel pending)
+
+- [x] **UI Fixes — Create House Form** ✅
+  - [x] Form redundante: house_type + escrow_type → auto-derivado de modality
+  - [x] Form redundante: price_per_person + deposit_amount_usdc → synced automáticamente
+  - [x] Multisig option → disabled con "Coming soon"
+  - [x] Date picker: end_date valida > start_date, withdraw_date > today
+  - [x] Descripción de price_per_person simplificada
+  - **Owner:** Dex
+  - **Completado:** 12 Jun
+
+- [x] **UI Fixes — House Detail + Payment** ✅
+  - [x] Bug: 9 USDC → fixed, detail page prefiere deposit_amount_usdc
+  - [x] "1 Hacker Homies" → singular/plural fix
+  - [ ] Toast timing: "House created" tapa el deploy toast
+  - **Owner:** Dex
+  - **Completado parcial:** 12 Jun
 
 ### P1 — Importante (mejora la presentación)
 
@@ -115,6 +137,24 @@
 - [ ] Error handling para transacciones on-chain fallidas
 - [ ] Deploy a Arbitrum One (mainnet) — si los jueces lo requieren
 - [ ] Pitch deck / slides finales
+
+### Post-Buildathon — Privacidad & Wallet Management
+
+> **CRÍTICO:** La privacidad del usuario es prioridad. ZeroDev kernel wallets protegen la identidad del builder al interactuar con contratos, pero falta el flujo de salida de fondos.
+
+- [ ] **Withdraw UI** — botón en perfil para mover fondos de kernel wallet → dirección elegida por el user
+  - Requiere: `sendUserOperation` desde kernel client con transfer ERC-20
+  - UI: modal en perfil con campo de dirección destino + monto
+- [ ] **Private Withdraw (Railgun)** — integrar privacy protocol para romper link on-chain entre kernel y destino
+  - Railgun opera en Arbitrum, compatible con ERC-20
+  - El user elige "withdraw private" → fondos pasan por Railgun → llegan a destino sin link público
+- [ ] **Kernel Wallet Dashboard** — mostrar balance de tokens en la kernel wallet del user
+  - Balance USDC, ETH, SpotNFTs
+  - Historial de transacciones
+- [ ] **Auditoría de privacidad** — revisar todo el flujo para asegurar que:
+  - Ninguna wallet personal se expone en contratos o eventos on-chain
+  - El host_safe address puede ser otra kernel wallet (no obligar main wallet)
+  - Metadata de transacciones no leakea info del user
 
 ---
 

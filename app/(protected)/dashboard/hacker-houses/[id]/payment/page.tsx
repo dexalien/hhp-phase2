@@ -62,6 +62,13 @@ export default function PaymentPage({
   }, [depositSuccess])
 
   const escrowAddress = (house?.escrow_address ?? null) as `0x${string}` | null
+
+  // Auto-connect wallet when page loads and house has an escrow
+  useEffect(() => {
+    if (escrowAddress && !walletReady) {
+      connect()
+    }
+  }, [escrowAddress, walletReady, connect])
   const { data: escrow, isLoading: escrowLoading } = useEscrowState(escrowAddress)
   const { data: builderSpot } = useBuilderSpot({
     escrowAddress,
@@ -257,7 +264,7 @@ export default function PaymentPage({
           <div className="border-t border-primary/20 pt-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
               <Users className="size-3.5" />
-              <span>{[house.creator, ...house.participants].length} Hacker Homies</span>
+              <span>{[house.creator, ...house.participants].length} Hacker {[house.creator, ...house.participants].length === 1 ? "Homie" : "Homies"}</span>
             </div>
             {house.deposit_amount_usdc && (
               <span className="text-builder-archetype font-bold font-mono text-sm">
@@ -347,6 +354,8 @@ export default function PaymentPage({
           <HostActions
             escrowAddress={escrowAddress}
             escrow={escrow}
+            hackerHouseId={id}
+            kernelClient={kernelClient}
           />
         )}
 

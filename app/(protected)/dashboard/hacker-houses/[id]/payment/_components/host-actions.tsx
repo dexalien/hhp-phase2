@@ -2,24 +2,30 @@
 
 import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { AlertTriangle, CheckCircle2 } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRelease } from "@/hooks/use-release"
 import { useCancelHouse } from "@/hooks/use-cancel-house"
+import { useUpdateHackerHouse } from "@/services/api/hacker-houses"
 import { queryKeys } from "@/lib/query-keys"
 import type { useEscrowState } from "@/hooks/use-escrow-state"
+import type { KernelAccountClient } from "@zerodev/sdk/clients"
 
 type EscrowData = NonNullable<ReturnType<typeof useEscrowState>["data"]>
 
 interface Props {
   escrowAddress: `0x${string}`
   escrow: EscrowData
+  hackerHouseId: string
+  kernelClient: KernelAccountClient | null
 }
 
-export function HostActions({ escrowAddress, escrow }: Props) {
+export function HostActions({ escrowAddress, escrow, hackerHouseId, kernelClient: externalClient }: Props) {
   const queryClient = useQueryClient()
   const { release, isLoading: releasing, error: releaseError } = useRelease()
   const { cancelHouse, isLoading: cancelling, error: cancelError } = useCancelHouse()
+  const updateHouse = useUpdateHackerHouse(hackerHouseId)
   const [confirmAction, setConfirmAction] = useState<"release" | "cancel" | null>(null)
   const [done, setDone] = useState<"released" | "cancelled" | null>(null)
 
@@ -31,15 +37,19 @@ export function HostActions({ escrowAddress, escrow }: Props) {
   }
 
   async function handleRelease() {
-    await release({ escrowAddress })
+    const txHash = await release({ escrowAddress, client: externalClient ?? undefined })
+    if (!txHash) return // tx failed — error shown by hook
     invalidate()
+    updateHouse.mutate({ status: "finished" })
     setDone("released")
     setConfirmAction(null)
   }
 
   async function handleCancel() {
-    await cancelHouse({ escrowAddress })
+    const txHash = await cancelHouse({ escrowAddress, client: externalClient ?? undefined })
+    if (!txHash) return // tx failed — error shown by hook
     invalidate()
+    updateHouse.mutate({ status: "finished" })
     setDone("cancelled")
     setConfirmAction(null)
   }
@@ -89,19 +99,19 @@ export function HostActions({ escrowAddress, escrow }: Props) {
 
       {/* Cancel confirmation */}
       {confirmAction === "cancel" && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 flex flex-col gap-3">
-          <div className="flex items-start gap-2 text-destructive">
-            <AlertTriangle className="size-4 mt-0.5 shrink-0" />
-            <p className="text-sm">Cancel the house? All builders will be fully refunded. No protocol fee charged.</p>
-          </div>
+        <div className="bg-card border border-border rounded-lg p-4 flex flex-col items-center gap-3 text-center">
+          <AlertTriangle className="size-5 text-strategist" />
+          <p className="text-foreground font-medium text-sm">Cancel this house?</p>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirmAction(null)} disabled={cancelling}>
+            <Button size="sm" className="bg-builder-archetype text-background hover:bg-builder-archetype/90" onClick={() => setConfirmAction(null)} disabled={cancelling}>
               Keep
             </Button>
-            <Button variant="destructive" size="sm" onClick={handleCancel} disabled={cancelling}>
+            <Button variant="destructive" size="sm" className="text-primary-foreground" onClick={handleCancel} disabled={cancelling}>
               {cancelling ? "Cancelling…" : "Confirm Cancel"}
             </Button>
           </div>
+          <p className="text-[11px] text-strategist font-mono">Builders refunded to their ZeroDev wallet.</p>
+          <p className="text-[11px] text-strategist font-mono">No extra fee.</p>
           {cancelError && (
             <p className="text-xs text-destructive font-mono">{cancelError}</p>
           )}
@@ -134,6 +144,14 @@ export function HostActions({ escrowAddress, escrow }: Props) {
             onClick={() => setConfirmAction("cancel")}
           >
             Cancel House
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-1 text-muted-foreground hover:text-foreground">
+                  <Info className="size-3.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Refunds all builders in full. No fees. Irreversible.</TooltipContent>
+            </Tooltip>
           </Button>
         </div>
       )}

@@ -75,9 +75,15 @@ Your Hacker House confirmation is a **Booking NFT on Arbitrum** — with dates, 
 - Connect **POAPs** from events you've attended
 - Your on-chain reputation is your profile
 
-### Hacker Houses
-- Create a house with capacity, dates, city, and modality (sponsored / co-payment / staking)
-- Set access requirements: open, score-gated, POAP-gated, or invite-only
+### Hacker Houses — Full E2E On-Chain Flow
+- **Create** — multi-step wizard: basics, access rules, payment/escrow config, check-in details, images
+- **Deploy** — one click deploys a new HackerHouseEscrow + SpotNFT contract pair on Arbitrum via Factory
+- **Deposit** — builders mint testnet USDC, then Pay My Share in a single gasless transaction (approve + deposit batched via ZeroDev)
+- **SpotNFT** — each deposit mints a Key NFT to the builder as proof of their spot
+- **Release** — host releases funds after withdraw date (99.5% to host, 0.5% protocol fee)
+- **Cancel** — host cancels at any time, 100% refund to all builders, all NFTs burned
+- **Refund verification** — builders can verify their refund on Arbiscan directly from the UI
+- Three modalities: **Co-Payment** (split cost), **Staking** (returned after checkout), **Sponsored** (free, application-based)
 - Image carousel, amenities, event association, participant roster
 - Full application management — accept, reject, waitlist
 
@@ -137,6 +143,13 @@ Each house is an isolated contract — if one has issues, others are unaffected.
 - First-time crypto users get an embedded wallet via Privy — no seed phrase, no gas
 - The contracts are AA-agnostic: they only see `msg.sender`, whether it's a MetaMask EOA, ZeroDev smart wallet, or Gnosis Safe
 
+### Privacy by Design
+
+- **No personal wallet exposure** — all on-chain interactions go through ZeroDev kernel wallets, never the user's main wallet
+- **Host payouts default to kernel wallet** — when releasing escrow funds, they go to the host's smart account by default, keeping their personal address off-chain
+- **On-chain anonymity** — Arbiscan shows kernel wallet addresses only; no link to the user's identity or personal wallet
+- **Private Bridge (coming soon)** — anonymous withdrawals via privacy protocols (Railgun on Arbitrum) to break the on-chain link between kernel and destination wallet
+
 ---
 
 ## Tech Stack
@@ -172,7 +185,7 @@ The protocol charges those who want access to builders — not the builders them
 
 | Phase | Focus |
 |---|---|
-| **Buildathon (now)** | On-chain pool + escrow + Booking NFT + Staking yield via GMX + Communities as growth layer |
+| **Buildathon (now)** | On-chain escrow + SpotNFT + gasless deposits + cancel/refund + release + Private Bridge (planned) + Communities |
 | **Phase 2** | Sponsored houses · On-chain access filters (score, POAPs) |
 | **V2** | In-app chat · Community governance · Gamified experience · Cypher Kittens NFT |
 | **V3** | ZK Matching · ZK Identity · Cross-chain |
@@ -190,6 +203,12 @@ The protocol charges those who want access to builders — not the builders them
 
 ---
 
+## Guides
+
+- **[Create a Hacker House — Step by Step](./docs/guides/create-a-house.md)** — Full walkthrough from form to on-chain deploy to managing deposits
+
+---
+
 ## Getting Started
 
 ```bash
@@ -204,6 +223,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_PRIVY_APP_ID=
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=
 NEXT_PUBLIC_ARBITRUM_RPC_URL=
+NEXT_PUBLIC_FACTORY_ADDRESS=
+NEXT_PUBLIC_USDC_ADDRESS=
 ```
 
 ```bash

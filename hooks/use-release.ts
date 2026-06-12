@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { encodeFunctionData } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
+import type { KernelAccountClient } from "@zerodev/sdk/clients"
 
 // HackerHouseEscrow ABI — release function only
 const escrowReleaseAbi = [
@@ -23,7 +24,7 @@ type ReleaseState =
 /**
  * Releases funds from a HackerHouseEscrow to the Host Safe.
  *
- * Only callable by the hostSafe address (Gnosis Safe multisig).
+ * Only callable by the hostSafe address.
  * The contract enforces:
  *   - msg.sender == hostSafe
  *   - block.timestamp >= withdrawDate
@@ -36,15 +37,16 @@ type ReleaseState =
  *
  * Usage:
  *   const { release, isLoading, txHash } = useRelease()
- *   await release({ escrowAddress: "0x..." })
+ *   await release({ escrowAddress: "0x...", client: kernelClient })
  */
 export function useRelease() {
   const { kernelClient, isReady } = useKernelWallet()
   const [state, setReleaseState] = useState<ReleaseState>({ status: "idle" })
 
   const release = useCallback(
-    async ({ escrowAddress }: { escrowAddress: `0x${string}` }) => {
-      if (!isReady || !kernelClient) {
+    async ({ escrowAddress, client: externalClient }: { escrowAddress: `0x${string}`; client?: KernelAccountClient }) => {
+      const activeClient = externalClient ?? kernelClient
+      if (!activeClient) {
         setReleaseState({ status: "error", error: "Wallet not connected. Call connect() first." })
         return
       }
@@ -52,8 +54,7 @@ export function useRelease() {
       setReleaseState({ status: "loading" })
 
       try {
-        // Single call — no batching needed here, just the release
-        const txHash = await kernelClient.sendUserOperation({
+        const txHash = await activeClient.sendUserOperation({
           calls: [
             {
               to: escrowAddress,

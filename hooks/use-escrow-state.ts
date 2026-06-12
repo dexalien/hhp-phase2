@@ -70,7 +70,7 @@ export function useEscrowState(escrowAddress: `0x${string}` | null) {
     queryKey: [queryKeys.escrowState, escrowAddress],
     queryFn: () => fetchEscrowState(escrowAddress!),
     enabled: !!escrowAddress,
-    refetchInterval: 30_000, // poll every 30s — escrow state changes are infrequent
+    refetchInterval: 60_000, // poll every 60s — escrow state changes are infrequent
     staleTime: 15_000,
   })
 }

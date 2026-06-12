@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { encodeFunctionData } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
+import type { KernelAccountClient } from "@zerodev/sdk/clients"
 
 // HackerHouseEscrow ABI — cancelHouse function only
 const escrowCancelAbi = [
@@ -36,15 +37,16 @@ type CancelState =
  *
  * Usage:
  *   const { cancelHouse, isLoading, txHash } = useCancelHouse()
- *   await cancelHouse({ escrowAddress: "0x..." })
+ *   await cancelHouse({ escrowAddress: "0x...", client: kernelClient })
  */
 export function useCancelHouse() {
   const { kernelClient, isReady } = useKernelWallet()
   const [state, setCancelState] = useState<CancelState>({ status: "idle" })
 
   const cancelHouse = useCallback(
-    async ({ escrowAddress }: { escrowAddress: `0x${string}` }) => {
-      if (!isReady || !kernelClient) {
+    async ({ escrowAddress, client: externalClient }: { escrowAddress: `0x${string}`; client?: KernelAccountClient }) => {
+      const activeClient = externalClient ?? kernelClient
+      if (!activeClient) {
         setCancelState({ status: "error", error: "Wallet not connected. Call connect() first." })
         return
       }
@@ -52,7 +54,7 @@ export function useCancelHouse() {
       setCancelState({ status: "loading" })
 
       try {
-        const txHash = await kernelClient.sendUserOperation({
+        const txHash = await activeClient.sendUserOperation({
           calls: [
             {
               to: escrowAddress,

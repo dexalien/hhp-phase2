@@ -59,6 +59,16 @@ export const createHackerHouseSchema = z.object({
   event_timing: z.array(z.enum(EVENT_TIMINGS)).optional(),
 })
 
+const _baseSchema = createHackerHouseSchema
+
+export const createHackerHouseSchemaRefined = _baseSchema.refine(
+  (data) => data.modality === "free" || (data.withdraw_date && data.withdraw_date.length > 0),
+  { message: "Withdraw date is required", path: ["withdraw_date"] },
+).refine(
+  (data) => data.modality === "free" || (data.deposit_amount_usdc != null && data.deposit_amount_usdc > 0),
+  { message: "Price per person is required", path: ["price_per_person"] },
+)
+
 export type CreateHackerHouseInput = z.infer<typeof createHackerHouseSchema>
 
 export const updateHackerHouseSchema = createHackerHouseSchema.partial().extend({

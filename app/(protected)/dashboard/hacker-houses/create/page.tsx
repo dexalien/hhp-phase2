@@ -79,11 +79,17 @@ export default function CreateHackerHousePage() {
             ? (values.host_safe as `0x${string}`)
             : (kernelAddr as `0x${string}`)
 
-        console.log("[Deploy] Calling factory.createHouse…", { hostSafe, capacity: values.capacity })
+        const depositUsdc = values.deposit_amount_usdc ?? values.price_per_person ?? 0
+        const withdrawTs = values.withdraw_date ? Math.floor(new Date(values.withdraw_date).getTime() / 1000) : 0
+        if (!depositUsdc || !withdrawTs) {
+          throw new Error("Missing deposit amount or withdraw date")
+        }
+
+        console.log("[Deploy] Calling factory.createHouse…", { hostSafe, depositUsdc, withdrawTs, capacity: values.capacity })
         const txHash = await createHouse({
           hostSafe,
-          depositAmount: parseUnits(String(values.deposit_amount_usdc ?? 0), 6),
-          withdrawDate: BigInt(Math.floor(new Date(values.withdraw_date!).getTime() / 1000)),
+          depositAmount: parseUnits(String(depositUsdc), 6),
+          withdrawDate: BigInt(withdrawTs),
           capacity: BigInt(values.capacity),
           houseType: HOUSE_TYPE_MAP[values.house_type ?? "co_payment"],
           yieldMode: YIELD_MODE_MAP[values.yield_mode ?? "none"],

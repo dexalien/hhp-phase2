@@ -5,7 +5,7 @@ import { useForm, useWatch, Controller, type Control, type UseFormSetValue } fro
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { X, MapPin } from "lucide-react"
+import { X, MapPin, Lock } from "lucide-react"
 import { ARCHETYPES, LANGUAGES } from "@/lib/onboarding"
 import { useEvents } from "@/services/api/events"
 import {
@@ -15,7 +15,7 @@ import {
   EVENT_TIMINGS,
   HOUSE_MODALITIES,
   CONTRACT_TYPES,
-  HOUSE_TYPES,
+
   YIELD_MODES,
   YIELD_DESTS,
 } from "@/lib/schemas/hacker-house"
@@ -51,10 +51,10 @@ import {
 } from "@/lib/constants/location"
 
 
-const APPLICATION_TYPE_LABELS: Record<string, { title: string; description: string }> = {
-  open: { title: "Open", description: "Anyone can apply" },
-  invite_only: { title: "Invite only", description: "You invite builders directly" },
-  curated: { title: "Curated", description: "You review each applicant manually" },
+const APPLICATION_TYPE_LABELS: Record<string, { title: string; description: string; color: string }> = {
+  open: { title: "Open", description: "Anyone can apply", color: "text-builder-archetype" },
+  invite_only: { title: "Invite only", description: "You invite builders directly", color: "text-primary" },
+  curated: { title: "Curated", description: "You review each applicant manually", color: "text-amber" },
 }
 
 const EVENT_TIMING_LABELS: Record<string, string> = {
@@ -63,14 +63,14 @@ const EVENT_TIMING_LABELS: Record<string, string> = {
   after: "After",
 }
 
-const MODALITY_OPTIONS: { value: string; title: string; description: string }[] = [
-  { value: "paid", title: "Co-Payment", description: "Split costs between all members" },
-  { value: "free", title: "Sponsored", description: "A sponsor covers the stay" },
-  { value: "staking", title: "Staking", description: "Stake crypto to reserve your spot" },
+const MODALITY_OPTIONS: { value: string; title: string; description: string; color: string }[] = [
+  { value: "paid", title: "Co-Payment", description: "Split costs between all members", color: "text-builder-archetype" },
+  { value: "free", title: "Sponsored", description: "A sponsor covers the stay", color: "text-primary" },
+  { value: "staking", title: "Staking", description: "Stake crypto to reserve your spot", color: "text-amber" },
 ]
 
-const CONTRACT_TYPE_OPTIONS: { value: string; title: string; description: string }[] = [
-  { value: "multisig", title: "Multisig", description: "Funds controlled by a multisig wallet" },
+const CONTRACT_TYPE_OPTIONS: { value: string; title: string; description: string; disabled?: boolean; comingSoon?: boolean }[] = [
+  { value: "multisig", title: "Multisig", description: "Coming soon", disabled: true, comingSoon: true },
   { value: "admin_wallet", title: "House Creator Wallet", description: "Funds controlled by the house creator" },
 ]
 
@@ -130,11 +130,6 @@ const FIELD_TO_STEP: Partial<Record<keyof CreateHackerHouseInput, Step>> = {
   checkin_notes: "Check-in",
 }
 
-const HOUSE_TYPE_OPTIONS: { value: (typeof HOUSE_TYPES)[number]; title: string; description: string }[] = [
-  { value: "co_payment", title: "Co-payment", description: "Funds go directly to host to cover rent" },
-  { value: "staking", title: "Staking", description: "Funds stay in escrow and generate yield (GMX)" },
-  { value: "hybrid", title: "Hybrid", description: "Part covers rent, part stays staked with yield" },
-]
 
 const YIELD_DEST_OPTIONS: { value: (typeof YIELD_DESTS)[number]; title: string; description: string }[] = [
   { value: "host", title: "To host", description: "All yield goes to the host together with the principal" },
@@ -321,6 +316,7 @@ export function CreateHackerHouseForm({
       event_end_date: "",
       event_timing: [],
       // Web3 escrow defaults
+      contract_type: "admin_wallet",
       host_safe: "",
       withdraw_date: "",
       house_type: "co_payment",
@@ -334,12 +330,27 @@ export function CreateHackerHouseForm({
   const watchedModality = useWatch({ control, name: "modality" })
   const watchedHouseType = useWatch({ control, name: "house_type" })
   const watchedYieldMode = useWatch({ control, name: "yield_mode" })
+  const watchedStartDate = useWatch({ control, name: "start_date" })
+  const watchedPricePerPerson = useWatch({ control, name: "price_per_person" })
 
   useEffect(() => {
     if (watchedModality === "free") {
       setValue("application_type", "curated")
     }
   }, [watchedModality, setValue])
+
+  // Auto-derive house_type from modality and sync price → deposit
+  useEffect(() => {
+    if (watchedModality === "paid") setValue("house_type", "co_payment")
+    else if (watchedModality === "staking") setValue("house_type", "staking")
+  }, [watchedModality, setValue])
+
+  // Sync price_per_person → deposit_amount_usdc so there's only one field
+  useEffect(() => {
+    if (watchedPricePerPerson != null) {
+      setValue("deposit_amount_usdc", watchedPricePerPerson)
+    }
+  }, [watchedPricePerPerson, setValue])
   const watchedRegion = useWatch({ control, name: "region" })
   const watchedCountry = useWatch({ control, name: "country" })
   const watchedCity = useWatch({ control, name: "city" })
@@ -452,6 +463,21 @@ export function CreateHackerHouseForm({
     setServerError(null)
     const valid = await trigger(STEP_FIELDS[step])
     if (!valid) return
+
+    // Manual validation for Payment step
+    if (step === "Payment") {
+      const watchedWithdrawDate = control._formValues.withdraw_date
+      if (!watchedPricePerPerson || watchedPricePerPerson <= 0) {
+        toast.error("Set the price per person in step 1 first")
+        setStep("House")
+        return
+      }
+      if (!watchedWithdrawDate) {
+        toast.error("Withdraw date is required to deploy the escrow")
+        return
+      }
+    }
+
     const next = STEPS[stepIndex + 1]
     // Skip Payment step for free/sponsored houses
     if (next === "Payment" && !needsPaymentStep) {
@@ -557,7 +583,7 @@ export function CreateHackerHouseForm({
                     {...field}
                     id={field.name}
                     aria-invalid={fieldState.invalid}
-                    placeholder="e.g. ETH Cannes Builder House"
+                    placeholder=""
                     maxLength={80}
                   />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -584,12 +610,12 @@ export function CreateHackerHouseForm({
                           "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
                           field.value === opt.value
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
+                            : "border-muted-foreground/25 hover:border-primary/40",
                         )}
                       >
                         <RadioGroupItem value={opt.value} />
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">
+                          <span className={cn("text-sm font-medium", field.value === opt.value ? opt.color : "text-foreground")}>
                             {opt.title}
                           </span>
                           <span className="text-xs text-muted-foreground font-mono">
@@ -610,14 +636,13 @@ export function CreateHackerHouseForm({
                 control={control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor={field.name} optional>
-                      {watchedModality === "staking" ? "Stake amount" : "Price per person"}
+                    <FieldLabel htmlFor={field.name}>
+                      {watchedModality === "staking" ? (
+                        <>Stake amount <span className="text-primary">(USDC)</span></>
+                      ) : (
+                        <>Price per person <span className="text-builder-archetype">(USDC)</span></>
+                      )}
                     </FieldLabel>
-                    <FieldDescription>
-                      {watchedModality === "staking"
-                        ? "Amount each member stakes to reserve their spot (USDC)"
-                        : "Amount each member pays to join the house (USDC)"}
-                    </FieldDescription>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-mono">$</span>
                       <Input
@@ -662,16 +687,29 @@ export function CreateHackerHouseForm({
                       <label
                         key={opt.value}
                         className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
-                          field.value === opt.value
+                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all",
+                          opt.disabled
+                            ? "border-border opacity-50 cursor-not-allowed"
+                            : "cursor-pointer",
+                          !opt.disabled && field.value === opt.value
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
+                            : !opt.disabled
+                              ? "border-border hover:border-primary/40"
+                              : "",
                         )}
+                        onClick={(e) => { if (opt.disabled) e.preventDefault() }}
                       >
-                        <RadioGroupItem value={opt.value} />
+                        <RadioGroupItem value={opt.value} disabled={opt.disabled} />
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">{opt.title}</span>
-                          <span className="text-xs text-muted-foreground font-mono">{opt.description}</span>
+                          <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                            {opt.title}
+                            {opt.comingSoon && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-strategist/20 text-strategist font-mono">
+                                Coming soon
+                              </span>
+                            )}
+                          </span>
+                          {!opt.comingSoon && <span className="text-xs text-muted-foreground font-mono">{opt.description}</span>}
                         </div>
                       </label>
                     ))}
@@ -687,9 +725,6 @@ export function CreateHackerHouseForm({
               render={({ field }) => (
                 <Field>
                   <FieldLabel>Region</FieldLabel>
-                  <FieldDescription>
-                    Your Hacker House will appear on the interactive map once you set a location.
-                  </FieldDescription>
                   <Combobox
                     items={REGIONS}
                     value={field.value ?? ""}
@@ -699,7 +734,7 @@ export function CreateHackerHouseForm({
                       setValue("city", "")
                     }}
                   >
-                    <ComboboxInput placeholder="Search region..." showClear />
+                    <ComboboxInput placeholder="Select region" showClear />
                     <ComboboxContent>
                       <ComboboxEmpty>No region found.</ComboboxEmpty>
                       <ComboboxList>
@@ -730,7 +765,7 @@ export function CreateHackerHouseForm({
                         setValue("city", "")
                       }}
                     >
-                      <ComboboxInput placeholder="Search country..." showClear />
+                      <ComboboxInput placeholder="Select country" showClear />
                       <ComboboxContent>
                         <ComboboxEmpty>No country found.</ComboboxEmpty>
                         <ComboboxList>
@@ -760,7 +795,7 @@ export function CreateHackerHouseForm({
                       value={field.value ?? ""}
                       onValueChange={(val) => field.onChange(val)}
                     >
-                      <ComboboxInput placeholder="Search city..." showClear />
+                      <ComboboxInput placeholder="Select city" showClear />
                       <ComboboxContent>
                         <ComboboxEmpty>No city found.</ComboboxEmpty>
                         <ComboboxList>
@@ -787,7 +822,7 @@ export function CreateHackerHouseForm({
                   <Input
                     {...field}
                     id={field.name}
-                    placeholder="Approx. zone or neighborhood"
+                    placeholder=""
                   />
                 </Field>
               )}
@@ -799,9 +834,8 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field, fieldState }) => (
                 <Field>
-                  <FieldLabel optional>Airbnb / Booking link</FieldLabel>
-                  <FieldDescription>Paste the Airbnb, Booking.com, or similar listing URL.</FieldDescription>
-                  <Input {...field} placeholder="https://airbnb.com/rooms/..." type="url" />
+                  <FieldLabel optional>Listing URL</FieldLabel>
+                  <Input {...field} placeholder="" type="url" />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -810,20 +844,17 @@ export function CreateHackerHouseForm({
             {/* Hotel name lookup (optional) */}
             <Field>
               <FieldLabel optional>Hotel name</FieldLabel>
-              <FieldDescription>
-                Enter the hotel name to auto-fill the address and set the map pin.
-              </FieldDescription>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   value={hotelName}
                   onChange={(e) => setHotelName(e.target.value)}
-                  placeholder="e.g. Marriott Buenos Aires"
+                  placeholder=""
                 />
                 <button
                   type="button"
                   onClick={() => void lookupFromHotel()}
                   disabled={!hotelName || !watchedCity || !watchedCountry || lookingUpLocation}
-                  className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                  className="shrink-0 flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
                 >
                   <MapPin className="size-3.5" />
                   {lookingUpLocation ? "Looking up…" : "Auto-fill from hotel"}
@@ -837,21 +868,18 @@ export function CreateHackerHouseForm({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>Exact Address</FieldLabel>
-                  <FieldDescription>
-                    Only revealed to accepted participants. Publicly shown as a blurred neighborhood pin.
-                  </FieldDescription>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       {...field}
                       id={field.name}
-                      placeholder="Street address, building name, floor..."
+                      placeholder=""
                     />
                     <button
                       type="button"
                       onClick={() => void geocodeFromAddress()}
                       disabled={!watchedAddress || lookingUpLocation}
                       title="Set map pin from this address"
-                      className="shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
+                      className="shrink-0 flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-border hover:opacity-80 disabled:opacity-30 transition-opacity whitespace-nowrap font-mono"
                     >
                       <MapPin className="size-3.5" />
                       Set pin
@@ -874,7 +902,7 @@ export function CreateHackerHouseForm({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Controller
                 name="start_date"
                 control={control}
@@ -896,19 +924,24 @@ export function CreateHackerHouseForm({
               <Controller
                 name="end_date"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>End date</FieldLabel>
-                    <DatePicker
-                      value={field.value}
-                      onChange={(v) => field.onChange(v ?? "")}
-                      placeholder="Pick end date"
-                      disableBefore={new Date()}
-                      className="w-full"
-                    />
-                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  </Field>
-                )}
+                render={({ field, fieldState }) => {
+                  const minEndDate = watchedStartDate
+                    ? new Date(new Date(watchedStartDate).getTime() + 86400000) // start + 1 day
+                    : new Date()
+                  return (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel>End date</FieldLabel>
+                      <DatePicker
+                        value={field.value}
+                        onChange={(v) => field.onChange(v ?? "")}
+                        placeholder="Pick end date"
+                        disableBefore={minEndDate}
+                        className="w-full"
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )
+                }}
               />
             </div>
 
@@ -959,7 +992,7 @@ export function CreateHackerHouseForm({
                           "w-full flex items-start gap-4 p-3 rounded-lg border transition-all cursor-pointer",
                           field.value
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
+                            : "border-muted-foreground/25 hover:border-primary/40",
                         )}
                       >
                         <Checkbox
@@ -1013,7 +1046,7 @@ export function CreateHackerHouseForm({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="size-20 rounded-lg border-2 border-dashed border-border hover:border-primary/40 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer text-muted-foreground"
+                    className="size-20 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/40 flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer text-muted-foreground"
                   >
                     <span className="text-xl">+</span>
                     <span className="text-[10px] font-mono">Photo</span>
@@ -1152,7 +1185,7 @@ export function CreateHackerHouseForm({
                     "w-full flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer",
                     field.value
                       ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40",
+                      : "border-muted-foreground/25 hover:border-primary/40",
                   )}
                 >
                   <Checkbox
@@ -1357,12 +1390,12 @@ export function CreateHackerHouseForm({
                             "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
                             field.value === t
                               ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40",
+                              : "border-muted-foreground/25 hover:border-primary/40",
                           )}
                         >
                           <RadioGroupItem value={t} />
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-medium text-foreground">
+                            <span className={cn("text-sm font-medium", field.value === t ? APPLICATION_TYPE_LABELS[t].color : "text-foreground")}>
                               {APPLICATION_TYPE_LABELS[t].title}
                             </span>
                             <span className="text-xs text-muted-foreground font-mono">
@@ -1407,83 +1440,45 @@ export function CreateHackerHouseForm({
               </p>
             </div>
 
-            <Controller
-              name="deposit_amount_usdc"
-              control={control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Deposit per builder (USDC)</FieldLabel>
-                  <FieldDescription>Each builder deposits this amount to claim their spot.</FieldDescription>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-mono">$</span>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      min={1}
-                      step={1}
-                      placeholder="500"
-                      className="pl-7"
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value === "" ? undefined : Number(e.target.value))}
-                    />
-                  </div>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
+            {/* Deposit amount synced from price_per_person (step 1) */}
+            <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground font-mono">
+              <span>Deposit per builder:</span>
+              <span className="text-builder-archetype font-bold">
+                {watchedPricePerPerson ? `${watchedPricePerPerson} USDC` : "Set price in step 1"}
+              </span>
+            </div>
 
             <Controller
               name="withdraw_date"
               control={control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Withdraw date</FieldLabel>
-                  <FieldDescription>Earliest date you can collect funds from the escrow.</FieldDescription>
-                  <DatePicker
-                    value={field.value}
-                    onChange={(v) => field.onChange(v ?? "")}
-                    placeholder="Pick a date"
-                    disableBefore={new Date()}
-                    className="w-full"
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
+              render={({ field, fieldState }) => {
+                const tomorrow = new Date()
+                tomorrow.setDate(tomorrow.getDate() + 1)
+                tomorrow.setHours(0, 0, 0, 0)
+                return (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Withdraw date</FieldLabel>
+                    <FieldDescription>Earliest date the host can <span className="text-builder-archetype">release funds</span>.</FieldDescription>
+                    <DatePicker
+                      value={field.value}
+                      onChange={(v) => field.onChange(v ?? "")}
+                      placeholder="Pick a date"
+                      disableBefore={tomorrow}
+                      className="w-full"
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )
+              }}
             />
 
-            <Controller
-              name="house_type"
-              control={control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Escrow type</FieldLabel>
-                  <RadioGroup
-                    value={field.value ?? "co_payment"}
-                    onValueChange={field.onChange}
-                    className="gap-2"
-                  >
-                    {HOUSE_TYPE_OPTIONS.map((opt) => (
-                      <label
-                        key={opt.value}
-                        className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
-                          field.value === opt.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
-                        )}
-                      >
-                        <RadioGroupItem value={opt.value} />
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">{opt.title}</span>
-                          <span className="text-xs text-muted-foreground font-mono">{opt.description}</span>
-                        </div>
-                      </label>
-                    ))}
-                  </RadioGroup>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
+            {/* Escrow type auto-derived from House type (step 1) */}
+            <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground font-mono">
+              <span>Escrow mode:</span>
+              <span className="text-primary font-bold">
+                {watchedHouseType === "staking" ? "Staking" : watchedHouseType === "hybrid" ? "Hybrid" : "Co-payment"}
+              </span>
+            </div>
 
             {(watchedHouseType === "staking" || watchedHouseType === "hybrid") && (
               <>
@@ -1532,7 +1527,7 @@ export function CreateHackerHouseForm({
                                 "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
                                 field.value === opt.value
                                   ? "border-primary bg-primary/5"
-                                  : "border-border hover:border-primary/40",
+                                  : "border-muted-foreground/25 hover:border-primary/40",
                               )}
                             >
                               <RadioGroupItem value={opt.value} />
@@ -1555,16 +1550,20 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field }) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name} optional>Host Safe address</FieldLabel>
-                  <FieldDescription>
-                    The wallet that receives funds on release. Leave empty to use your own wallet.
-                  </FieldDescription>
+                  <FieldLabel htmlFor={field.name} optional>Payout address</FieldLabel>
+                  <p className="text-[10px] text-muted-foreground font-mono">Leave empty to use your ZeroDev kernel wallet (private by default)</p>
                   <Input
                     {...field}
                     id={field.name}
-                    placeholder="0x… (optional)"
+                    placeholder="0x…"
                     className="font-mono text-sm"
                   />
+                  <div className="flex items-center gap-2 mt-1 px-1">
+                    <Lock className="size-3 text-primary shrink-0" />
+                    <p className="text-[11px] text-muted-foreground font-mono">
+                      <span className="text-primary">Private Bridge</span> for anonymous withdrawals — coming soon
+                    </p>
+                  </div>
                 </Field>
               )}
             />
@@ -1576,9 +1575,7 @@ export function CreateHackerHouseForm({
           <SectionCard>
             <div>
               <h2 className="font-display font-bold text-foreground text-xl">Self check-in</h2>
-              <p className="text-muted-foreground text-sm mt-1">
-                Only revealed to accepted participants after joining. All fields are optional.
-              </p>
+              <p className="text-[11px] text-muted-foreground font-mono mt-1">Only visible to accepted participants. All optional.</p>
             </div>
 
             <Controller
@@ -1586,8 +1583,8 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field }) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name} optional>WiFi Password</FieldLabel>
-                  <Input {...field} id={field.name} placeholder="Network name · Password" />
+                  <FieldLabel htmlFor={field.name} optional>WiFi</FieldLabel>
+                  <Input {...field} id={field.name} placeholder="" />
                 </Field>
               )}
             />
@@ -1598,7 +1595,7 @@ export function CreateHackerHouseForm({
               render={({ field }) => (
                 <Field>
                   <FieldLabel htmlFor={field.name} optional>Room / Apartment</FieldLabel>
-                  <Input {...field} id={field.name} placeholder="e.g. Apt 3B, Floor 2, Room 7" />
+                  <Input {...field} id={field.name} placeholder="" />
                 </Field>
               )}
             />
@@ -1608,8 +1605,8 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field }) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name} optional>Lockbox / Door Code</FieldLabel>
-                  <Input {...field} id={field.name} placeholder="e.g. #1234 or press * then 4729#" />
+                  <FieldLabel htmlFor={field.name} optional>Door Code</FieldLabel>
+                  <Input {...field} id={field.name} placeholder="" />
                 </Field>
               )}
             />
@@ -1619,9 +1616,8 @@ export function CreateHackerHouseForm({
               control={control}
               render={({ field }) => (
                 <Field>
-                  <FieldLabel htmlFor={field.name} optional>Additional Notes</FieldLabel>
-                  <FieldDescription>Anything else participants need to know to get in.</FieldDescription>
-                  <Textarea {...field} id={field.name} placeholder="e.g. Ring bell twice, concierge has spare key..." rows={3} className="resize-none" />
+                  <FieldLabel htmlFor={field.name} optional>Notes</FieldLabel>
+                  <Textarea {...field} id={field.name} placeholder="" rows={3} className="resize-none" />
                 </Field>
               )}
             />

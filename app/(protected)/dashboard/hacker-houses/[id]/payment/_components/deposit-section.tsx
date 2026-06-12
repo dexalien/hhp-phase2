@@ -1,14 +1,27 @@
 "use client"
 
 import { useState } from "react"
-import { formatUnits } from "viem"
+import { encodeFunctionData, formatUnits, parseUnits } from "viem"
 import { useQueryClient } from "@tanstack/react-query"
-import { Check, Lock, Wallet } from "lucide-react"
+import { Check, Coins, ExternalLink, Lock, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useDeposit } from "@/hooks/use-deposit"
 import { queryKeys } from "@/lib/query-keys"
+import { env } from "@/env"
 import type { useEscrowState } from "@/hooks/use-escrow-state"
 import type { useBuilderSpot } from "@/hooks/use-builder-spot"
+
+const mockUsdcMintAbi = [
+  {
+    name: "mint",
+    type: "function",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const
 
 type EscrowData = NonNullable<ReturnType<typeof useEscrowState>["data"]>
 type BuilderSpotData = NonNullable<ReturnType<typeof useBuilderSpot>["data"]>
@@ -28,6 +41,8 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
   const queryClient = useQueryClient()
   const { deposit, isLoading, error } = useDeposit()
   const [deposited, setDeposited] = useState(false)
+  const [minting, setMinting] = useState(false)
+  const [minted, setMinted] = useState(false)
 
   const isStaking = houseType === "staking"
   const amountUsdc = formatUnits(escrow.depositAmount, 6)
@@ -80,11 +95,40 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
         <p className="text-sm text-muted-foreground">
           Connect your smart wallet to {isStaking ? "stake" : "deposit"} {amountDisplay} USDC and claim your spot.
         </p>
-        <Button variant="pill" className="bg-builder-archetype text-background hover:opacity-90 w-full" onClick={onConnect}>
+        <Button variant="pill" className="bg-builder-archetype text-background hover:bg-builder-archetype/90 w-full" onClick={onConnect}>
           Connect Wallet
         </Button>
       </div>
     )
+  }
+
+  async function handleMint() {
+    const client = kernelClient as import("@zerodev/sdk/clients").KernelAccountClient
+    if (!client) return
+    setMinting(true)
+    try {
+      const amount = parseUnits(amountUsdc, 6)
+      const walletAddress = client.account?.address
+      if (!walletAddress) return
+      await client.sendUserOperation({
+        calls: [
+          {
+            to: env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`,
+            data: encodeFunctionData({
+              abi: mockUsdcMintAbi,
+              functionName: "mint",
+              args: [walletAddress, amount],
+            }),
+            value: 0n,
+          },
+        ],
+      })
+      setMinted(true)
+    } catch (err) {
+      console.error("[mint] Error:", err)
+    } finally {
+      setMinting(false)
+    }
   }
 
   async function handleDeposit() {
@@ -116,6 +160,36 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
           : "Held in escrow until the host releases funds. No gas fees — powered by ZeroDev."}
       </p>
 
+      {/* Testnet faucet — mint MockUSDC */}
+      {!minted && (
+        <div className="bg-muted/50 border border-border rounded-lg p-4 flex flex-col items-center gap-3">
+          <p className="text-xs text-builder-archetype font-mono">
+            No USDC? Get free testnet tokens
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-muted-foreground hover:text-foreground py-2 text-xs"
+            disabled={minting}
+            onClick={handleMint}
+          >
+            {minting ? "Minting…" : `Mint ${amountDisplay} USDC`}
+          </Button>
+        </div>
+      )}
+      {minted && (
+        <a
+          href={`https://sepolia.arbiscan.io/address/${(kernelClient as import("@zerodev/sdk/clients").KernelAccountClient)?.account?.address ?? escrowAddress}#tokentxns`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center gap-2 hover:bg-primary/15 transition-colors"
+        >
+          <Check className="size-4 text-primary shrink-0" />
+          <p className="text-xs text-foreground font-mono">{amountDisplay} USDC minted</p>
+          <ExternalLink className="size-3 text-muted-foreground shrink-0 ml-auto" />
+        </a>
+      )}
+
       {error && (
         <p className="text-xs text-destructive font-mono bg-destructive/10 px-3 py-2 rounded-lg">
           {error}
@@ -124,7 +198,7 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
 
       <Button
         variant="pill"
-        className="bg-builder-archetype text-background hover:opacity-90 w-full"
+        className="bg-builder-archetype text-background hover:bg-builder-archetype/90 w-full h-[52px]"
         disabled={isLoading}
         onClick={handleDeposit}
       >

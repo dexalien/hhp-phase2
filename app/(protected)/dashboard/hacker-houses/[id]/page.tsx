@@ -14,12 +14,14 @@ import {
 import { useProfile } from "@/services/api/profile"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 import { useBuilderSpot } from "@/hooks/use-builder-spot"
+import { useEscrowState } from "@/hooks/use-escrow-state"
 import { usePendingYield } from "@/hooks/use-pending-yield"
 import { formatUnits } from "viem"
 import {
   Briefcase,
   CalendarDays,
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -162,8 +164,8 @@ function formatDateRange(start: string, end: string): string {
   return `${s.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
 }
 
-function getCostDisplay(modality: HouseModality, capacity: number, pricePerPerson: number | null) {
-  const price = pricePerPerson ?? 0
+function getCostDisplay(modality: HouseModality, capacity: number, pricePerPerson: number | null, depositAmountUsdc: number | null) {
+  const price = depositAmountUsdc ?? pricePerPerson ?? 0
   switch (modality) {
     case "paid":
       return { costPerPerson: price > 0 ? `${price} USDC` : "TBD", totalAmount: price > 0 ? `${price * capacity} USDC` : "TBD", amountRaised: "TBD" }
@@ -193,6 +195,7 @@ export default function HackerHouseDetailPage({
   }, [escrowAddress, walletReady, connect])
 
   const { data: builderSpot } = useBuilderSpot({ escrowAddress, builderAddress: kernelAddress })
+  const { data: escrowState } = useEscrowState(escrowAddress)
   const hasGmxYield = hackerHouse?.yield_mode === "gmx"
   const { data: yieldData } = usePendingYield(escrowAddress, hasGmxYield)
   const apply = useApplyToHackerHouse(id)
@@ -240,9 +243,16 @@ export default function HackerHouseDetailPage({
 
   const isOwner = profile?.id === hackerHouse.creator.id
   // hasPaid: DB participants (old flow) OR on-chain escrow deposit (web3 flow)
+  // If escrow was cancelled or released, deposits were refunded/released — builder no longer "has paid"
+  // Also check DB status as fallback when on-chain reads are rate-limited
+  const escrowCancelled = escrowState?.isCancelled ?? false
+  const escrowReleased = escrowState?.isReleased ?? false
+  const houseFinished = hackerHouse.status === "finished"
   const hasPaid =
-    (hackerHouse.participants ?? []).some((p) => p.id === profile?.id) ||
-    !!builderSpot?.hasDeposited
+    !escrowCancelled && !escrowReleased && !houseFinished && (
+      (hackerHouse.participants ?? []).some((p) => p.id === profile?.id) ||
+      !!builderSpot?.hasDeposited
+    )
   const isAccepted = hasPaid || isOwner
   const modeCfg = MODE_CONFIG[hackerHouse.modality] ?? MODE_CONFIG.paid
   const statusCfg = STATUS_CONFIG[hackerHouse.status as HouseStatus] ?? STATUS_CONFIG.open
@@ -252,7 +262,7 @@ export default function HackerHouseDetailPage({
   )
   const filledCount = hackerHouse.participants_count
   const progress = hackerHouse.capacity > 0 ? Math.round((filledCount / hackerHouse.capacity) * 100) : 0
-  const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity, hackerHouse.price_per_person)
+  const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity, hackerHouse.price_per_person, hackerHouse.deposit_amount_usdc)
   const images = hackerHouse.images.length > 0
     ? hackerHouse.images
     : ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop"]
@@ -424,6 +434,28 @@ export default function HackerHouseDetailPage({
             </p>
           </div>
 
+          {/* Cancelled banner */}
+          {houseFinished && escrowAddress && (
+            <div className="mb-6 p-4 bg-strategist/10 border border-strategist/30 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-strategist shrink-0" />
+                <p className="text-foreground font-medium text-sm">House cancelled — all builders refunded</p>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono">
+                {hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0} USDC returned to each builder&apos;s ZeroDev wallet.
+              </p>
+              <a
+                href={`https://sepolia.arbiscan.io/address/${escrowAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-strategist hover:underline font-mono w-fit"
+              >
+                <ExternalLink className="size-3" />
+                Verify on Arbiscan
+              </a>
+            </div>
+          )}
+
           {/* Owner actions */}
           {isOwner && (
             <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-border">
@@ -464,6 +496,14 @@ export default function HackerHouseDetailPage({
                 >
                   Mark as finished
                 </Button>
+              )}
+              {escrowAddress && (
+                <Link href={`/dashboard/hacker-houses/${id}/payment`}>
+                  <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 rounded-full">
+                    <Wallet className="size-3.5" />
+                    Manage Escrow
+                  </Button>
+                </Link>
               )}
             </div>
           )}
@@ -562,7 +602,7 @@ export default function HackerHouseDetailPage({
                 {hackerHouse.modality === "paid" && (
                   <>
                     <p className="text-builder-archetype font-bold">
-                      {filledCount * (hackerHouse.price_per_person ?? 0)} USDC
+                      {filledCount * (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0)} USDC
                     </p>
                     <p className="text-muted-foreground text-xs">of {costInfo.totalAmount}</p>
                   </>
@@ -573,7 +613,7 @@ export default function HackerHouseDetailPage({
                 {hackerHouse.modality === "staking" && (
                   <>
                     <p className="text-builder-archetype font-bold">
-                      {filledCount * (hackerHouse.price_per_person ?? 0)} USDC staked
+                      {filledCount * (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0)} USDC staked
                     </p>
                     <p className="text-muted-foreground text-xs">of {costInfo.totalAmount}</p>
                   </>
@@ -774,11 +814,15 @@ export default function HackerHouseDetailPage({
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-0.5">
-                      {hasPaidRecord ? (
+                      {(escrowCancelled || houseFinished) && hasPaidRecord ? (
+                        <span className="flex items-center gap-1 text-xs font-mono text-strategist">
+                          Refunded
+                        </span>
+                      ) : hasPaidRecord ? (
                         <>
-                          {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
+                          {hackerHouse.modality !== "free" && (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0) > 0 && (
                             <span className="text-sm font-bold text-foreground">
-                              {hackerHouse.price_per_person} USDC
+                              {hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person} USDC
                             </span>
                           )}
                           <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
@@ -961,7 +1005,25 @@ export default function HackerHouseDetailPage({
         </div>
 
         {/* ── Sticky Footer CTA ── */}
-        {hackerHouse.status !== "finished" && (
+        {houseFinished && escrowAddress ? (
+          <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 lg:left-60 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-40">
+            <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+              <div>
+                <p className="text-strategist font-bold text-sm">Cancelled — Refunded</p>
+                <p className="text-muted-foreground text-xs font-mono">{costInfo.costPerPerson} returned</p>
+              </div>
+              <a
+                href={kernelAddress ? `https://sepolia.arbiscan.io/address/${kernelAddress}#tokentxns` : `https://sepolia.arbiscan.io/address/${escrowAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 max-w-xs py-4 px-6 font-bold rounded-full flex items-center justify-center gap-2 bg-strategist text-background hover:opacity-90 transition-opacity"
+              >
+                <ExternalLink className="size-4" />
+                See Refund
+              </a>
+            </div>
+          </div>
+        ) : hackerHouse.status !== "finished" && (
           <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 lg:left-60 bg-background/95 backdrop-blur-sm border-t border-border p-4 z-40">
             <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
               <div>
@@ -1080,10 +1142,10 @@ export default function HackerHouseDetailPage({
                     <span className="font-mono text-xs">Dates</span>
                     <span className="text-foreground">{formatDateRange(hackerHouse.start_date, hackerHouse.end_date)}</span>
                   </div>
-                  {hackerHouse.modality !== "free" && (hackerHouse.price_per_person ?? 0) > 0 && (
+                  {hackerHouse.modality !== "free" && (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0) > 0 && (
                     <div className="flex items-center justify-between text-muted-foreground">
                       <span className="font-mono text-xs">Paid</span>
-                      <span className="text-[#6EE76E] font-bold">{hackerHouse.price_per_person} USDC ✓</span>
+                      <span className="text-[#6EE76E] font-bold">{hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person} USDC ✓</span>
                     </div>
                   )}
                 </div>
