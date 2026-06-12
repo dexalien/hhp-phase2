@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { encodeFunctionData, parseUnits } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 import { env } from "@/env"
+import type { KernelAccountClient } from "@zerodev/sdk/clients"
 
 // USDC has 6 decimals (not 18 like ETH)
 const USDC_DECIMALS = 6
@@ -57,13 +58,19 @@ export function useDeposit() {
       escrowAddress,
       bookingId,
       amountUsdc, // human-readable, e.g. "500" for $500
+      client: externalClient,
     }: {
       escrowAddress: `0x${string}`
       bookingId: bigint
       amountUsdc: string
+      client?: KernelAccountClient
     }) => {
-      if (!isReady || !kernelClient) {
-        setDepositState({ status: "error", error: "Wallet not connected. Call connect() first." })
+      const activeClient = externalClient ?? kernelClient
+      console.log("[useDeposit] externalClient:", !!externalClient, "hookClient:", !!kernelClient)
+      if (!activeClient) {
+        const msg = "Wallet not connected. Call connect() first."
+        console.error("[useDeposit]", msg)
+        setDepositState({ status: "error", error: msg })
         return
       }
 
@@ -71,9 +78,10 @@ export function useDeposit() {
 
       try {
         const amount = parseUnits(amountUsdc, USDC_DECIMALS)
+        console.log("[useDeposit] Sending approve+deposit:", { escrowAddress, bookingId: String(bookingId), amount: String(amount) })
 
         // Batch: approve + deposit in one UserOperation (atomic, gasless)
-        const txHash = await kernelClient.sendUserOperation({
+        const txHash = await activeClient.sendUserOperation({
           calls: [
             {
               // Step 1: approve the escrow to spend USDC on behalf of the user
@@ -98,10 +106,12 @@ export function useDeposit() {
           ],
         })
 
+        console.log("[useDeposit] Success! txHash:", txHash)
         setDepositState({ status: "success", txHash })
         return txHash
       } catch (err) {
         const message = err instanceof Error ? err.message : "Deposit failed"
+        console.error("[useDeposit] Error:", message, err)
         setDepositState({ status: "error", error: message })
       }
     },

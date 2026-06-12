@@ -10,7 +10,8 @@ import { env } from "@/env"
 
 const chain = arbitrumSepolia
 const bundlerUrl = env.NEXT_PUBLIC_ZERODEV_BUNDLER_URL
-const paymasterUrl = bundlerUrl.replace("/chain/421614", "/paymaster/chain/421614")
+// ZeroDev v3: paymaster is served from the same bundler endpoint
+const paymasterUrl = bundlerUrl
 
 const entryPoint = {
   address: entryPoint07Address,

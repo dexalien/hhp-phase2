@@ -79,6 +79,7 @@ export default function CreateHackerHousePage() {
             ? (values.host_safe as `0x${string}`)
             : (kernelAddr as `0x${string}`)
 
+        console.log("[Deploy] Calling factory.createHouse…", { hostSafe, capacity: values.capacity })
         const txHash = await createHouse({
           hostSafe,
           depositAmount: parseUnits(String(values.deposit_amount_usdc ?? 0), 6),
@@ -87,9 +88,13 @@ export default function CreateHackerHousePage() {
           houseType: HOUSE_TYPE_MAP[values.house_type ?? "co_payment"],
           yieldMode: YIELD_MODE_MAP[values.yield_mode ?? "none"],
           yieldDest: YIELD_DEST_MAP[values.yield_dest ?? "host"],
+          client,
         })
 
-        if (txHash && client) {
+        console.log("[Deploy] txHash:", txHash)
+        if (!txHash) throw new Error("Transaction failed — no hash returned")
+
+        if (client) {
           // Wait for the UserOperation to be included in a block
           const receipt = await (client as unknown as BundlerClientCompat).waitForUserOperationReceipt({
             hash: txHash,
@@ -114,17 +119,21 @@ export default function CreateHackerHousePage() {
           }
 
           if (escrowAddress) {
+            console.log("[Deploy] Escrow deployed at:", escrowAddress)
             await genericAuthRequest<{ hacker_house: HackerHouse }>(
               "patch",
               `/api/hacker-houses/${result.id}`,
               { escrow_address: escrowAddress },
             )
+            toast.success("Contract deployed!", { id: "deploy" })
+          } else {
+            console.warn("[Deploy] No escrow address found in receipt logs")
+            toast.error("Contract deployed but address not found", { id: "deploy" })
           }
         }
-
-        toast.success("Contract deployed!", { id: "deploy" })
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Deploy failed"
+        console.error("[Deploy] Error:", msg, err)
         toast.error(`Contract deploy failed: ${msg}`, { id: "deploy" })
         // Still navigate — the DB record was created; creator can retry deploy later
       }

@@ -21,9 +21,10 @@ interface Props {
   houseType: 'co_payment' | 'staking' | 'hybrid' | null
   onConnect: () => Promise<unknown>
   onDepositSuccess?: () => void
+  kernelClient: unknown | null
 }
 
-export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, houseType, onConnect, onDepositSuccess }: Props) {
+export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, houseType, onConnect, onDepositSuccess, kernelClient }: Props) {
   const queryClient = useQueryClient()
   const { deposit, isLoading, error } = useDeposit()
   const [deposited, setDeposited] = useState(false)
@@ -87,11 +88,13 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
   }
 
   async function handleDeposit() {
-    await deposit({
+    const txHash = await deposit({
       escrowAddress,
       bookingId: escrow.nextBookingId,
       amountUsdc,
+      client: kernelClient as import("@zerodev/sdk/clients").KernelAccountClient,
     })
+    if (!txHash) return // deposit failed — error shown by hook
     queryClient.invalidateQueries({ queryKey: [queryKeys.escrowState, escrowAddress] })
     setDeposited(true)
     onDepositSuccess?.()

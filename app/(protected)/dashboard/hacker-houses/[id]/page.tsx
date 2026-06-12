@@ -42,7 +42,7 @@ import {
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { use, useState } from "react"
+import { use, useState, useEffect } from "react"
 import { PageContainer } from "../../_components/page-container"
 import { BackButton } from "../../../_components/back-button"
 import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
@@ -182,8 +182,16 @@ export default function HackerHouseDetailPage({
   const { id } = use(params)
   const { data: hackerHouse, isLoading } = useHackerHouse(id)
   const { data: profile } = useProfile({ enabled: true })
-  const { kernelAddress } = useKernelWallet()
+  const { connect, kernelAddress, isReady: walletReady } = useKernelWallet()
   const escrowAddress = (hackerHouse?.escrow_address ?? null) as `0x${string}` | null
+
+  // Auto-connect wallet when page loads and house has an escrow — needed to check deposit status
+  useEffect(() => {
+    if (escrowAddress && !walletReady) {
+      connect()
+    }
+  }, [escrowAddress, walletReady, connect])
+
   const { data: builderSpot } = useBuilderSpot({ escrowAddress, builderAddress: kernelAddress })
   const hasGmxYield = hackerHouse?.yield_mode === "gmx"
   const { data: yieldData } = usePendingYield(escrowAddress, hasGmxYield)
@@ -722,8 +730,11 @@ export default function HackerHouseDetailPage({
               {allParticipants.map((p, i) => {
                 const archetype = ARCHETYPES.find((a) => a.id === p.archetype)
                 const isCreator = p.id === hackerHouse.creator.id
-                // Only show paid/accepted badge if they actually have an accepted application
-                const hasPaidRecord = (hackerHouse.participants ?? []).some((pp) => pp.id === p.id)
+                // Paid if they have an accepted application (DB) OR deposited on-chain (current user only)
+                const isCurrentUser = p.id === profile?.id
+                const hasPaidRecord =
+                  (hackerHouse.participants ?? []).some((pp) => pp.id === p.id) ||
+                  (isCurrentUser && !!builderSpot?.hasDeposited)
                 return (
                   <div
                     key={p.id ?? i}
@@ -1053,7 +1064,7 @@ export default function HackerHouseDetailPage({
               <div className="p-6 flex flex-col gap-4">
                 <div className="flex flex-col items-center gap-1 text-center">
                   <span className="px-3 py-1 rounded-full text-xs font-mono border border-primary/40 text-primary bg-primary/10">
-                    Key NFT · #{String(filledCount).padStart(4, "0")}
+                    Key NFT · #{String(Number(builderSpot?.bookingId ?? 0) + 1).padStart(4, "0")}
                   </span>
                   <p className="text-xs text-muted-foreground font-mono mt-2">Welcome to</p>
                   <h3 className="font-display font-bold text-xl text-foreground">{hackerHouse.name}</h3>
@@ -1077,15 +1088,17 @@ export default function HackerHouseDetailPage({
                   )}
                 </div>
 
-                <a
-                  href="https://etherscan.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors text-sm font-mono"
-                >
-                  <ExternalLink className="size-4" />
-                  See it on Etherscan (coming soon)
-                </a>
+                {escrowAddress && (
+                  <a
+                    href={`https://sepolia.arbiscan.io/address/${escrowAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors text-sm font-mono"
+                  >
+                    <ExternalLink className="size-4" />
+                    View on Arbiscan
+                  </a>
+                )}
               </div>
             </div>
           </div>

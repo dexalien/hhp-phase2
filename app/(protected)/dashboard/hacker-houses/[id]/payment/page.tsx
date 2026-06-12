@@ -53,7 +53,7 @@ export default function PaymentPage({
   const { data: house, isLoading } = useHackerHouse(id)
   const { data: profile } = useProfile({ enabled: true })
 
-  const { connect, kernelAddress, isReady: walletReady } = useKernelWallet()
+  const { connect, kernelClient, kernelAddress, isReady: walletReady } = useKernelWallet()
   const [depositSuccess, setDepositSuccess] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
 
@@ -317,8 +317,8 @@ export default function PaymentPage({
         {/* Escrow Status — always shown */}
         <EscrowStatus house={house} escrow={escrow} escrowLoading={escrowLoading} />
 
-        {/* Deposit Section — builders only */}
-        {!isOwner && escrow && (
+        {/* Deposit Section — everyone can pay their share (host included in co-payment) */}
+        {escrow && (
           <>
             <DepositSection
               escrowAddress={escrowAddress}
@@ -328,8 +328,9 @@ export default function PaymentPage({
               houseType={house.house_type}
               onConnect={connect}
               onDepositSuccess={() => setDepositSuccess(true)}
+              kernelClient={kernelClient}
             />
-            {/* Do Later — only when deposit is still possible and builder hasn't deposited */}
+            {/* Do Later — only when deposit is still possible and user hasn't deposited */}
             {!builderSpot?.hasDeposited && !escrow.isFull && !escrow.isCancelled && !escrow.isReleased && (
               <Link
                 href={`/dashboard/hacker-houses/${id}`}

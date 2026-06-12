@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { encodeFunctionData } from "viem"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 import { env } from "@/env"
+import type { KernelAccountClient } from "@zerodev/sdk/clients"
 
 
 // Enums must match the order declared in HackerHouseEscrow.sol
@@ -65,6 +66,8 @@ export type CreateHouseParams = {
   houseType: HouseTypeValue
   yieldMode: YieldModeValue
   yieldDest: YieldDestValue
+  /** Optional: pass a kernel client directly (avoids React state race condition) */
+  client?: KernelAccountClient
 }
 
 /**
@@ -106,16 +109,22 @@ export function useCreateHouse() {
       houseType,
       yieldMode,
       yieldDest,
+      client: externalClient,
     }: CreateHouseParams) => {
-      if (!isReady || !kernelClient) {
-        setCreateState({ status: "error", error: "Wallet not connected. Call connect() first." })
+      const activeClient = externalClient ?? kernelClient
+      console.log("[useCreateHouse] using externalClient:", !!externalClient, "hookClient:", !!kernelClient)
+      if (!activeClient) {
+        const msg = "Wallet not connected. Call connect() first."
+        console.error("[useCreateHouse]", msg)
+        setCreateState({ status: "error", error: msg })
         return
       }
 
       setCreateState({ status: "loading" })
 
       try {
-        const txHash = await kernelClient.sendUserOperation({
+        console.log("[useCreateHouse] Sending UserOperation to factory:", env.NEXT_PUBLIC_FACTORY_ADDRESS)
+        const txHash = await activeClient.sendUserOperation({
           calls: [
             {
               to: env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
@@ -142,6 +151,7 @@ export function useCreateHouse() {
         return txHash
       } catch (err) {
         const message = err instanceof Error ? err.message : "House creation failed"
+        console.error("[useCreateHouse] Error:", message, err)
         setCreateState({ status: "error", error: message })
       }
     },
