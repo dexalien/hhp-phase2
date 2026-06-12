@@ -102,33 +102,40 @@ Your Hacker House confirmation is a **Booking NFT on Arbitrum** — with dates, 
 
 ---
 
-## Smart Contract — The Arbitrum Differentiator
+## Smart Contracts — Deployed on Arbitrum Sepolia
 
-**Contract:** `HackerHouseEscrow` deployed on **Arbitrum One**
+**Source:** [`contracts/`](./contracts/) · **Framework:** Foundry · **Tests:** 20/20 passing
+
+| Contract | Address | Arbiscan |
+|---|---|---|
+| **HackerHouseFactory** | `0x318a6205B49188e00a5306e30843A271156Ca8a7` | [View](https://sepolia.arbiscan.io/address/0x318a6205B49188e00a5306e30843A271156Ca8a7) |
+| **MockUSDC** | `0x70705F3665A4134C5E82B0114887BA82bbFf1c92` | [View](https://sepolia.arbiscan.io/address/0x70705F3665A4134C5E82B0114887BA82bbFf1c92) |
 
 The contract replaces blind trust in the organizer with a trustless, automatic escrow:
 
 | Function | Who calls it | What happens |
 |---|---|---|
-| `createHouse()` | Organizer | Defines capacity, price per builder, and deadline |
-| `deposit()` | Accepted builder | Locks funds in the contract |
-| `release()` | Auto | House fills → funds sent to organizer |
-| `refund()` | Auto | Deadline passes without filling → refund to every depositor |
-| `reject()` | Organizer | Removes a builder → instant refund of their deposit |
-| `mintBookingNFT()` | Auto | Pool complete → Booking NFT minted to each builder's wallet |
+| `createHouse()` | Factory | Deploys a new Escrow + SpotNFT pair per house |
+| `deposit()` | Accepted builder | Locks USDC in the escrow, mints SpotNFT to builder |
+| `release()` | Host (after withdraw date) | 99.5% to host + 0.5% fee to HHP treasury |
+| `cancelHouse()` | Creator | 100% refund to all builders, SpotNFTs burned |
+| `transferSpot()` | Spot holder | Transfers spot + deposit to another builder |
+
+Each house is an isolated contract — if one has issues, others are unaffected.
 
 ### Why Arbitrum
 
-- **Low gas fees** — critical for co-living deposits ($50–$500/person). High gas kills the UX.
-- **EVM-native** — Solidity, Hardhat, no architectural changes
-- **Privy already supports Arbitrum** — no changes to the auth layer
+- **Low gas fees** — deploy cost $0.01. Co-living deposits ($50–$500/person) need cheap transactions.
+- **EVM-native** — standard Solidity, Foundry, no chain-specific changes
+- **Privy + ZeroDev support** — auth and account abstraction layers already support Arbitrum
 - **Ecosystem alignment** — this buildathon *is* Arbitrum. The fit is direct.
 
-### AA + Smart Wallets via ZeroDev
+### Account Abstraction — ZeroDev (ERC-4337)
 
-- Builders interact with the contract through **ZeroDev kernel accounts** (ERC-4337)
-- First-time crypto users get an embedded wallet with no seed phrase friction
-- Gasless transactions via paymaster for the demo flow
+- Builders interact through **ZeroDev kernel accounts** — gasless, batched operations
+- `USDC.approve()` + `escrow.deposit()` execute as a **single atomic transaction**
+- First-time crypto users get an embedded wallet via Privy — no seed phrase, no gas
+- The contracts are AA-agnostic: they only see `msg.sender`, whether it's a MetaMask EOA, ZeroDev smart wallet, or Gnosis Safe
 
 ---
 
@@ -139,7 +146,7 @@ The contract replaces blind trust in the organizer with a trustless, automatic e
 | **Frontend** | Next.js 16 App Router · React 19 · TypeScript (strict) · Tailwind CSS v4 |
 | **Auth** | Privy — email + social + embedded wallets |
 | **Smart Account** | ZeroDev — ERC-4337 kernel accounts + paymaster |
-| **Blockchain** | Arbitrum One · viem · wagmi |
+| **Blockchain** | Arbitrum Sepolia · Solidity ^0.8.24 · Foundry · viem · wagmi |
 | **Backend / DB** | Supabase — Postgres + Row Level Security + Edge Functions |
 | **Deploy** | Vercel |
 | **State** | TanStack Query (server state) · react-hook-form + Zod (forms) |
