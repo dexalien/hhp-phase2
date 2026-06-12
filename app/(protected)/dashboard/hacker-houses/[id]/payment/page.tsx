@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { ArrowLeft, CalendarDays, MapPin, Check, Users } from "lucide-react"
 import { formatUnits } from "viem"
@@ -64,8 +64,10 @@ export default function PaymentPage({
   const escrowAddress = (house?.escrow_address ?? null) as `0x${string}` | null
 
   // Auto-connect wallet when page loads and house has an escrow
+  const connectAttempted = useRef(false)
   useEffect(() => {
-    if (escrowAddress && !walletReady) {
+    if (escrowAddress && !walletReady && !connectAttempted.current) {
+      connectAttempted.current = true
       connect()
     }
   }, [escrowAddress, walletReady, connect])

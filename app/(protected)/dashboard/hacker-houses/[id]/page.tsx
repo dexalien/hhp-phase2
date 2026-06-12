@@ -44,7 +44,7 @@ import {
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { use, useState, useEffect } from "react"
+import { use, useState, useEffect, useRef } from "react"
 import { PageContainer } from "../../_components/page-container"
 import { BackButton } from "../../../_components/back-button"
 import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
@@ -188,8 +188,10 @@ export default function HackerHouseDetailPage({
   const escrowAddress = (hackerHouse?.escrow_address ?? null) as `0x${string}` | null
 
   // Auto-connect wallet when page loads and house has an escrow — needed to check deposit status
+  const connectAttempted = useRef(false)
   useEffect(() => {
-    if (escrowAddress && !walletReady) {
+    if (escrowAddress && !walletReady && !connectAttempted.current) {
+      connectAttempted.current = true
       connect()
     }
   }, [escrowAddress, walletReady, connect])
