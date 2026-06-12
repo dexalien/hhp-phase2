@@ -25,4 +25,5 @@ export const queryKeys = {
   adminHackerHouses: "admin-hacker-houses",
   eventRequests: "event-requests",
   adminEventRequests: "admin-event-requests",
+  escrowState: "escrow-state",
 }
