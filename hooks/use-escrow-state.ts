@@ -72,5 +72,7 @@ export function useEscrowState(escrowAddress: `0x${string}` | null) {
     enabled: !!escrowAddress,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attempt) => attempt * 3000,
   })
 }

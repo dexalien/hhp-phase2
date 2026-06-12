@@ -88,5 +88,7 @@ export function useBuilderSpot({
     enabled: !!escrowAddress && !!builderAddress,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attempt) => attempt * 3000,
   })
 }
