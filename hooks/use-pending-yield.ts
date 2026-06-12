@@ -97,7 +97,7 @@ export function usePendingYield(
     queryKey: [queryKeys.escrowState, escrowAddress, "yield"],
     queryFn: () => fetchPendingYield(escrowAddress!),
     enabled: !!escrowAddress && enabled,
-    refetchInterval: 60_000, // yield accrues slowly — 1 min poll is enough
-    staleTime: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }

@@ -86,6 +86,7 @@ export function useBuilderSpot({
     queryKey: [queryKeys.escrowState, escrowAddress, "builder", builderAddress],
     queryFn: () => fetchBuilderSpot(escrowAddress!, builderAddress!),
     enabled: !!escrowAddress && !!builderAddress,
-    staleTime: 15_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   })
 }
