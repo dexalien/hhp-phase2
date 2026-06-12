@@ -25,6 +25,7 @@ All product and design documentation lives in `docs/`. **Always read the relevan
 | [`docs/features/link-wallet.md`](./docs/features/link-wallet.md) | Link wallet from profile, auto-import on-chain data |
 | [`docs/web3/contracts-spec.md`](./docs/web3/contracts-spec.md) | Smart contract spec for HackerHouseEscrow, Factory, SpotNFT |
 | [`docs/web3/zerodev-integration.md`](./docs/web3/zerodev-integration.md) | ZeroDev hooks, env vars, pending decisions |
+| [`docs/web3/gmx-integration.md`](./docs/web3/gmx-integration.md) | GMX yield frontend — hooks, components, merge order for web3 branches |
 
 ## Skills — detailed rules for implementation
 

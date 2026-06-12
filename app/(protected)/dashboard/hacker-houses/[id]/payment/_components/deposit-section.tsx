@@ -18,16 +18,20 @@ interface Props {
   escrow: EscrowData
   builderSpot: BuilderSpotData | undefined
   walletReady: boolean
+  houseType: 'co_payment' | 'staking' | 'hybrid' | null
   onConnect: () => Promise<unknown>
+  onDepositSuccess?: () => void
 }
 
-export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, onConnect }: Props) {
+export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, houseType, onConnect, onDepositSuccess }: Props) {
   const queryClient = useQueryClient()
   const { deposit, isLoading, error } = useDeposit()
   const [deposited, setDeposited] = useState(false)
 
+  const isStaking = houseType === "staking"
   const amountUsdc = formatUnits(escrow.depositAmount, 6)
   const amountDisplay = Number(amountUsdc).toFixed(2)
+  const ctaLabel = isStaking ? "Stake to Join" : "Pay My Share"
 
   // Already has a spot (on-chain or just deposited)
   if (builderSpot?.hasDeposited || deposited) {
@@ -44,7 +48,7 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          {amountDisplay} USDC deposited and held in escrow. Refunded in full if the house is cancelled.
+          {amountDisplay} USDC {isStaking ? "staked" : "deposited"} and held in escrow. Refunded in full if the house is cancelled.
         </p>
       </div>
     )
@@ -67,13 +71,13 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
   // Need to connect wallet first
   if (!walletReady) {
     return (
-      <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-4">
+      <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Wallet className="size-4 text-muted-foreground" />
-          <h3 className="font-display font-bold text-foreground">Deposit to Join</h3>
+          <h3 className="font-display font-bold text-foreground">{ctaLabel}</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Connect your smart wallet to deposit {amountDisplay} USDC and claim your spot.
+          Connect your smart wallet to {isStaking ? "stake" : "deposit"} {amountDisplay} USDC and claim your spot.
         </p>
         <Button variant="pill" className="bg-builder-archetype text-background hover:opacity-90 w-full" onClick={onConnect}>
           Connect Wallet
@@ -90,6 +94,7 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
     })
     queryClient.invalidateQueries({ queryKey: [queryKeys.escrowState, escrowAddress] })
     setDeposited(true)
+    onDepositSuccess?.()
   }
 
   return (
@@ -97,13 +102,15 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lock className="size-4 text-muted-foreground" />
-          <h3 className="font-display font-bold text-foreground">Deposit to Join</h3>
+          <h3 className="font-display font-bold text-foreground">{ctaLabel}</h3>
         </div>
         <span className="text-builder-archetype font-bold text-lg">{amountDisplay} USDC</span>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Held in escrow until the host releases funds. No gas fees — powered by ZeroDev.
+        {isStaking
+          ? "Your stake is locked in escrow until checkout. Returned if the house is cancelled."
+          : "Held in escrow until the host releases funds. No gas fees — powered by ZeroDev."}
       </p>
 
       {error && (
@@ -118,11 +125,11 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
         disabled={isLoading}
         onClick={handleDeposit}
       >
-        {isLoading ? "Processing…" : `Deposit ${amountDisplay} USDC`}
+        {isLoading ? "Processing…" : `${ctaLabel} — ${amountDisplay} USDC`}
       </Button>
 
       <p className="text-xs text-muted-foreground text-center font-mono">
-        Approve + deposit in one gasless transaction
+        {isStaking ? "Staked via smart contract on Arbitrum" : "Approve + deposit in one gasless transaction"}
       </p>
     </div>
   )
