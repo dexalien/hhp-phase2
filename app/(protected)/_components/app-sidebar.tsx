@@ -125,7 +125,6 @@ export function AppSidebar() {
                   <NotificationBadge variant="absolute" />
                 </span>
                 <span>Notifications</span>
-                <NotificationBadge variant="inline" />
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
