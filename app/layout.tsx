@@ -53,7 +53,7 @@ export default function RootLayout({
             <TooltipProvider>
               <NuqsAdapter>{children}</NuqsAdapter>
             </TooltipProvider>
-            <Toaster position="bottom-right" richColors />
+            <Toaster position="top-right" richColors />
           </QueryProvider>
         </AppPrivyProvider>
       </body>
