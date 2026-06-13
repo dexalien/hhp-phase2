@@ -7,9 +7,10 @@ import Link from "next/link"
 import { ArrowLeft, CalendarDays, MapPin, Check, Users } from "lucide-react"
 import { formatUnits } from "viem"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useHackerHouse, useInviteStatus } from "@/services/api/hacker-houses"
+import { useHackerHouse, useHackerHouseHomies, useInviteStatus } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
 import { ARCHETYPES } from "@/lib/onboarding"
+import { cn } from "@/lib/utils"
 import { useEscrowState } from "@/hooks/use-escrow-state"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
 import { useBuilderSpot } from "@/hooks/use-builder-spot"
@@ -69,6 +70,7 @@ export default function PaymentPage({
   const isInviteOnly = house?.application_type === "invite_only"
   const { data: inviteStatus } = useInviteStatus(id, isInviteOnly && !isOwner)
   const isInvited = isOwner || !isInviteOnly || inviteStatus?.invited === true
+  const { data: homies } = useHackerHouseHomies(id)
 
   const escrowAddress = (house?.escrow_address ?? null) as `0x${string}` | null
 
@@ -279,7 +281,7 @@ export default function PaymentPage({
           <div className="border-t border-primary/20 pt-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
               <Users className="size-3.5" />
-              <span>{[house.creator, ...house.participants].length} Hacker {[house.creator, ...house.participants].length === 1 ? "Homie" : "Homies"}</span>
+              <span>{homies?.length ?? 1} Hacker {(homies?.length ?? 1) === 1 ? "Homie" : "Homies"}</span>
             </div>
             {house.deposit_amount_usdc && (
               <span className="text-builder-archetype font-bold font-mono text-sm">
@@ -290,51 +292,53 @@ export default function PaymentPage({
         </div>
 
         {/* Hacker Homies */}
-        {(() => {
-          const allParticipants = [house.creator, ...house.participants]
-          return (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Users className="size-4 text-muted-foreground" />
-                <h3 className="font-display font-bold text-foreground">Hacker Homies</h3>
-                <span className="text-muted-foreground text-sm font-mono">({allParticipants.length})</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {allParticipants.map((p, i) => {
-                  const archetype = ARCHETYPES.find((a) => a.id === p.archetype)
-                  const isCreator = p.id === house.creator.id
-                  return (
-                    <div key={p.id ?? i} className="flex items-center justify-between bg-card border border-border rounded-xl p-3">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="size-10 rounded-full border-2 overflow-hidden flex items-center justify-center bg-muted shrink-0"
-                          style={{ borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)" }}
-                        >
-                          {p.avatar_url ? (
-                            <img src={p.avatar_url} alt={p.handle ?? ""} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-xs font-mono text-muted-foreground">
-                              {p.handle?.charAt(0)?.toUpperCase() ?? "?"}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-foreground text-sm">@{p.handle ?? "anon"}</p>
-                          {isCreator && <p className="text-xs text-muted-foreground font-mono">Host</p>}
-                        </div>
-                      </div>
-                      {archetype && (
-                        <span className="text-xs font-mono" style={{ color: `var(${archetype.colorVar})` }}>
-                          {archetype.name}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Users className="size-4 text-muted-foreground" />
+            <h3 className="font-display font-bold text-foreground">Hacker Homies</h3>
+            <span className="text-muted-foreground text-sm font-mono">({homies?.length ?? 0})</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {(homies ?? []).map((h) => {
+              const archetype = ARCHETYPES.find((a) => a.id === h.archetype)
+              return (
+                <div key={h.id} className="flex items-center justify-between bg-card border border-border rounded-xl p-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="size-10 rounded-full border-2 overflow-hidden flex items-center justify-center bg-muted shrink-0"
+                      style={{ borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)" }}
+                    >
+                      {h.avatar_url ? (
+                        <img src={h.avatar_url} alt={h.handle ?? ""} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {h.handle?.charAt(0)?.toUpperCase() ?? "?"}
                         </span>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
+                    <div>
+                      <p className="text-foreground text-sm">
+                        @{h.handle ?? "anon"}
+                        {h.is_creator && <span className="ml-1.5 text-xs text-primary font-mono">Host</span>}
+                      </p>
+                      {archetype && (
+                        <p className="text-xs" style={{ color: `var(${archetype.colorVar})` }}>
+                          {archetype.name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className={cn(
+                    "text-xs font-mono",
+                    h.status === "paid" ? "text-[#6EE76E]" : "text-primary",
+                  )}>
+                    {h.status === "paid" ? "Paid" : "Invited"}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
         {/* Escrow Status — always shown */}
         <EscrowStatus house={house} escrow={escrow} escrowLoading={escrowLoading} />
@@ -352,6 +356,7 @@ export default function PaymentPage({
               onDepositSuccess={() => setDepositSuccess(true)}
               kernelClient={kernelClient}
               kernelAddress={kernelAddress}
+              hackerHouseId={id}
             />
             {/* Do Later — only when deposit is still possible and user hasn't deposited */}
             {!builderSpot?.hasDeposited && !escrow.isFull && !escrow.isCancelled && !escrow.isReleased && (

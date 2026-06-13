@@ -9,6 +9,7 @@ import { cn, parseLocalDate } from "@/lib/utils"
 import {
   useApplyToHackerHouse,
   useHackerHouse,
+  useHackerHouseHomies,
   useUpdateHackerHouse,
   useInviteStatus,
 } from "@/services/api/hacker-houses"
@@ -204,6 +205,7 @@ export default function HackerHouseDetailPage({
   const { data: yieldData } = usePendingYield(escrowAddress, hasGmxYield)
   const apply = useApplyToHackerHouse(id)
   const updateHackerHouse = useUpdateHackerHouse(id)
+  const { data: homies } = useHackerHouseHomies(id)
 
   // Must be called before any early returns (Rules of Hooks)
   const isInviteOnly = hackerHouse?.application_type === "invite_only"
@@ -271,7 +273,7 @@ export default function HackerHouseDetailPage({
   const allParticipants = [hackerHouse.creator, ...(hackerHouse.participants ?? [])].filter(
     (p, i, arr) => arr.findIndex((x) => x.id === p.id) === i,
   )
-  const filledCount = hackerHouse.participants_count
+  const filledCount = escrowState ? Number(escrowState.spotsFilledCount) : hackerHouse.participants_count
   const progress = hackerHouse.capacity > 0 ? Math.round((filledCount / hackerHouse.capacity) * 100) : 0
   const costInfo = getCostDisplay(hackerHouse.modality, hackerHouse.capacity, hackerHouse.price_per_person, hackerHouse.deposit_amount_usdc)
   const images = hackerHouse.images.length > 0
@@ -777,22 +779,18 @@ export default function HackerHouseDetailPage({
           {/* ── Added Hacker Homies ── */}
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold text-lg text-foreground">Added Hacker Homies</h2>
-              <span className="text-muted-foreground text-sm">{allParticipants.length} hackers</span>
+              <h2 className="font-display font-bold text-lg text-foreground">Hacker Homies</h2>
+              <span className="text-muted-foreground text-sm">{homies?.length ?? 0} hackers</span>
             </div>
 
             <div className="flex flex-col gap-3">
-              {allParticipants.map((p, i) => {
-                const archetype = ARCHETYPES.find((a) => a.id === p.archetype)
-                const isCreator = p.id === hackerHouse.creator.id
-                // Paid if they have an accepted application (DB) OR deposited on-chain (current user only)
-                const isCurrentUser = p.id === profile?.id
-                const hasPaidRecord =
-                  (hackerHouse.participants ?? []).some((pp) => pp.id === p.id) ||
-                  (isCurrentUser && !!builderSpot?.hasDeposited)
+              {(homies ?? []).map((h) => {
+                const archetype = ARCHETYPES.find((a) => a.id === h.archetype)
+                const isPaid = h.status === "paid"
+                const isRefunded = isPaid && (escrowCancelled || houseFinished)
                 return (
                   <div
-                    key={p.id ?? i}
+                    key={h.id}
                     className="flex items-center justify-between bg-card border border-border rounded-xl p-4"
                   >
                     <div className="flex items-center gap-3">
@@ -802,22 +800,22 @@ export default function HackerHouseDetailPage({
                           borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)",
                         }}
                       >
-                        {p.avatar_url ? (
+                        {h.avatar_url ? (
                           <img
-                            src={p.avatar_url}
-                            alt={p.handle ?? "participant"}
+                            src={h.avatar_url}
+                            alt={h.handle ?? "participant"}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-sm font-mono text-muted-foreground">
-                            {p.handle?.charAt(0)?.toUpperCase() ?? "?"}
+                            {h.handle?.charAt(0)?.toUpperCase() ?? "?"}
                           </span>
                         )}
                       </div>
                       <div>
                         <p className="font-medium text-foreground">
-                          @{p.handle ?? "anon"}
-                          {isCreator && (
+                          @{h.handle ?? "anon"}
+                          {h.is_creator && (
                             <span className="ml-2 text-xs text-primary font-mono">Host</span>
                           )}
                         </p>
@@ -829,11 +827,11 @@ export default function HackerHouseDetailPage({
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-0.5">
-                      {(escrowCancelled || houseFinished) && hasPaidRecord ? (
+                      {isRefunded ? (
                         <span className="flex items-center gap-1 text-xs font-mono text-strategist">
                           Refunded
                         </span>
-                      ) : hasPaidRecord ? (
+                      ) : isPaid ? (
                         <>
                           {hackerHouse.modality !== "free" && (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0) > 0 && (
                             <span className="text-sm font-bold text-foreground">
@@ -841,11 +839,11 @@ export default function HackerHouseDetailPage({
                             </span>
                           )}
                           <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
-                            <Check className="size-3" /> {hackerHouse.modality === "free" ? "Accepted" : "Paid"}
+                            <Check className="size-3" /> Paid
                           </span>
                         </>
                       ) : (
-                        <span className="text-xs font-mono text-muted-foreground">Pending</span>
+                        <span className="text-xs font-mono text-primary">Invited</span>
                       )}
                     </div>
                   </div>

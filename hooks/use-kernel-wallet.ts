@@ -44,8 +44,9 @@ export function useKernelWallet() {
         wallet = wallets.find(w => w.walletClientType === "privy") ?? null
       }
 
-      // 3. No embedded wallet found — try creating one (social/email login users)
-      if (!wallet) {
+      // 3. No embedded wallet found — try creating one ONLY for social/email login users
+      //    (users with no wallets at all). If external wallets exist, skip to step 4.
+      if (!wallet && wallets.length === 0) {
         try {
           const created = await createWallet()
           wallet = created as unknown as typeof wallets[0]

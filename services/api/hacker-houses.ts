@@ -10,6 +10,7 @@ import type {
   HackerHouseListResponse,
   Application,
   ApplicationWithApplicant,
+  Homie,
 } from "@/lib/types"
 import type {
   CreateHackerHouseInput,
@@ -185,6 +186,18 @@ export const useReviewHackerHouseApplication = (id: string) => {
   })
 }
 
+export const useHackerHouseHomies = (id: string) =>
+  useAppQuery<Homie[]>({
+    fetcher: async () => {
+      const { homies } = await genericAuthRequest<{ homies: Homie[] }>(
+        "get",
+        `/api/hacker-houses/${id}/homies`
+      )
+      return homies ?? []
+    },
+    queryKey: [queryKeys.hackerHouseHomies, id],
+  })
+
 export const useInviteStatus = (id: string, enabled = true) =>
   useAppQuery<{ invited: boolean }>({
     fetcher: async () => {
@@ -208,6 +221,7 @@ export const useInviteToHackerHouse = (id: string) => {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.notifications] })
         queryClient.invalidateQueries({ queryKey: [queryKeys.unreadNotificationCount] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouseHomies, id] })
       },
     },
   })

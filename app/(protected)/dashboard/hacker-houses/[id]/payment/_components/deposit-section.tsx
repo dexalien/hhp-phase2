@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Check, Coins, ExternalLink, Lock, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useDeposit } from "@/hooks/use-deposit"
+import { genericAuthRequest } from "@/lib/api-client"
 import { queryKeys } from "@/lib/query-keys"
 import { env } from "@/env"
 import type { useEscrowState } from "@/hooks/use-escrow-state"
@@ -36,9 +37,10 @@ interface Props {
   onDepositSuccess?: () => void
   kernelClient: unknown | null
   kernelAddress: `0x${string}` | null
+  hackerHouseId: string
 }
 
-export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, houseType, onConnect, onDepositSuccess, kernelClient, kernelAddress }: Props) {
+export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady, houseType, onConnect, onDepositSuccess, kernelClient, kernelAddress, hackerHouseId }: Props) {
   const queryClient = useQueryClient()
   const { deposit, isLoading, error } = useDeposit()
   const [deposited, setDeposited] = useState(false)
@@ -140,9 +142,16 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
       client: kernelClient as import("@zerodev/sdk/clients").KernelAccountClient,
     })
     if (!txHash) return // deposit failed — error shown by hook
+    // Sync DB: create accepted application so participants_count updates
+    try {
+      await genericAuthRequest("post", `/api/hacker-houses/${hackerHouseId}/join`, {})
+    } catch {
+      // Non-critical — on-chain deposit succeeded, DB sync can be retried
+    }
     queryClient.invalidateQueries({ queryKey: [queryKeys.escrowState] })
     queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouse] })
     queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouses] })
+    queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouseHomies] })
     setDeposited(true)
     onDepositSuccess?.()
   }

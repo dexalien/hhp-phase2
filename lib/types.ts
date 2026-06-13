@@ -188,6 +188,17 @@ export interface ApplicationWithApplicant extends Application {
   }
 }
 
+// Hacker House Homies
+export type HomieStatus = "paid" | "invited"
+export interface Homie {
+  id: string
+  handle: string | null
+  archetype: string | null
+  avatar_url: string | null
+  status: HomieStatus
+  is_creator: boolean
+}
+
 // Hacker Houses
 export type HouseModality = "free" | "paid" | "staking"
 export type HouseStatus = "open" | "full" | "active" | "finished"
