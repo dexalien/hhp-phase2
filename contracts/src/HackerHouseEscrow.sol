@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./SpotNFT.sol";
+import "./interfaces/IYieldAdapter.sol";
 
 /// @title HackerHouseEscrow — Trustless co-living coordination on Arbitrum
 /// @notice One contract per Hacker House. Builders deposit USDC, get a SpotNFT.
@@ -26,6 +27,7 @@ contract HackerHouseEscrow {
     HouseType public immutable houseType;
     YieldMode public immutable yieldMode;
     YieldDest public immutable yieldDest;
+    IYieldAdapter public immutable yieldAdapter; // address(0) wrapper if yieldMode == NONE
     SpotNFT public spotNFT;
     address public factory;
 
@@ -63,7 +65,8 @@ contract HackerHouseEscrow {
         uint256 _capacity,
         HouseType _houseType,
         YieldMode _yieldMode,
-        YieldDest _yieldDest
+        YieldDest _yieldDest,
+        address _yieldAdapter
     ) {
         require(_usdcToken != address(0), "Escrow: zero USDC address");
         require(_hostSafe != address(0), "Escrow: zero hostSafe");
@@ -71,6 +74,12 @@ contract HackerHouseEscrow {
         require(_depositAmount > 0, "Escrow: zero deposit");
         require(_withdrawDate > block.timestamp, "Escrow: withdrawDate in past");
         require(_capacity > 0, "Escrow: zero capacity");
+        if (_houseType == HouseType.STAKING || _houseType == HouseType.HYBRID) {
+            require(_yieldMode == YieldMode.GMX, "Escrow: STAKING/HYBRID requires GMX");
+        }
+        if (_yieldMode == YieldMode.GMX) {
+            require(_yieldAdapter != address(0), "Escrow: GMX requires adapter");
+        }
 
         usdcToken = IERC20(_usdcToken);
         hostSafe = _hostSafe;
@@ -81,6 +90,7 @@ contract HackerHouseEscrow {
         houseType = _houseType;
         yieldMode = _yieldMode;
         yieldDest = _yieldDest;
+        yieldAdapter = IYieldAdapter(_yieldAdapter);
         factory = msg.sender;
     }
 
@@ -105,6 +115,12 @@ contract HackerHouseEscrow {
         require(bookingId == nextBookingId, "Escrow: invalid bookingId");
 
         usdcToken.safeTransferFrom(msg.sender, address(this), depositAmount);
+
+        // Forward deposit to yield adapter if GMX mode
+        if (yieldMode == YieldMode.GMX) {
+            usdcToken.approve(address(yieldAdapter), depositAmount);
+            yieldAdapter.deposit(depositAmount);
+        }
 
         deposits[msg.sender] = depositAmount;
         hasDeposited[msg.sender] = true;
@@ -131,8 +147,31 @@ contract HackerHouseEscrow {
 
         released = true;
 
-        uint256 fee = totalDeposited * 50 / 10000; // 0.5%
+        // Withdraw principal + yield from adapter
+        uint256 yield_ = 0;
+        if (yieldMode == YieldMode.GMX) {
+            uint256 received = yieldAdapter.withdraw(totalDeposited);
+            yield_ = received > totalDeposited ? received - totalDeposited : 0;
+        }
+
+        uint256 fee = totalDeposited * 50 / 10000; // 0.5% on principal only
         uint256 hostAmount = totalDeposited - fee;
+
+        // Yield distribution
+        if (yield_ > 0) {
+            if (yieldDest == YieldDest.HOST) {
+                hostAmount += yield_;
+            } else {
+                // BUILDERS: distribute yield equally to all depositors
+                uint256 perBuilder = yield_ / nextBookingId;
+                for (uint256 i = 0; i < _depositors.length; i++) {
+                    address builder = _depositors[i];
+                    if (deposits[builder] > 0 && perBuilder > 0) {
+                        usdcToken.safeTransfer(builder, perBuilder);
+                    }
+                }
+            }
+        }
 
         usdcToken.safeTransfer(hostSafe, hostAmount);
         usdcToken.safeTransfer(HHP_TREASURY, fee);
@@ -149,6 +188,12 @@ contract HackerHouseEscrow {
         require(!released, "Escrow: already released");
 
         cancelled = true;
+
+        // Withdraw all from adapter before refunding
+        if (yieldMode == YieldMode.GMX && totalDeposited > 0) {
+            yieldAdapter.withdraw(totalDeposited);
+            // Any yield returned goes back to builders as part of their refund
+        }
 
         for (uint256 i = 0; i < _depositors.length; i++) {
             address builder = _depositors[i];
@@ -206,10 +251,11 @@ contract HackerHouseEscrow {
         emit SpotTransferred(bookingId, oldBuilder, newBuilder);
     }
 
-    // ── GMX Yield Stub ─────────────────────────────────────────────────
+    // ── GMX Yield ───────────────────────────────────────────────────────
 
-    /// @notice Pending yield from GMX strategy (stub — returns 0 until GMX is wired)
-    function pendingYield() external pure returns (uint256) {
-        return 0;
+    /// @notice Pending yield from yield adapter (time-based on testnet, GMX on mainnet)
+    function pendingYield() external view returns (uint256) {
+        if (yieldMode == YieldMode.NONE) return 0;
+        return yieldAdapter.pendingYield();
     }
 }

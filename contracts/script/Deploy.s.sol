@@ -14,6 +14,9 @@ import "../src/MockUSDC.sol";
 ///     --verify \
 ///     --verifier-url https://api-sepolia.arbiscan.io/api \
 ///     --etherscan-api-key $ARBISCAN_API_KEY
+///
+/// The Factory auto-deploys MockYieldAdapter for STAKING/HYBRID houses.
+/// No separate adapter deployment needed.
 contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
@@ -22,7 +25,7 @@ contract DeployScript is Script {
         MockUSDC usdc = new MockUSDC();
         console.log("MockUSDC deployed at:", address(usdc));
 
-        // 2. Deploy Factory
+        // 2. Deploy Factory (handles MockYieldAdapter deployment for staking houses)
         HackerHouseFactory factory = new HackerHouseFactory();
         console.log("HackerHouseFactory deployed at:", address(factory));
 
