@@ -10,7 +10,6 @@ import {
   useApplyToHackerHouse,
   useHackerHouse,
   useHackerHouseHomies,
-  useUpdateHackerHouse,
   useInviteStatus,
 } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
@@ -204,7 +203,6 @@ export default function HackerHouseDetailPage({
   const hasGmxYield = hackerHouse?.yield_mode === "gmx"
   const { data: yieldData } = usePendingYield(escrowAddress, hasGmxYield)
   const apply = useApplyToHackerHouse(id)
-  const updateHackerHouse = useUpdateHackerHouse(id)
   const { data: homies } = useHackerHouseHomies(id)
 
   // Must be called before any early returns (Rules of Hooks)
@@ -289,10 +287,6 @@ export default function HackerHouseDetailPage({
   }
   function prevImage() {
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
-  }
-
-  function handleStatusChange(newStatus: HouseStatus) {
-    updateHackerHouse.mutate({ status: newStatus })
   }
 
   function handleCopyLink() {
@@ -491,29 +485,6 @@ export default function HackerHouseDetailPage({
                 hackerHouseId={id}
                 participantIds={allParticipants.map((p) => p.id)}
               />
-              {(hackerHouse.status === "open" || hackerHouse.status === "full") && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-mono text-xs gap-1.5 rounded-full"
-                  onClick={() => handleStatusChange("active")}
-                  disabled={updateHackerHouse.isPending}
-                >
-                  <Sparkles className="size-3.5" />
-                  Mark as active
-                </Button>
-              )}
-              {hackerHouse.status === "active" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="font-mono text-xs gap-1.5 rounded-full"
-                  onClick={() => handleStatusChange("finished")}
-                  disabled={updateHackerHouse.isPending}
-                >
-                  Mark as finished
-                </Button>
-              )}
               {escrowAddress && (
                 <Link href={`/dashboard/hacker-houses/${id}/payment`}>
                   <Button variant="outline" size="sm" className="font-mono text-xs gap-1.5 rounded-full">
