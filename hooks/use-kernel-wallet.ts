@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { useWallets, useCreateWallet, getEmbeddedConnectedWallet } from "@privy-io/react-auth"
 import { createWalletClient, custom } from "viem"
 import { arbitrumSepolia } from "viem/chains"
@@ -32,35 +32,44 @@ export function useKernelWallet() {
   const { createWallet } = useCreateWallet()
   const [state, setState] = useState<KernelWalletState>({ status: "idle" })
 
+  // Ref to always access latest wallets inside async callbacks
+  const walletsRef = useRef(wallets)
+  useEffect(() => {
+    walletsRef.current = wallets
+  }, [wallets])
+
   const connect = useCallback(async () => {
     setState({ status: "loading" })
 
     try {
       // 1. Try embedded wallet first (email/social login users)
-      let wallet = getEmbeddedConnectedWallet(wallets)
+      let wallet = getEmbeddedConnectedWallet(walletsRef.current)
 
-      // 2. Also check for any privy-type wallet (embedded but maybe not yet "connected")
+      // 2. Also check for any privy-type wallet
       if (!wallet) {
-        wallet = wallets.find(w => w.walletClientType === "privy") ?? null
+        wallet = walletsRef.current.find(w => w.walletClientType === "privy") ?? null
       }
 
-      // 3. No embedded wallet found — try creating one ONLY for social/email login users
-      //    (users with no wallets at all). If external wallets exist, skip to step 4.
-      if (!wallet && wallets.length === 0) {
+      // 3. No embedded wallet — create one for social/email login users (no external wallets)
+      if (!wallet && walletsRef.current.length === 0) {
         try {
-          const created = await createWallet()
-          wallet = created as unknown as typeof wallets[0]
+          await createWallet()
         } catch {
-          // createWallet throws if embedded wallet already exists — retry
-          wallet = getEmbeddedConnectedWallet(wallets)
-            ?? wallets.find(w => w.walletClientType === "privy")
+          // createWallet throws if embedded wallet already exists — that's fine
+        }
+        // Wait for Privy to register the new wallet in the wallets array
+        for (let attempt = 0; attempt < 10; attempt++) {
+          await new Promise(r => setTimeout(r, 300))
+          wallet = getEmbeddedConnectedWallet(walletsRef.current)
+            ?? walletsRef.current.find(w => w.walletClientType === "privy")
             ?? null
+          if (wallet) break
         }
       }
 
       // 4. Last resort — use any external wallet (MetaMask, Phantom, etc.)
       if (!wallet) {
-        wallet = wallets[0] ?? null
+        wallet = walletsRef.current[0] ?? null
       }
 
       if (!wallet) {
@@ -90,7 +99,7 @@ export function useKernelWallet() {
       setState({ status: "error", error: message })
       return null
     }
-  }, [wallets, createWallet])
+  }, [createWallet])
 
   return {
     connect,
