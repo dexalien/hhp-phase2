@@ -15,14 +15,16 @@ import { useFriendships } from "@/services/api/friendships"
 import { useInviteToHackerHouse } from "@/services/api/hacker-houses"
 import { ARCHETYPES } from "@/lib/onboarding"
 import { cn } from "@/lib/utils"
-import type { FriendshipWithUser } from "@/lib/types"
+import type { FriendshipWithUser, Homie } from "@/lib/types"
 
 interface InviteBuilderModalProps {
   hackerHouseId: string
   participantIds: string[]
+  homies: Homie[]
+  capacity: number
 }
 
-export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuilderModalProps) {
+export function InviteBuilderModal({ hackerHouseId, participantIds, homies, capacity }: InviteBuilderModalProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [sentIds, setSentIds] = useState<Set<string>>(new Set())
@@ -30,7 +32,12 @@ export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuil
   const { data: friends, isLoading } = useFriendships("accepted")
   const invite = useInviteToHackerHouse(hackerHouseId)
 
-  // Filter friends: not already participants, match search
+  // IDs of builders already invited (from homies list)
+  const invitedIds = new Set(
+    homies.filter((h) => h.status === "invited").map((h) => h.id)
+  )
+
+  // Filter friends: not already paid participants, match search
   const availableFriends = (friends ?? []).filter((f: FriendshipWithUser) => {
     const u = f.other_user
     if (participantIds.includes(u.id)) return false
@@ -41,6 +48,13 @@ export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuil
       u.archetype?.toLowerCase().includes(q)
     )
   })
+
+  // Total occupied spots: paid + invited + just-sent in this session
+  const occupiedSpots = homies.length + sentIds.size -
+    // Subtract sentIds that were already in homies (avoid double-counting)
+    [...sentIds].filter((id) => homies.some((h) => h.id === id)).length
+  const spotsRemaining = capacity - occupiedSpots
+  const isFull = spotsRemaining <= 0
 
   async function handleInvite(builderId: string) {
     try {
@@ -62,6 +76,11 @@ export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuil
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-display">Invite from Network</DialogTitle>
+          <p className={cn("text-xs font-mono", isFull ? "text-red-400" : "text-muted-foreground")}>
+            {spotsRemaining > 0
+              ? `${spotsRemaining} spot${spotsRemaining === 1 ? "" : "s"} remaining`
+              : "All spots filled"}
+          </p>
         </DialogHeader>
 
         <div className="relative">
@@ -86,7 +105,8 @@ export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuil
           {availableFriends.map((f: FriendshipWithUser) => {
             const u = f.other_user
             const archetype = ARCHETYPES.find((a) => a.id === u.archetype)
-            const isSent = sentIds.has(u.id)
+            const alreadyInvited = invitedIds.has(u.id)
+            const isSent = alreadyInvited || sentIds.has(u.id)
 
             return (
               <div
@@ -120,13 +140,13 @@ export function InviteBuilderModal({ hackerHouseId, participantIds }: InviteBuil
                     "font-mono text-xs rounded-full gap-1 shrink-0",
                     isSent && "text-builder-archetype pointer-events-none",
                   )}
-                  disabled={isSent || invite.isPending}
+                  disabled={isSent || isFull || invite.isPending}
                   onClick={() => handleInvite(u.id)}
                 >
                   {isSent ? (
                     <>
                       <Check className="size-3" />
-                      Sent
+                      {alreadyInvited ? "Invited" : "Sent"}
                     </>
                   ) : (
                     <>

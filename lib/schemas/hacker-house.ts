@@ -14,7 +14,7 @@ export const createHackerHouseSchema = z.object({
   name: z.string().min(3, "Minimum 3 characters").max(80),
   modality: z.enum(HOUSE_MODALITIES, { required_error: "Select a modality" }),
   contract_type: z.enum(CONTRACT_TYPES).optional(),
-  price_per_person: z.number().min(0).optional(),
+  price_per_person: z.number().min(1, "Must be at least 1 USDC").optional(),
   sponsor_name: z.string().max(100).optional(),
   sponsor_community_id: z.string().uuid().optional(),
   region: z.string().optional(),

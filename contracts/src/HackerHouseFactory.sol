@@ -34,7 +34,8 @@ contract HackerHouseFactory {
         uint256 capacity,
         HackerHouseEscrow.HouseType houseType,
         HackerHouseEscrow.YieldMode yieldMode,
-        HackerHouseEscrow.YieldDest yieldDest
+        HackerHouseEscrow.YieldDest yieldDest,
+        string calldata houseName
     ) external returns (address escrowAddress) {
         // 1. Deploy MockYieldAdapter if needed (STAKING/HYBRID)
         address adapterAddr = address(0);
@@ -57,8 +58,8 @@ contract HackerHouseFactory {
             adapterAddr
         );
 
-        // 3. Deploy SpotNFT with escrow address (so only escrow can mint/burn)
-        SpotNFT spotNFT = new SpotNFT(address(escrow));
+        // 3. Deploy SpotNFT with escrow address and house name
+        SpotNFT spotNFT = new SpotNFT(address(escrow), houseName);
 
         // 4. Initialize escrow with SpotNFT address
         escrow.initialize(address(spotNFT));

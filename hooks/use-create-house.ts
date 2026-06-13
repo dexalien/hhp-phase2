@@ -43,6 +43,7 @@ const factoryCreateHouseAbi = [
       { name: "houseType", type: "uint8" },
       { name: "yieldMode", type: "uint8" },
       { name: "yieldDest", type: "uint8" },
+      { name: "houseName", type: "string" },
     ],
     outputs: [{ name: "escrowAddress", type: "address" }],
   },
@@ -66,6 +67,8 @@ export type CreateHouseParams = {
   houseType: HouseTypeValue
   yieldMode: YieldModeValue
   yieldDest: YieldDestValue
+  /** House name — embedded in SpotNFT metadata */
+  houseName: string
   /** Optional: pass a kernel client directly (avoids React state race condition) */
   client?: KernelAccountClient
 }
@@ -109,6 +112,7 @@ export function useCreateHouse() {
       houseType,
       yieldMode,
       yieldDest,
+      houseName,
       client: externalClient,
     }: CreateHouseParams) => {
       const activeClient = externalClient ?? kernelClient
@@ -137,6 +141,7 @@ export function useCreateHouse() {
                   houseType,
                   yieldMode,
                   yieldDest,
+                  houseName,
                 ],
               }),
               value: 0n,

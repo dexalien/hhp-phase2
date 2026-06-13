@@ -121,6 +121,7 @@ export default function EditHackerHousePage({
           submitLabel="Save changes →"
           submittingLabel="Saving..."
           editMode
+          contractDeployed={!!hackerHouse.escrow_address}
         />
       </div>
     </PageContainer>

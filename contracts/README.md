@@ -8,21 +8,23 @@ Trustless escrow system for coordinating co-living among builders. Deployed on A
 
 | Contract | Address | Purpose |
 |---|---|---|
-| **HackerHouseFactory** | `0x318a6205B49188e00a5306e30843A271156Ca8a7` | Deploys Escrow + SpotNFT pairs per house |
-| **MockUSDC** | `0x70705F3665A4134C5E82B0114887BA82bbFf1c92` | Testnet ERC-20 (6 decimals, public mint) |
+| **HackerHouseFactory** | `0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5` | Deploys Escrow + SpotNFT + YieldAdapter per house |
+| **MockUSDC** | `0x999579cc79400a1b59b119b6697664Dd9122Ad93` | Testnet ERC-20 (6 decimals, public mint) |
 
-Verify on Arbiscan: [Factory](https://sepolia.arbiscan.io/address/0x318a6205B49188e00a5306e30843A271156Ca8a7) · [MockUSDC](https://sepolia.arbiscan.io/address/0x70705F3665A4134C5E82B0114887BA82bbFf1c92)
+Verify on Arbiscan: [Factory](https://sepolia.arbiscan.io/address/0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5) · [MockUSDC](https://sepolia.arbiscan.io/address/0x999579cc79400a1b59b119b6697664Dd9122Ad93)
 
 ---
 
 ## Architecture
 
 ```
-HackerHouseFactory.createHouse(...)
+HackerHouseFactory.createHouse(9 args)
         │
+        ├── deploys MockYieldAdapter   (if STAKING — yield source)
         ├── deploys HackerHouseEscrow  (USDC escrow — one per house)
-        ├── deploys SpotNFT            (ERC-721 — booking confirmation)
-        └── escrow.initialize(spotNFT) (links them together)
+        ├── deploys SpotNFT(houseName) (ERC-721 — booking confirmation with house name in metadata)
+        ├── escrow.initialize(spotNFT) (links them together)
+        └── adapter.initialize(escrow) (if STAKING)
 ```
 
 Each Hacker House gets its own isolated escrow + NFT pair. If one house has issues, others are unaffected.
@@ -70,13 +72,13 @@ Host calls release()       │  cancelHouse() refunds 100% to each builder
 | `deposits(address)` | Amount deposited by a builder |
 | `spotOwner(uint256)` | Builder who holds a given spot |
 | `builderBooking(address)` | Spot number for a given builder |
-| `pendingYield()` | GMX yield accrued (stub — returns 0, wired in Phase 2) |
+| `pendingYield()` | GMX yield accrued — reads from YieldAdapter in real time |
 | `yieldDest()` | Yield destination: HOST or BUILDERS |
 
 **Enums:**
 
 ```solidity
-enum HouseType { CO_PAYMENT, STAKING, HYBRID }
+enum HouseType { CO_PAYMENT, STAKING, HYBRID } // HYBRID reserved — planned as future Staking sub-option
 enum YieldMode { NONE, GMX }
 enum YieldDest { HOST, BUILDERS }
 ```
@@ -93,11 +95,11 @@ event Refunded(address indexed builder, uint256 amount);
 
 ### SpotNFT.sol
 
-ERC-721 (OpenZeppelin). One per escrow. `tokenId` = `bookingId`. Only the escrow can mint and burn — prevents fake reservations.
+ERC-721 (OpenZeppelin). One per escrow. `tokenId` = `bookingId`. Only the escrow can mint and burn — prevents fake reservations. NFT metadata displays "House Name - Spot #1" (1-indexed token IDs). The `houseName` is passed from the Factory at deploy time.
 
 ### HackerHouseFactory.sol
 
-Single entry point for creating houses. Deploys escrow → SpotNFT → links them via `initialize()`. Tracks all houses per creator.
+Single entry point for creating houses. Deploys up to 4 contracts per house: MockYieldAdapter (if STAKING) → Escrow → SpotNFT(houseName) → initializes adapter and escrow. Tracks all houses per creator.
 
 ```solidity
 function createHouse(
@@ -108,11 +110,12 @@ function createHouse(
     uint256 capacity,
     HouseType houseType,
     YieldMode yieldMode,
-    YieldDest yieldDest
+    YieldDest yieldDest,
+    string calldata houseName
 ) external returns (address escrowAddress)
 ```
 
-Emits: `HouseCreated(address indexed creator, address escrowAddress, address spotNFTAddress)`
+Emits: `HouseCreated(address indexed creator, address escrowAddress, address spotNFTAddress, address yieldAdapterAddress)`
 
 ### MockUSDC.sol
 
@@ -180,7 +183,7 @@ The contracts are AA-agnostic — they only see `msg.sender`. Whether it's a Met
 
 ---
 
-## Test Suite (20/20 passing)
+## Test Suite (26/26 passing)
 
 ```bash
 forge test -v
@@ -206,8 +209,14 @@ forge test -v
 | `test_transfer_spot_wrong_owner` | Only spot holder can transfer |
 | `test_transfer_spot_to_existing_depositor` | Can't transfer to someone who already has a spot |
 | `test_factory_creates_house` | Factory deploys escrow + NFT pair correctly |
-| `test_pending_yield_returns_zero` | Yield stub returns 0 (GMX wired in Phase 2) |
+| `test_pending_yield_returns_zero` | pendingYield returns 0 for CO_PAYMENT |
 | `test_yield_dest_readable` | YieldDest enum readable from contract |
+| `test_staking_deposit_forwards_to_adapter` | USDC goes to adapter, escrow balance 0 |
+| `test_staking_pending_yield_accrues` | 500 USDC x 30 days ~ 4.11 USDC yield |
+| `test_staking_release_distributes_yield_to_host` | Host receives principal - fee + yield |
+| `test_staking_release_distributes_yield_to_builders` | Builders receive yield split equally |
+| `test_staking_cancel_withdraws_from_adapter` | Cancel recovers funds from adapter, 100% refund |
+| `test_staking_requires_gmx_yield_mode` | STAKING + NONE reverts |
 
 ---
 
@@ -237,7 +246,7 @@ forge verify-contract <ADDRESS> src/HackerHouseFactory.sol:HackerHouseFactory \
 
 | Phase | Scope |
 |---|---|
-| **Buildathon (now)** | Escrow + SpotNFT + Factory — deposit, release, cancel, transfer |
-| **Phase 2** | GMX YieldAdapter — locked deposits generate yield for host or builders |
+| **Buildathon (now)** | Escrow + SpotNFT + Factory + MockYieldAdapter — deposit, release, cancel, transfer, yield |
+| **Phase 2** | GMX V2 Strategy — replace MockYieldAdapter with real GMX Earn vaults on mainnet |
 | **Phase 3** | Gnosis Safe as hostSafe — M-of-N multisig for fund release |
 | **Mainnet** | Deploy to Arbitrum One with real USDC |

@@ -1,6 +1,6 @@
 # GMX Staking — Status Report
 
-> Snapshot taken 2026-06-12. Baseline before any YieldAdapter changes.
+> Last updated 2026-06-13. 3rd deploy — includes SpotNFT houseName, yield adapter system fully implemented.
 
 ---
 
@@ -8,11 +8,11 @@
 
 | Contract | Address | Notes |
 |---|---|---|
-| HackerHouseFactory | `0x318a6205B49188e00a5306e30843A271156Ca8a7` | Deploys escrow + SpotNFT pairs |
-| MockUSDC | `0x70705F3665A4134C5E82B0114887BA82bbFf1c92` | 6 decimals, public `mint()` |
+| HackerHouseFactory | `0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5` | Deploys Escrow + SpotNFT + YieldAdapter per house |
+| MockUSDC | `0x999579cc79400a1b59b119b6697664Dd9122Ad93` | 6 decimals, public `mint()` |
 | HHP Treasury | `0xd7ed1a1FC1295A0e7Ac16b5834F152F7B6306C0e` | Hardcoded in escrow, receives 0.5% fee |
 
-Deployed 2026-06-11 via `contracts/script/Deploy.s.sol`.
+3rd deploy (2026-06-12) via `contracts/script/Deploy.s.sol`.
 
 ---
 
@@ -21,7 +21,7 @@ Deployed 2026-06-11 via `contracts/script/Deploy.s.sol`.
 ### Enums
 
 ```solidity
-enum HouseType { CO_PAYMENT, STAKING, HYBRID }
+enum HouseType { CO_PAYMENT, STAKING, HYBRID } // HYBRID exists in contract but not exposed in UI — planned as future Staking sub-option
 enum YieldMode { NONE, GMX }
 enum YieldDest { HOST, BUILDERS }
 ```
@@ -36,7 +36,7 @@ enum YieldDest { HOST, BUILDERS }
 | `depositAmount` | uint256 | Fixed per-builder deposit (6 decimals) |
 | `withdrawDate` | uint256 | Earliest release timestamp |
 | `capacity` | uint256 | Max builders |
-| `houseType` | HouseType | CO_PAYMENT / STAKING / HYBRID |
+| `houseType` | HouseType | CO_PAYMENT / STAKING (HYBRID reserved for future) |
 | `yieldMode` | YieldMode | NONE / GMX |
 | `yieldDest` | YieldDest | HOST / BUILDERS |
 
@@ -64,7 +64,7 @@ enum YieldDest { HOST, BUILDERS }
 | `release()` | hostSafe only | **Working** | 125-141 |
 | `cancelHouse()` | creator only | **Working** | 146-170 |
 | `transferSpot(uint256 bookingId, address newBuilder)` | spot owner | **Working** | 175-207 |
-| `pendingYield()` | anyone (view) | **STUB — returns 0** | 212-214 |
+| `pendingYield()` | anyone (view) | **Working** — reads from YieldAdapter | 212-214 |
 
 ### Constructor Validations
 
@@ -77,7 +77,7 @@ enum YieldDest { HOST, BUILDERS }
 
 **Missing validations:**
 - Does NOT enforce `yieldMode == GMX` when `houseType == STAKING`
-- Does NOT validate `rentBps + stakeBps == 10000` for HYBRID
+- HYBRID enum exists in contract but not exposed in UI — planned as future Staking sub-option
 
 ### Fee Calculation (release)
 
@@ -88,34 +88,29 @@ hostAmount = totalDeposited - fee
 
 Fee goes to HHP_TREASURY. Host receives the rest.
 
-### The Stub
+### pendingYield — Now Live
 
-```solidity
-// Line 212-214
-function pendingYield() external pure returns (uint256) {
-    return 0;
-}
-```
-
-This is the only thing blocking yield. It needs to read from a YieldAdapter.
+`pendingYield()` now reads from the YieldAdapter. For STAKING houses, it returns real-time accrued yield calculated by MockYieldAdapter (10% APY time-based). For CO_PAYMENT houses (`yieldMode == NONE`), it returns 0.
 
 ---
 
 ## Smart Contract: HackerHouseFactory.sol (66 lines)
 
-Deploys `HackerHouseEscrow` + `SpotNFT` pair. Passes all params including `houseType`, `yieldMode`, `yieldDest` to escrow constructor.
+Deploys up to 4 contracts per house: MockYieldAdapter (if STAKING) → HackerHouseEscrow → SpotNFT(houseName) → initializes adapter and escrow. Now takes 9 args (added `string calldata houseName` as last parameter).
 
-Emits `HouseCreated(creator, escrowAddress, spotNFTAddress)`.
+Emits `HouseCreated(creator, escrowAddress, spotNFTAddress, yieldAdapterAddress)`.
 
 ---
 
-## Smart Contract: SpotNFT.sol (31 lines)
+## Smart Contract: SpotNFT.sol
 
 ERC-721 with `onlyEscrow` modifier. Minted on deposit, burned on cancel. One per house.
 
+**houseName feature:** The SpotNFT constructor now accepts `string memory _houseName` (passed from Factory). NFT metadata (`tokenURI`) shows `"House Name - Spot #1"` with 1-indexed token IDs for human readability. The house name also appears in the NFT description and as a `"House"` trait attribute.
+
 ---
 
-## Test Suite (20 tests, all passing)
+## Test Suite (26 tests, all passing)
 
 | Test | What it validates |
 |---|---|
@@ -137,8 +132,14 @@ ERC-721 with `onlyEscrow` modifier. Minted on deposit, burned on cancel. One per
 | `test_transfer_spot_wrong_owner` | Only spot owner |
 | `test_transfer_spot_to_existing_depositor` | No duplicate spots |
 | `test_factory_creates_house` | Factory deploys pair correctly |
-| `test_pending_yield_returns_zero` | Stub returns 0 |
+| `test_pending_yield_returns_zero` | pendingYield returns 0 for CO_PAYMENT |
 | `test_yield_dest_readable` | YieldDest enum accessible |
+| `test_staking_deposit_forwards_to_adapter` | USDC goes to adapter, escrow balance 0 |
+| `test_staking_pending_yield_accrues` | 500 USDC x 30 days ~ 4.11 USDC yield |
+| `test_staking_release_distributes_yield_to_host` | Host receives principal - fee + yield |
+| `test_staking_release_distributes_yield_to_builders` | Builders receive yield split equally |
+| `test_staking_cancel_withdraws_from_adapter` | Cancel recovers funds from adapter, 100% refund |
+| `test_staking_requires_gmx_yield_mode` | STAKING + NONE reverts |
 
 ---
 
@@ -190,7 +191,7 @@ ZeroDev Kernel smart account creation from Privy wallet (embedded or external).
 ## Create House Form — Yield Fields Ready
 
 Step: Payment in `create-hacker-house-form.tsx`:
-- `yield_mode` radio: "None" / "GMX" — shown only for STAKING/HYBRID house types
+- `yield_mode` radio: "GMX" — shown only for STAKING house types
 - `yield_dest` radio: "To host" / "To builders" — shown only when `yield_mode === 'gmx'`
 - Defaults: `yield_mode: "none"`, `yield_dest: "host"`
 
@@ -210,7 +211,7 @@ escrow_address: string | null
 host_safe: string | null
 deposit_amount_usdc: number | null
 withdraw_date: string | null
-house_type: 'co_payment' | 'staking' | 'hybrid' | null
+house_type: 'co_payment' | 'staking' | null  // 'hybrid' reserved for future
 yield_mode: 'none' | 'gmx' | null
 yield_dest: 'host' | 'builders' | null
 ```
@@ -229,14 +230,10 @@ All fields are stored in Supabase `hacker_houses` table. Migration applied.
 6. Detail page shows "Live Yield" section
 7. Release/cancel work correctly with fee split
 
-## What Does NOT Work
+## What Does NOT Work (Remaining)
 
-1. **`pendingYield()` returns 0** — no real yield accruing
-2. **Deposits sit in escrow** — USDC not forwarded to any yield protocol
-3. **No YieldAdapter contract** — interface exists in docs, not in code
-4. **No GMXStrategy** — no contract to interact with GMX
-5. **Yield distribution** — no contract logic for sending yield to builders vs host
-6. **HYBRID validation** — constructor doesn't enforce `rentBps + stakeBps == 10000`
+1. **No GMXStrategy** — MockYieldAdapter works on testnet; real GMX V2 adapter needed for mainnet
+2. **Hybrid mode** — planned as future Staking sub-option (host receives deposit, yield distributed to builders at checkout)
 
 ---
 

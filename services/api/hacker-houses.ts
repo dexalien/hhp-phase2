@@ -227,6 +227,25 @@ export const useInviteToHackerHouse = (id: string) => {
   })
 }
 
+export const useRevokeHackerHouseInvite = (id: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ builder_id: string }, { revoked: boolean }>({
+    fetcher: async (input) => {
+      return genericAuthRequest<{ revoked: boolean }>(
+        "delete",
+        `/api/hacker-houses/${id}/invite`,
+        input,
+      )
+    },
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.notifications] })
+        queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouseHomies, id] })
+      },
+    },
+  })
+}
+
 export const useUploadHackerHouseImage = () =>
   useAppMutation<File, { image_url: string }>({
     fetcher: async (file: File) => {

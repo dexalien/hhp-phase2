@@ -120,3 +120,72 @@ export async function POST(
 
   return NextResponse.json({ invited: true }, { status: 201 })
 }
+
+/**
+ * DELETE /api/hacker-houses/[id]/invite
+ * Body: { builder_id: string }
+ *
+ * Only the house creator can revoke invitations.
+ * Deletes the "hacker_house_invite" notification for the target builder.
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const privyUserId = await getPrivyUserId(req)
+  if (!privyUserId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+  }
+
+  const { id: hackerHouseId } = await params
+
+  const body: unknown = await req.json()
+  const builderId =
+    typeof body === "object" && body !== null && "builder_id" in body
+      ? (body as { builder_id: string }).builder_id
+      : null
+
+  if (!builderId || typeof builderId !== "string") {
+    return NextResponse.json({ message: "builder_id is required" }, { status: 400 })
+  }
+
+  // Verify caller is the creator
+  const { data: user } = await supabaseServer
+    .from("users")
+    .select("id")
+    .eq("privy_id", privyUserId)
+    .single()
+
+  if (!user) {
+    return NextResponse.json({ message: "User not found" }, { status: 404 })
+  }
+
+  const { data: house } = await supabaseServer
+    .from("hacker_houses")
+    .select("id, creator_id")
+    .eq("id", hackerHouseId)
+    .single()
+
+  if (!house) {
+    return NextResponse.json({ message: "Hacker House not found" }, { status: 404 })
+  }
+
+  if (house.creator_id !== user.id) {
+    return NextResponse.json({ message: "Only the host can revoke invitations" }, { status: 403 })
+  }
+
+  // Delete the invite notification
+  const { error } = await supabaseServer
+    .from("notifications")
+    .delete()
+    .eq("user_id", builderId)
+    .eq("type", "hacker_house_invite")
+    .eq("link", `/dashboard/hacker-houses/${hackerHouseId}`)
+
+  if (error) {
+    console.error("[DELETE /api/hacker-houses/:id/invite]", error)
+    return NextResponse.json({ message: "Database error" }, { status: 500 })
+  }
+
+  return NextResponse.json({ revoked: true })
+}

@@ -40,7 +40,8 @@ contract HackerHouseEscrowTest is Test {
             CAPACITY,
             HackerHouseEscrow.HouseType.CO_PAYMENT,
             HackerHouseEscrow.YieldMode.NONE,
-            HackerHouseEscrow.YieldDest.HOST
+            HackerHouseEscrow.YieldDest.HOST,
+            "Test House"
         );
         escrow = HackerHouseEscrow(escrowAddr);
         spotNFT = escrow.spotNFT();
@@ -307,7 +308,8 @@ contract HackerHouseEscrowTest is Test {
             2,
             HackerHouseEscrow.HouseType.CO_PAYMENT,
             HackerHouseEscrow.YieldMode.NONE,
-            HackerHouseEscrow.YieldDest.HOST
+            HackerHouseEscrow.YieldDest.HOST,
+            "Builder1 House"
         );
 
         assertFalse(newEscrow == address(0));
@@ -489,7 +491,8 @@ contract HackerHouseEscrowTest is Test {
             CAPACITY,
             HackerHouseEscrow.HouseType.STAKING,
             HackerHouseEscrow.YieldMode.NONE,
-            HackerHouseEscrow.YieldDest.HOST
+            HackerHouseEscrow.YieldDest.HOST,
+            "Staking Fail House"
         );
     }
 
@@ -516,7 +519,8 @@ contract HackerHouseEscrowTest is Test {
             CAPACITY,
             HackerHouseEscrow.HouseType.STAKING,
             HackerHouseEscrow.YieldMode.GMX,
-            dest
+            dest,
+            "Staking House"
         );
         stakingEscrow = HackerHouseEscrow(escrowAddr);
         adapter = MockYieldAdapter(address(stakingEscrow.yieldAdapter()));

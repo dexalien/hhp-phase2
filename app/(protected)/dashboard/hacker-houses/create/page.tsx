@@ -39,6 +39,7 @@ const HOUSE_CREATED_ABI = [
       { name: "creator", type: "address", indexed: true },
       { name: "escrowAddress", type: "address", indexed: false },
       { name: "spotNFTAddress", type: "address", indexed: false },
+      { name: "yieldAdapterAddress", type: "address", indexed: false },
     ],
   },
 ] as const
@@ -101,6 +102,7 @@ export default function CreateHackerHousePage() {
           houseType: HOUSE_TYPE_MAP[values.house_type ?? "co_payment"],
           yieldMode: YIELD_MODE_MAP[values.yield_mode ?? "none"],
           yieldDest: YIELD_DEST_MAP[values.yield_dest ?? "host"],
+          houseName: values.title || "Hacker House",
           client,
         })
 
@@ -136,7 +138,7 @@ export default function CreateHackerHousePage() {
               `/api/hacker-houses/${result.id}`,
               { escrow_address: escrowAddress },
             )
-            toast.success("Contract deployed!", { id: "deploy" })
+            toast.success("House created & contract deployed!", { id: "deploy" })
           } else {
             toast.error("Contract deployed but address not found", { id: "deploy" })
           }
@@ -146,9 +148,9 @@ export default function CreateHackerHousePage() {
         toast.error(`Contract deploy failed: ${msg}`, { id: "deploy" })
         // Still navigate — the DB record was created; creator can retry deploy later
       }
+    } else {
+      toast.success("Hacker House created!")
     }
-
-    toast.success("Hacker House created!")
     router.push(`/dashboard/hacker-houses/${result.id}`)
   }
 

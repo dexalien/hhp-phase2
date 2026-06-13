@@ -11,6 +11,7 @@ import {
   useHackerHouse,
   useHackerHouseHomies,
   useInviteStatus,
+  useRevokeHackerHouseInvite,
 } from "@/services/api/hacker-houses"
 import { useProfile } from "@/services/api/profile"
 import { useKernelWallet } from "@/hooks/use-kernel-wallet"
@@ -204,6 +205,7 @@ export default function HackerHouseDetailPage({
   const { data: yieldData } = usePendingYield(escrowAddress, hasGmxYield)
   const apply = useApplyToHackerHouse(id)
   const { data: homies } = useHackerHouseHomies(id)
+  const revokeInvite = useRevokeHackerHouseInvite(id)
 
   // Must be called before any early returns (Rules of Hooks)
   const isInviteOnly = hackerHouse?.application_type === "invite_only"
@@ -260,6 +262,7 @@ export default function HackerHouseDetailPage({
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <Lock className="size-10 text-amber-400" />
         <p className="text-foreground font-display font-bold text-xl">Invite Only</p>
+        <img src="/cypher-kitten/cat-crying.gif" alt="Crying kitten" className="size-32" />
         <p className="text-muted-foreground text-sm font-mono text-center max-w-xs">
           This Hacker House is invite only. You need an invitation from the host to view details.
         </p>
@@ -505,6 +508,8 @@ export default function HackerHouseDetailPage({
               <InviteBuilderModal
                 hackerHouseId={id}
                 participantIds={allParticipants.map((p) => p.id)}
+                homies={homies ?? []}
+                capacity={hackerHouse.capacity}
               />
               {escrowAddress && (
                 <Link href={`/dashboard/hacker-houses/${id}/payment`}>
@@ -818,24 +823,44 @@ export default function HackerHouseDetailPage({
                         )}
                       </div>
                     </div>
-                    <div className="text-right flex flex-col items-end gap-0.5">
-                      {isRefunded ? (
-                        <span className="flex items-center gap-1 text-xs font-mono text-strategist">
-                          Refunded
-                        </span>
-                      ) : isPaid ? (
-                        <>
-                          {hackerHouse.modality !== "free" && (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0) > 0 && (
-                            <span className="text-sm font-bold text-foreground">
-                              {hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person} USDC
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
-                            <Check className="size-3" /> Paid
+                    <div className="flex items-center gap-2">
+                      <div className="text-right flex flex-col items-end gap-0.5">
+                        {isRefunded ? (
+                          <span className="flex items-center gap-1 text-xs font-mono text-strategist">
+                            Refunded
                           </span>
-                        </>
-                      ) : (
-                        <span className="text-xs font-mono text-primary">Invited</span>
+                        ) : isPaid ? (
+                          <>
+                            {hackerHouse.modality !== "free" && (hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person ?? 0) > 0 && (
+                              <span className="text-sm font-bold text-foreground">
+                                {hackerHouse.deposit_amount_usdc ?? hackerHouse.price_per_person} USDC
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 text-xs font-mono text-[#6EE76E]">
+                              <Check className="size-3" /> Paid
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs font-mono text-primary">Invited</span>
+                        )}
+                      </div>
+                      {isOwner && !h.is_creator && (
+                        <button
+                          type="button"
+                          title={isPaid ? "Cannot revoke — builder already paid" : "Revoke invitation"}
+                          disabled={isPaid || revokeInvite.isPending}
+                          onClick={() => {
+                            if (!isPaid) revokeInvite.mutate({ builder_id: h.id })
+                          }}
+                          className={cn(
+                            "size-7 rounded-full flex items-center justify-center border transition-all shrink-0",
+                            isPaid
+                              ? "border-border text-muted-foreground/30 cursor-not-allowed"
+                              : "border-border text-muted-foreground hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10 cursor-pointer",
+                          )}
+                        >
+                          <X className="size-3.5" />
+                        </button>
                       )}
                     </div>
                   </div>

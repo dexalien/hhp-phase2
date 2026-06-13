@@ -11,9 +11,9 @@
 Frontend (1 tx)
     │
     ▼
-HackerHouseFactory.createHouse(8 args)
+HackerHouseFactory.createHouse(9 args)
     │
-    ├─ if STAKING/HYBRID ──► new MockYieldAdapter(usdc)
+    ├─ if STAKING ──► new MockYieldAdapter(usdc)
     │
     ├─ new HackerHouseEscrow(... adapterAddr)
     │
@@ -153,12 +153,13 @@ return yieldAdapter.pendingYield();
 
 ### HackerHouseFactory (modificaciones)
 
-- Removido: parametro `address yieldAdapter` (era el 9no argumento)
+- Removido: parametro `address yieldAdapter` (era el 9no argumento del deploy manual)
 - Agregado: auto-deploy de `MockYieldAdapter` cuando `yieldMode == GMX`
-- El Factory ahora deploya hasta 4 contratos en una tx: Adapter → Escrow → SpotNFT → initialize ambos
+- Agregado: `string calldata houseName` como 9no argumento — se pasa al constructor de SpotNFT para que el NFT metadata muestre "House Name - Spot #1"
+- El Factory ahora deploya hasta 4 contratos en una tx: Adapter → Escrow → SpotNFT(houseName) → initialize ambos
 - Evento actualizado: `HouseCreated` ahora incluye `yieldAdapterAddress`
 
-**Signature nueva (8 args):**
+**Signature nueva (9 args):**
 ```solidity
 function createHouse(
     address usdcToken,
@@ -168,7 +169,8 @@ function createHouse(
     uint256 capacity,
     HouseType houseType,
     YieldMode yieldMode,
-    YieldDest yieldDest
+    YieldDest yieldDest,
+    string calldata houseName
 ) external returns (address escrowAddress)
 ```
 
@@ -178,19 +180,20 @@ function createHouse(
 
 ### Cero cambios necesarios
 
-El ABI del frontend ya tenia 8 argumentos (nunca incluyo `yieldAdapter`). La firma coincide exactamente con el nuevo Factory.
+El ABI del frontend ahora incluye 9 argumentos (agregado `houseName` como ultimo parametro). La firma coincide exactamente con el Factory actual.
 
 ```typescript
-// hooks/use-create-house.ts — ya estaba asi
+// hooks/use-create-house.ts
 args: [
     env.NEXT_PUBLIC_USDC_ADDRESS,
     hostSafe,
     depositAmount,
     withdrawDate,
     capacity,
-    houseType,   // 0=CO_PAYMENT, 1=STAKING, 2=HYBRID
+    houseType,   // 0=CO_PAYMENT, 1=STAKING (Hybrid planned as future Staking sub-option)
     yieldMode,   // 0=NONE, 1=GMX
     yieldDest,   // 0=HOST, 1=BUILDERS
+    houseName,   // string — passed to SpotNFT for metadata
 ]
 ```
 
@@ -206,7 +209,7 @@ El hook `usePendingYield` ya existia y llamaba a `pendingYield()` en el escrow. 
 
 | Condicion | Revert message |
 |---|---|
-| STAKING o HYBRID sin `yieldMode = GMX` | `Escrow: STAKING/HYBRID requires GMX` |
+| STAKING sin `yieldMode = GMX` | `Escrow: STAKING requires GMX` |
 | `yieldMode = GMX` sin adapter | `Escrow: GMX requires adapter` |
 | MockYieldAdapter ya inicializado | `MockYieldAdapter: already initialized` |
 | Caller no es escrow (deposit/withdraw) | `MockYieldAdapter: not escrow` |
