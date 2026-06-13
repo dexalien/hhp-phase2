@@ -252,6 +252,27 @@ export default function HackerHouseDetailPage({
   }
 
   const isOwner = profile?.id === hackerHouse.creator.id
+
+  // Gate: invite_only houses are only visible to the owner, invited, or paid builders
+  const isParticipant = (hackerHouse.participants ?? []).some((p) => p.id === profile?.id)
+  if (isInviteOnly && !isOwner && !isParticipant && inviteStatus !== undefined && !inviteStatus?.invited) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <Lock className="size-10 text-amber-400" />
+        <p className="text-foreground font-display font-bold text-xl">Invite Only</p>
+        <p className="text-muted-foreground text-sm font-mono text-center max-w-xs">
+          This Hacker House is invite only. You need an invitation from the host to view details.
+        </p>
+        <Link
+          href="/dashboard/hacker-houses"
+          className="text-primary font-mono text-sm hover:underline"
+        >
+          ← Back to Hacker Houses
+        </Link>
+      </div>
+    )
+  }
+
   // hasPaid: DB participants (old flow) OR on-chain escrow deposit (web3 flow)
   // If escrow was cancelled or released, deposits were refunded/released — builder no longer "has paid"
   // Also check DB status as fallback when on-chain reads are rate-limited

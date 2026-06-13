@@ -154,7 +154,7 @@ export function HackerHouseCard({ hackerHouse, currentUserId }: HackerHouseCardP
           {hackerHouse.application_type === "invite_only" && (
             <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-sm font-mono whitespace-nowrap bg-black/70 text-amber-400 backdrop-blur-sm border border-amber-400/30">
               <Lock className="size-2.5" />
-              Invite
+              Invite Only
             </span>
           )}
           {hackerHouse.yield_mode === "gmx" && (
