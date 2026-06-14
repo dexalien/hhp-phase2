@@ -15,7 +15,7 @@ Plataforma para **builders**: matching, Hacker Houses (co-living con escrow on-c
 
 - **Deploy:** Vercel, branch **`main`**. Build verde al 2026-06-14 (commit `f8bdfdd`).
 - **Repo:** `https://github.com/Hacker-House-Protocol/openhouse-hhp.git` (origin).
-- **Cuenta GitHub activa:** `dexalien` (caroldelaquintana@gmail.com). El cleanup de `hamzaelmanar` ya está hecho — no hace falta avisar la cuenta antes de pushear.
+- **Cuenta GitHub activa:** `dexalien` (cuenta del owner). El cleanup de la cuenta vieja ya está hecho — no hace falta avisar la cuenta antes de pushear.
 
 ### Gitflow (cascada obligatoria)
 ```
@@ -57,7 +57,7 @@ Nunca usar `process.env` directo en cliente — siempre `env` de `env.ts`. `env.
 
 ## 6. Supabase
 
-- **Project id (MCP):** `znigxxyicqfuzdtdqdin` (nombre "hhp"). Solo DB.
+- **Project (MCP):** Supabase project "hhp". El project ref / URL están en `NEXT_PUBLIC_SUPABASE_URL` (`.env.local` / Vercel env) y en el dashboard de Supabase — no se hardcodean acá. Solo DB.
 - Migraciones en `supabase/migrations/` (orden por nombre). Última: `20260614_011_wallet_verification.sql` (columnas `verified` / `verification_method` / `verified_at` en `user_wallets`, backfill `legacy`, índice `lower(wallet_address)` para anti-reuso).
 - Cliente client-side **nunca** llama Supabase directo → siempre vía `app/api/*`.
 
