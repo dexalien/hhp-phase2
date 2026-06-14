@@ -20,6 +20,7 @@ import { EscrowStatus } from "./_components/escrow-status"
 import { DepositSection } from "./_components/deposit-section"
 import { HostActions } from "./_components/host-actions"
 import { YieldSection } from "./_components/yield-section"
+import { DeployEscrowPanel } from "./_components/deploy-escrow-panel"
 import { parseLocalDate } from "@/lib/utils"
 
 function ConfettiPiece({ index }: { index: number }) {
@@ -128,9 +129,13 @@ export default function PaymentPage({
             </Link>
             <h1 className="font-display font-bold text-xl text-foreground">Payment</h1>
           </div>
-          <div className="bg-card border border-border rounded-xl p-6 text-center text-muted-foreground text-sm">
-            Escrow contract not deployed yet. The host needs to complete house setup.
-          </div>
+          {isOwner ? (
+            <DeployEscrowPanel house={house} />
+          ) : (
+            <div className="bg-card border border-border rounded-xl p-6 text-center text-muted-foreground text-sm">
+              Escrow contract not deployed yet. The host needs to complete house setup.
+            </div>
+          )}
         </div>
       </PageContainer>
     )
