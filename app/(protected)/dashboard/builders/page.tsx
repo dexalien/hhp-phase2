@@ -51,11 +51,11 @@ function SkillIconRow({ skills, max = 4 }: { skills: string[]; max?: number }) {
         return (
           <Tooltip key={skill}>
             <TooltipTrigger asChild>
-              <div className="size-5 rounded-md bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
+              <div className="size-8 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
                 {def.emoji ? (
-                  <span className="text-[10px] leading-none">{def.icon}</span>
+                  <span className="text-sm leading-none">{def.icon}</span>
                 ) : (
-                  <img src={def.icon} alt={def.label} className="size-3.5 object-contain" />
+                  <img src={def.icon} alt={def.label} className="size-5.5 object-contain" />
                 )}
               </div>
             </TooltipTrigger>

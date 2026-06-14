@@ -17,23 +17,25 @@ import { BackButton } from "../../../_components/back-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { ARCHETYPES } from "@/lib/onboarding"
+import { resolveSkill } from "@/lib/skill-icons"
 import type { BuilderListParams, UserProfile } from "@/lib/types"
 
 /* ── Builder Card ── */
 function BuilderCard({
   builder,
   currentUserId,
-  badge,
 }: {
   builder: UserProfile
   currentUserId?: string
-  badge?: string
 }) {
   const archetype = ARCHETYPES.find((a) => a.id === builder.archetype)
   const displayName = builder.handle ? `@${builder.handle}` : "Anonymous"
-  const firstSkill = (builder.skills ?? [])[0] ?? null
+  const allSkills = [
+    ...new Set([...(builder.talent_tags ?? []), ...(builder.skills ?? [])]),
+  ]
   const isOwnCard = currentUserId === builder.id
 
   return (
@@ -41,9 +43,9 @@ function BuilderCard({
       href={builder.handle ? `/dashboard/builders/${builder.handle}` : "#"}
       className="bg-card border border-border rounded-lg p-4 hover:border-primary transition-colors"
     >
-      <div className="flex flex-col items-center text-center">
+      <div className="flex flex-col items-center text-center gap-2">
         <div
-          className="w-12 h-12 rounded-full border-[3px] overflow-hidden mb-3"
+          className="w-12 h-12 rounded-full border-[3px] overflow-hidden"
           style={{ borderColor: archetype ? `var(${archetype.colorVar})` : "var(--border)" }}
         >
           {builder.avatar_url ? (
@@ -59,38 +61,42 @@ function BuilderCard({
             />
           )}
         </div>
-        <div className="flex items-center gap-1 mb-1">
+        <div className="flex items-center gap-1">
           <h3 className="font-display font-bold text-foreground text-sm">{displayName}</h3>
           {builder.is_verified && (
-            <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+            <div className="w-4 h-4 bg-primary rounded-full flex items-center justify-center shrink-0">
               <Check className="w-2.5 h-2.5 text-primary-foreground" />
             </div>
           )}
         </div>
-        {archetype && (
-          <span
-            className="px-2 py-0.5 rounded text-xs mb-2"
-            style={{
-              backgroundColor: `color-mix(in oklch, var(${archetype.colorVar}) 20%, transparent)`,
-              color: `var(${archetype.colorVar})`,
-            }}
-          >
-            {archetype.label}
-          </span>
-        )}
-        {firstSkill && <p className="text-muted-foreground text-xs mb-1">{firstSkill}</p>}
-        {builder.onchain_since && (
-          <p className="font-mono text-muted-foreground text-xs">
-            Onchain since {builder.onchain_since}
-          </p>
-        )}
-        {badge && (
-          <span className="mt-2 px-2 py-0.5 bg-primary/20 text-primary text-xs rounded">
-            {badge}
-          </span>
+        {allSkills.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            {allSkills.slice(0, 4).map((skill) => {
+              const def = resolveSkill(skill)
+              return (
+                <Tooltip key={skill}>
+                  <TooltipTrigger asChild>
+                    <div className="size-8 rounded-lg bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
+                      {def.emoji ? (
+                        <span className="text-sm leading-none">{def.icon}</span>
+                      ) : (
+                        <img src={def.icon} alt={def.label} className="size-5.5 object-contain" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-[10px] font-mono">{def.label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })}
+            {allSkills.length > 4 && (
+              <span className="text-[10px] font-mono text-muted-foreground tabular-nums">+{allSkills.length - 4}</span>
+            )}
+          </div>
         )}
         {!isOwnCard && (
-          <div className="mt-3 w-full" onClick={(e) => e.preventDefault()}>
+          <div className="w-full" onClick={(e) => e.preventDefault()}>
             <ConnectButton targetUserId={builder.id} />
           </div>
         )}
