@@ -14,19 +14,24 @@ export const useWallets = () =>
     queryKey: [queryKeys.wallets],
   })
 
-interface AddWalletInput {
-  wallet_address: string
-  label?: string
+interface SyncLinkedResult {
+  wallets: UserWallet[]
+  added: string[]
+  skipped: { address: string; reason: string }[]
 }
 
-export const useAddWallet = () => {
+/**
+ * Reconcile Privy-verified linked wallets into user_wallets. Call this after a
+ * successful Privy linkWallet — the server reads ownership from Privy's
+ * linked_accounts, so no address is ever trusted from the client.
+ */
+export const useSyncLinkedWallets = () => {
   const queryClient = useQueryClient()
-  return useAppMutation<AddWalletInput, { wallet: UserWallet }>({
-    fetcher: async (input) => {
-      return await genericAuthRequest<{ wallet: UserWallet }>(
+  return useAppMutation<void, SyncLinkedResult>({
+    fetcher: async () => {
+      return await genericAuthRequest<SyncLinkedResult>(
         "post",
-        "/api/wallets",
-        input,
+        "/api/wallets/sync-linked",
       )
     },
     options: {

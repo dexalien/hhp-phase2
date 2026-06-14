@@ -15,11 +15,21 @@ interface ProfileBannerProps {
 export function ProfileBanner({ profile, isOwner }: ProfileBannerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const uploadBanner = useUploadBanner()
-  const canEdit = isOwner && profile.is_verified
+  // Anyone can upload a static banner. Animated GIFs are a verified-only perk.
+  const canEdit = isOwner
+  const canUploadGif = profile.is_verified
+  const acceptTypes = canUploadGif
+    ? "image/jpeg,image/png,image/webp,image/gif,image/avif"
+    : "image/jpeg,image/png,image/webp,image/avif"
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.type === "image/gif" && !canUploadGif) {
+      toast.error("Get verified to upload animated GIF banners")
+      if (inputRef.current) inputRef.current.value = ""
+      return
+    }
     try {
       await uploadBanner.mutateAsync(file)
       toast.success("Banner updated")
@@ -55,7 +65,7 @@ export function ProfileBanner({ profile, isOwner }: ProfileBannerProps) {
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+            accept={acceptTypes}
             onChange={handleFile}
             className="hidden"
           />
@@ -80,11 +90,11 @@ export function ProfileBanner({ profile, isOwner }: ProfileBannerProps) {
         </>
       )}
 
-      {/* Not verified hint */}
+      {/* Verified-only GIF hint */}
       {isOwner && !profile.is_verified && !profile.banner_url && (
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="text-[10px] font-mono text-muted-foreground/60">
-            Get verified to upload a banner
+            Upload an image banner — get verified to use animated GIFs
           </p>
         </div>
       )}

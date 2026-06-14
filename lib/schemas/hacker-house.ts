@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { ARCHETYPE_IDS } from "@/lib/onboarding"
 
-const APPLICATION_TYPES = ["open", "invite_only", "curated"] as const
+const APPLICATION_TYPES = ["open", "gated", "invite_only", "curated"] as const
 const EVENT_TIMINGS = ["before", "during", "after"] as const
 
 const HOUSE_MODALITIES = ["free", "paid", "staking"] as const
@@ -11,52 +11,23 @@ const YIELD_MODES = ["none", "gmx"] as const
 const YIELD_DESTS = ["host", "builders"] as const
 
 // ── Gate schemas ──────────────────────────────────────────────────────────
-const GATE_TYPES = ["talent_skills", "poap", "nft", "human_passport", "world_id", "blockchain_activity"] as const
-
-const talentSkillsConfigSchema = z.object({
-  required_skills: z.array(z.string()).min(1),
-  min_count: z.number().int().min(1).default(1),
-})
+const GATE_TYPES = ["poap", "skill"] as const
 
 const poapConfigSchema = z.object({
-  mode: z.enum(["count", "specific"]),
-  min_count: z.number().int().min(1).optional(),
-  event_ids: z.array(z.string()).optional(),
+  mode: z.literal("specific"),
+  event_ids: z.array(z.string()).min(1, "Select at least one POAP"),
+  poap_names: z.array(z.string()).optional(),
+  poap_images: z.array(z.string()).optional(),
 })
 
-const nftConfigSchema = z.object({
-  contracts: z.array(z.object({
-    address: z.string(),
-    chain_id: z.number().int(),
-    name: z.string(),
-  })).min(1),
+const skillConfigSchema = z.object({
+  skills: z.array(z.string()).min(1, "Select at least one skill"),
 })
 
-const humanPassportConfigSchema = z.object({
-  required: z.literal(true),
-})
-
-const worldIdConfigSchema = z.object({
-  verification_level: z.enum(["device", "orb"]),
-})
-
-const blockchainActivityConfigSchema = z.object({
-  min_tx_count: z.number().int().min(1).optional(),
-  chains: z.array(z.number().int()).optional(),
-  min_age_days: z.number().int().min(1).optional(),
-})
-
-export const gateSchema = z.object({
-  gate_type: z.enum(GATE_TYPES),
-  config: z.union([
-    talentSkillsConfigSchema,
-    poapConfigSchema,
-    nftConfigSchema,
-    humanPassportConfigSchema,
-    worldIdConfigSchema,
-    blockchainActivityConfigSchema,
-  ]),
-})
+export const gateSchema = z.union([
+  z.object({ gate_type: z.literal("poap"), config: poapConfigSchema }),
+  z.object({ gate_type: z.literal("skill"), config: skillConfigSchema }),
+])
 
 export const createHackerHouseSchema = z.object({
   name: z.string().min(3, "Minimum 3 characters").max(80),
@@ -100,12 +71,15 @@ export const createHackerHouseSchema = z.object({
   yield_mode: z.enum(YIELD_MODES).optional(),
   yield_dest: z.enum(YIELD_DESTS).optional(),
   has_event: z.boolean().optional(),
+  event_id: z.string().uuid().optional(),
   event_name: z.string().optional(),
   event_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   event_start_date: z.string().optional(),
   event_end_date: z.string().optional(),
   event_timing: z.array(z.enum(EVENT_TIMINGS)).optional(),
+  event_goers_only: z.boolean().optional(),
   gates: z.array(gateSchema).optional(),
+  invited_user_ids: z.array(z.string()).optional(),
 })
 
 const _baseSchema = createHackerHouseSchema

@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
 
   const { data: otherUsers } = await supabaseServer
     .from("users")
-    .select("id, handle, archetype, avatar_url")
+    .select("id, handle, archetype, avatar_url, skills")
     .in("id", otherUserIds)
 
   const usersMap = new Map(
@@ -148,6 +148,7 @@ export async function GET(req: NextRequest) {
       handle: null,
       archetype: null,
       avatar_url: null,
+      skills: null,
     }
     return { ...f, other_user: otherUser, direction }
   })

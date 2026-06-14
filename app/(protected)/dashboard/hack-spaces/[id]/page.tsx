@@ -25,6 +25,8 @@ import {
   Settings,
   Sparkles,
   Check,
+  Shield,
+  Zap,
 } from "lucide-react"
 
 /* ── Hardcoded roles per hack space (mocked, to be dynamic later) ── */
@@ -361,6 +363,76 @@ export default function HackSpaceDetailPage({
               </p>
             </div>
           </section>
+
+          {/* ── POAP Gate ── */}
+          {hackSpace.gates && hackSpace.gates.length > 0 && (() => {
+            const poapGate = hackSpace.gates.find((g) => g.gate_type === "poap")
+            const config = poapGate?.config as { event_ids?: string[]; poap_names?: string[]; poap_images?: string[] } | undefined
+            if (!config?.event_ids?.length) return null
+            return (
+              <section className="mb-8">
+                <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+                  <Shield className="size-4 text-primary" />
+                  POAP Required
+                </h2>
+                <div className="bg-background border border-border rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground font-mono mb-3">
+                    You need at least one of these POAPs to join
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {config.event_ids.map((id, i) => (
+                      <div
+                        key={id}
+                        className="flex flex-col items-center gap-2 rounded-xl border p-3 text-center border-primary/30 bg-primary/5"
+                      >
+                        {config.poap_images?.[i] && (
+                          <img
+                            src={config.poap_images[i]}
+                            alt={config.poap_names?.[i] ?? "POAP"}
+                            loading="lazy"
+                            className="w-14 h-14 rounded-full object-cover"
+                          />
+                        )}
+                        <p className="text-[10px] font-mono text-foreground leading-tight line-clamp-2">
+                          {config.poap_names?.[i] ?? `POAP #${i + 1}`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )
+          })()}
+
+          {/* ── Skill Gate ── */}
+          {hackSpace.gates && hackSpace.gates.length > 0 && (() => {
+            const skillGate = hackSpace.gates.find((g) => g.gate_type === "skill")
+            const config = skillGate?.config as { skills?: string[] } | undefined
+            if (!config?.skills?.length) return null
+            return (
+              <section className="mb-8">
+                <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+                  <Zap className="size-4 text-primary" />
+                  Skills Required
+                </h2>
+                <div className="bg-background border border-border rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground font-mono mb-3">
+                    You need at least one of these skills to join
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {config.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-2.5 py-1 rounded-full text-xs font-mono border border-primary/30 bg-primary/5 text-foreground"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )
+          })()}
 
           {/* ── Linked Event ── */}
           {hackSpace.event_name && (

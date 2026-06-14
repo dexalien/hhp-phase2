@@ -41,10 +41,14 @@ interface TalentCredentialsResponse {
 
 const TP_BASE = "https://api.talentprotocol.com"
 
-async function fetchTP<T>(endpoint: string, wallet: string): Promise<T | null> {
+async function fetchTP<T>(
+  endpoint: string,
+  id: string,
+  accountSource: "wallet" | "github" | "farcaster" = "wallet",
+): Promise<T | null> {
   try {
     const response = await fetch(
-      `${TP_BASE}/${endpoint}?id=${wallet}&account_source=wallet`,
+      `${TP_BASE}/${endpoint}?id=${id}&account_source=${accountSource}`,
       {
         headers: {
           "X-API-KEY": serverEnv.TALENT_PROTOCOL_APIKEY,
@@ -67,11 +71,11 @@ export async function POST(req: NextRequest) {
 
   const { data: user } = await supabaseServer
     .from("users")
-    .select("wallet_address")
+    .select("wallet_address, github_url")
     .eq("privy_id", privyUserId)
     .single()
 
-  if (!user?.wallet_address) {
+  if (!user?.wallet_address && !user?.github_url) {
     return NextResponse.json({
       talent_protocol_score: null,
       talent_tags: [],
@@ -79,12 +83,27 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const wallet = user.wallet_address
+  // Extract GitHub username from github_url (e.g. "https://github.com/dexalien" → "dexalien")
+  const githubUsername = user.github_url
+    ? user.github_url.replace(/\/+$/, "").split("/").pop() ?? null
+    : null
+
+  // Try wallet first, fallback to GitHub if wallet returns nothing
+  async function fetchWithFallback<T>(endpoint: string): Promise<T | null> {
+    if (user!.wallet_address) {
+      const result = await fetchTP<T>(endpoint, user!.wallet_address, "wallet")
+      if (result) return result
+    }
+    if (githubUsername) {
+      return fetchTP<T>(endpoint, githubUsername, "github")
+    }
+    return null
+  }
 
   const [scoreResult, profileResult, credentialsResult] = await Promise.allSettled([
-    fetchTP<TalentScoreResponse>("scores", wallet),
-    fetchTP<TalentProfileResponse>("profile", wallet),
-    fetchTP<TalentCredentialsResponse>("credentials", wallet),
+    fetchWithFallback<TalentScoreResponse>("scores"),
+    fetchWithFallback<TalentProfileResponse>("profile"),
+    fetchWithFallback<TalentCredentialsResponse>("credentials"),
   ])
 
   const score =

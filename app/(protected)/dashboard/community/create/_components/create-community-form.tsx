@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   createCommunitySchema,
   COMMUNITY_CATEGORIES,
+  ACCESS_TYPES,
   type CreateCommunityInput,
 } from "@/lib/schemas/community"
 import { useUploadCommunityImage } from "@/services/api/communities"
@@ -14,6 +15,9 @@ import { Spinner } from "@/components/ui/spinner"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { PoapGatePicker } from "@/components/poap-gate-picker"
+import { SkillGatePicker } from "@/components/skill-gate-picker"
+import { InviteHomiesPicker } from "@/components/invite-homies-picker"
 import {
   Field,
   FieldLabel,
@@ -90,6 +94,7 @@ export function CommunityForm({
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { isSubmitting },
   } = useForm<CreateCommunityInput>({
     resolver: zodResolver(createCommunitySchema),
@@ -100,6 +105,8 @@ export function CommunityForm({
       image_url: "",
       city: "",
       country: "",
+      access_type: "open" as const,
+      invited_user_ids: [],
       ...defaultValues,
     },
   })
@@ -111,6 +118,7 @@ export function CommunityForm({
   const fileRef = useRef<HTMLInputElement>(null)
   const imageUrl = useWatch({ control, name: "image_url" })
   const isWorldwide = useWatch({ control, name: "is_worldwide" })
+  const accessType = useWatch({ control, name: "access_type" })
   const watchedCountry = useWatch({ control, name: "country" })
   const watchedCity = useWatch({ control, name: "city" })
   const availableCities = watchedCountry
@@ -403,6 +411,83 @@ export function CommunityForm({
           </button>
         )}
       </Field>
+
+      {/* Access Type */}
+      <Field>
+        <FieldLabel>Access</FieldLabel>
+        <FieldDescription>Control who can join this community.</FieldDescription>
+        <div className="flex flex-wrap gap-2">
+          {(["open", "gated", "invite_only"] as const).map((type) => (
+            <TogglePill
+              key={type}
+              selected={accessType === type}
+              onClick={() => {
+                setValue("access_type", type)
+                // Clear incompatible fields when switching
+                if (type !== "gated") setValue("gates", [])
+                if (type !== "invite_only") setValue("invited_user_ids", [])
+              }}
+            >
+              {type === "open" ? "Open" : type === "gated" ? "Gated" : "Invite Only"}
+            </TogglePill>
+          ))}
+        </div>
+      </Field>
+
+      {/* Gated: POAP + Skill pickers */}
+      {accessType === "gated" && (
+        <>
+          <PoapGatePicker
+            selectedPoapIds={
+              (watch("gates") ?? [])
+                .filter((g) => g.gate_type === "poap")
+                .flatMap((g) => (g.config as { event_ids?: string[] }).event_ids ?? [])
+            }
+            onChange={(poaps) => {
+              const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "poap")
+              if (poaps.length === 0) {
+                setValue("gates", existing)
+              } else {
+                setValue("gates", [...existing, {
+                  gate_type: "poap" as const,
+                  config: {
+                    mode: "specific" as const,
+                    event_ids: poaps.map((p) => p.id),
+                    poap_names: poaps.map((p) => p.name),
+                    poap_images: poaps.map((p) => p.image_url),
+                  },
+                }])
+              }
+            }}
+          />
+          <SkillGatePicker
+            selectedSkills={
+              (watch("gates") ?? [])
+                .filter((g) => g.gate_type === "skill")
+                .flatMap((g) => (g.config as { skills?: string[] }).skills ?? [])
+            }
+            onChange={(skills) => {
+              const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "skill")
+              if (skills.length === 0) {
+                setValue("gates", existing)
+              } else {
+                setValue("gates", [...existing, {
+                  gate_type: "skill" as const,
+                  config: { skills },
+                }])
+              }
+            }}
+          />
+        </>
+      )}
+
+      {/* Invite Only: friend picker */}
+      {accessType === "invite_only" && (
+        <InviteHomiesPicker
+          selectedUserIds={watch("invited_user_ids") ?? []}
+          onChange={(ids) => setValue("invited_user_ids", ids)}
+        />
+      )}
 
       {/* Request verification */}
       <Controller

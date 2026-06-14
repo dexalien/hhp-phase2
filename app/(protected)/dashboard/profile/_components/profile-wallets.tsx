@@ -1,13 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { useWallets as usePrivyWallets, getEmbeddedConnectedWallet } from "@privy-io/react-auth"
-import { Wallet, Plus, Trash2, Shield, Copy, Check, ExternalLink } from "lucide-react"
+import {
+  useWallets as usePrivyWallets,
+  getEmbeddedConnectedWallet,
+  useLinkAccount,
+} from "@privy-io/react-auth"
+import { Wallet, Plus, Trash2, Shield, Copy, Check, ExternalLink, BadgeCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
-import { useWallets, useAddWallet, useRemoveWallet } from "@/services/api/wallets"
+import { useWallets, useSyncLinkedWallets, useRemoveWallet } from "@/services/api/wallets"
+import { useImportPoaps } from "@/services/api/integrations"
 import type { UserProfile } from "@/lib/types"
 
 interface ProfileWalletsProps {
@@ -20,13 +25,48 @@ function truncateAddress(addr: string) {
 }
 
 export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newAddress, setNewAddress] = useState("")
-  const [newLabel, setNewLabel] = useState("")
   const [copied, setCopied] = useState(false)
+  const [isLinking, setIsLinking] = useState(false)
   const { data: walletsData, isLoading } = useWallets()
-  const addWallet = useAddWallet()
+  const syncLinked = useSyncLinkedWallets()
+  const importPoaps = useImportPoaps()
   const removeWallet = useRemoveWallet()
+
+  const { linkWallet } = useLinkAccount({
+    onSuccess: async () => {
+      try {
+        const result = await syncLinked.mutateAsync()
+        if (result.added.length > 0) {
+          await importPoaps.mutateAsync(undefined).catch(() => {})
+          toast.success(
+            result.added.length === 1
+              ? "Wallet verified and added"
+              : `${result.added.length} wallets verified and added`,
+          )
+        }
+        if (result.skipped.length > 0) {
+          toast.error("Some wallets are already registered to another user")
+        }
+        if (result.added.length === 0 && result.skipped.length === 0) {
+          toast.info("That wallet is already linked")
+        }
+      } catch {
+        toast.error("Could not verify the linked wallet")
+      } finally {
+        setIsLinking(false)
+      }
+    },
+    onError: () => setIsLinking(false),
+  })
+
+  function handleLink() {
+    setIsLinking(true)
+    try {
+      linkWallet()
+    } catch {
+      setIsLinking(false)
+    }
+  }
 
   // Get connected smart wallet from Privy
   const { wallets: privyWallets } = usePrivyWallets()
@@ -46,25 +86,6 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
 
   const dataWallets = walletsData?.wallets ?? []
 
-  async function handleAdd() {
-    const addr = newAddress.trim()
-    if (!addr) return
-    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
-      toast.error("Invalid wallet address")
-      return
-    }
-    try {
-      await addWallet.mutateAsync({ wallet_address: addr, label: newLabel.trim() || undefined })
-      toast.success("Data wallet added")
-      setNewAddress("")
-      setNewLabel("")
-      setShowAddForm(false)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to add wallet"
-      toast.error(msg)
-    }
-  }
-
   async function handleRemove(walletId: string) {
     try {
       await removeWallet.mutateAsync(walletId)
@@ -82,7 +103,7 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
             Wallets
           </p>
           <p className="text-[10px] font-mono text-muted-foreground">
-            Data wallets import on-chain credentials. Never used for payments.
+            Data wallets import on-chain credentials. Connect and sign to prove ownership. Never used for payments.
           </p>
         </div>
       </div>
@@ -176,6 +197,14 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
                     {w.label}
                   </Badge>
                 )}
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {w.verified && (
+                  <Badge variant="secondary" className="font-mono text-[9px] gap-1 text-builder-archetype">
+                    <BadgeCheck className="size-2.5" />
+                    Verified
+                  </Badge>
+                )}
                 <Badge variant="outline" className="font-mono text-[9px] text-muted-foreground">
                   Read-only
                 </Badge>
@@ -195,71 +224,25 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
         ))
       )}
 
-      {/* Add data wallet form */}
-      {showAddForm ? (
-        <div
-          className="flex flex-col gap-2 rounded-xl border p-3"
-          style={{ background: "var(--muted)", borderColor: "var(--border)" }}
-        >
-          <input
-            type="text"
-            value={newAddress}
-            onChange={(e) => setNewAddress(e.target.value)}
-            placeholder="0x... wallet address"
-            className="h-8 rounded-lg border bg-transparent px-3 text-xs font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            style={{ borderColor: "var(--border)" }}
-          />
-          <input
-            type="text"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            placeholder="Label (e.g. Metamask, Ledger)"
-            className="h-8 rounded-lg border bg-transparent px-3 text-xs font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            style={{ borderColor: "var(--border)" }}
-          />
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAdd}
-              disabled={addWallet.isPending || !newAddress.trim()}
-              className="rounded-lg font-mono text-xs h-8"
-            >
-              {addWallet.isPending ? (
-                <>
-                  <Spinner className="mr-1.5 size-3" /> Adding...
-                </>
-              ) : (
-                "Add Wallet"
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setShowAddForm(false)
-                setNewAddress("")
-                setNewLabel("")
-              }}
-              className="rounded-lg font-mono text-xs h-8"
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAddForm(true)}
-          className="rounded-lg font-mono text-xs h-8 self-start"
-        >
-          <Plus className="size-3 mr-1" /> Add Data Wallet
-        </Button>
-      )}
+      {/* Add data wallet — ownership proven via Privy connect + signature */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleLink}
+        disabled={isLinking || syncLinked.isPending}
+        className="rounded-lg font-mono text-xs h-8 self-start"
+      >
+        {isLinking || syncLinked.isPending ? (
+          <>
+            <Spinner className="mr-1.5 size-3" /> Verifying...
+          </>
+        ) : (
+          <>
+            <Plus className="size-3 mr-1" /> Add Data Wallet
+          </>
+        )}
+      </Button>
     </div>
   )
 }

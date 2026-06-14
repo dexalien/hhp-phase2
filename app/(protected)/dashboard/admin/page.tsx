@@ -15,6 +15,8 @@ import {
   useAdminUsers,
   useVerifyUser,
   useToggleAdmin,
+  useAdminAddMockWallet,
+  useAdminSyncPoaps,
   useAdminCommunities,
   useAdminDeleteCommunity,
   useVerifyCommunity,
@@ -43,6 +45,7 @@ import {
   Calendar, Users, Code2, Home, Shield, Plus, Trash2, Pencil,
   CheckCircle, XCircle, Sprout, X, ArrowRight, Upload, ImageIcon,
   MapPin, Check, Ban, BadgeCheck, ChevronUp, ChevronDown, GripVertical, Save, Star,
+  Wallet, RefreshCw,
 } from "lucide-react"
 
 type Tab = "overview" | "events" | "users" | "communities" | "hack-spaces" | "hacker-houses"
@@ -925,12 +928,41 @@ function UsersTab() {
 function UserRow({ user }: { user: AdminUser }) {
   const verify = useVerifyUser(user.id)
   const toggleAdmin = useToggleAdmin(user.id)
+  const addMockWallet = useAdminAddMockWallet(user.id)
+  const syncPoaps = useAdminSyncPoaps(user.id)
+  const [showWallet, setShowWallet] = useState(false)
+  const [mockAddr, setMockAddr] = useState("")
+
+  async function handleAddMockWallet() {
+    const addr = mockAddr.trim()
+    if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+      toast.error("Invalid wallet address")
+      return
+    }
+    try {
+      await addMockWallet.mutateAsync({ wallet_address: addr, label: "Mock" })
+      toast.success("Mock wallet attached")
+      setMockAddr("")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to attach wallet")
+    }
+  }
+
+  async function handleSyncPoaps() {
+    try {
+      const res = await syncPoaps.mutateAsync()
+      toast.success(`Synced ${res.count} POAPs`)
+    } catch {
+      toast.error("Failed to sync POAPs")
+    }
+  }
 
   return (
     <div
-      className="flex items-center gap-4 rounded-xl border px-4 py-3"
+      className="flex flex-col gap-3 rounded-xl border px-4 py-3"
       style={{ background: "var(--card)", borderColor: "var(--border)" }}
     >
+    <div className="flex items-center gap-4">
       {user.avatar_url ? (
         <img src={user.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
       ) : (
@@ -980,7 +1012,55 @@ function UserRow({ user }: { user: AdminUser }) {
           <Shield className="w-3 h-3" />
           {user.is_admin ? "Revoke Admin" : "Make Admin"}
         </button>
+        <button
+          onClick={() => setShowWallet((v) => !v)}
+          className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80 flex items-center gap-1"
+          style={{
+            borderColor: showWallet ? "var(--primary)" : "var(--border)",
+            color: showWallet ? "var(--primary)" : undefined,
+          }}
+        >
+          <Wallet className="w-3 h-3" /> POAPs
+        </button>
       </div>
+    </div>
+
+      {/* Admin mock wallet panel — buildathon seeding, bypasses ownership proof */}
+      {showWallet && (
+        <div
+          className="flex flex-col gap-2 rounded-lg border border-dashed px-3 py-2.5"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <p className="text-[10px] font-mono opacity-50">
+            Mock only — attaches an unsigned wallet to this user to demo POAP imports.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              value={mockAddr}
+              onChange={(e) => setMockAddr(e.target.value)}
+              placeholder="0x... wallet address"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-mono bg-transparent border focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              style={{ borderColor: "var(--border)" }}
+            />
+            <button
+              onClick={handleAddMockWallet}
+              disabled={addMockWallet.isPending || !mockAddr.trim()}
+              className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80 disabled:opacity-40 shrink-0"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {addMockWallet.isPending ? "Adding..." : "Add Wallet"}
+            </button>
+            <button
+              onClick={handleSyncPoaps}
+              disabled={syncPoaps.isPending}
+              className="text-xs px-3 py-1.5 rounded-lg border transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1 shrink-0"
+              style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
+            >
+              <RefreshCw className={`w-3 h-3 ${syncPoaps.isPending ? "animate-spin" : ""}`} /> Sync POAPs
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

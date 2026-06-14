@@ -2,6 +2,8 @@
 
 import { Fragment, useRef, useState } from "react"
 import { useForm, useWatch, Controller } from "react-hook-form"
+import { PoapGatePicker } from "@/components/poap-gate-picker"
+import { SkillGatePicker } from "@/components/skill-gate-picker"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -192,6 +194,7 @@ export function HackSpaceForm({
     trigger,
     setError,
     setValue,
+    watch,
     formState: { isSubmitting },
   } = useForm<CreateHackSpaceInput>({
     resolver: zodResolver(createHackSpaceSchema),
@@ -1068,6 +1071,50 @@ export function HackSpaceForm({
                   />
                 </Field>
               )}
+            />
+
+            {/* POAP Gate Filter */}
+            <PoapGatePicker
+              selectedPoapIds={
+                (watch("gates") ?? [])
+                  .filter((g) => g.gate_type === "poap")
+                  .flatMap((g) => (g.config as { event_ids?: string[] }).event_ids ?? [])
+              }
+              onChange={(poaps) => {
+                const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "poap")
+                if (poaps.length === 0) {
+                  setValue("gates", existing)
+                } else {
+                  setValue("gates", [...existing, {
+                    gate_type: "poap" as const,
+                    config: {
+                      mode: "specific" as const,
+                      event_ids: poaps.map((p) => p.id),
+                      poap_names: poaps.map((p) => p.name),
+                      poap_images: poaps.map((p) => p.image_url),
+                    },
+                  }])
+                }
+              }}
+            />
+            {/* Skill Gate Filter */}
+            <SkillGatePicker
+              selectedSkills={
+                (watch("gates") ?? [])
+                  .filter((g) => g.gate_type === "skill")
+                  .flatMap((g) => (g.config as { skills?: string[] }).skills ?? [])
+              }
+              onChange={(skills) => {
+                const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "skill")
+                if (skills.length === 0) {
+                  setValue("gates", existing)
+                } else {
+                  setValue("gates", [...existing, {
+                    gate_type: "skill" as const,
+                    config: { skills },
+                  }])
+                }
+              }}
             />
           </SectionCard>
         )}

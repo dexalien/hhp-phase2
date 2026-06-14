@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
-import { z } from "zod"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -13,11 +12,6 @@ async function getPrivyUserId(req: NextRequest): Promise<string | null> {
     return null
   }
 }
-
-const addWalletSchema = z.object({
-  wallet_address: z.string().min(1),
-  label: z.string().max(50).optional(),
-})
 
 /** GET — list all wallets for the authenticated user */
 export async function GET(req: NextRequest) {
@@ -45,54 +39,20 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ wallets: wallets ?? [] })
 }
 
-/** POST — add a data wallet (read-only, never used for payments) */
-export async function POST(req: NextRequest) {
-  const privyUserId = await getPrivyUserId(req)
-  if (!privyUserId) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
-  }
-
-  const { data: user } = await supabaseServer
-    .from("users")
-    .select("id, wallet_address")
-    .eq("privy_id", privyUserId)
-    .single()
-
-  if (!user) {
-    return NextResponse.json({ message: "User not found" }, { status: 404 })
-  }
-
-  const body: unknown = await req.json()
-  const parsed = addWalletSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 })
-  }
-
-  // Prevent adding the primary wallet as a data wallet
-  if (user.wallet_address?.toLowerCase() === parsed.data.wallet_address.toLowerCase()) {
-    return NextResponse.json({ message: "This is already your primary wallet" }, { status: 400 })
-  }
-
-  const { data: wallet, error } = await supabaseServer
-    .from("user_wallets")
-    .insert({
-      user_id: user.id,
-      wallet_address: parsed.data.wallet_address,
-      label: parsed.data.label ?? null,
-      is_primary: false,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    if (error.code === "23505") {
-      return NextResponse.json({ message: "Wallet already added" }, { status: 409 })
-    }
-    console.error("[POST /api/wallets]", error)
-    return NextResponse.json({ message: "Database error" }, { status: 500 })
-  }
-
-  return NextResponse.json({ wallet }, { status: 201 })
+/**
+ * POST — disabled. Adding a wallet by plain-text address is insecure (anyone
+ * could claim another person's address). Ownership must be proven via Privy
+ * linkWallet, reconciled by POST /api/wallets/sync-linked. Admins use the
+ * admin-only mock path for buildathon seeding.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      message:
+        "Adding a wallet by address is disabled. Connect and sign the wallet to prove ownership.",
+    },
+    { status: 405 },
+  )
 }
 
 /** DELETE — remove a data wallet */

@@ -1,11 +1,11 @@
 "use client"
 
 import { Fragment, useEffect, useRef, useState } from "react"
-import { useForm, useWatch, useFieldArray, Controller, type Control, type UseFormSetValue } from "react-hook-form"
+import { useForm, useWatch, Controller, type Control, type UseFormSetValue } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { X, MapPin, Lock, Check, Wallet, Shield, Plus, Trash2 } from "lucide-react"
+import { X, MapPin, Lock, Check, Wallet } from "lucide-react"
 import { ARCHETYPES, LANGUAGES } from "@/lib/onboarding"
 import { useEvents } from "@/services/api/events"
 import {
@@ -41,6 +41,9 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 import { Checkbox } from "@/components/ui/checkbox"
+import { PoapGatePicker } from "@/components/poap-gate-picker"
+import { SkillGatePicker } from "@/components/skill-gate-picker"
+import { InviteHomiesPicker } from "@/components/invite-homies-picker"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/utils"
 import {
@@ -52,6 +55,7 @@ import {
 
 const APPLICATION_TYPE_LABELS: Record<string, { title: string; description: string; color: string; comingSoon?: boolean }> = {
   open: { title: "Open", description: "Anyone can apply", color: "text-builder-archetype" },
+  gated: { title: "Gated", description: "POAP or skill required to apply", color: "text-strategist" },
   invite_only: { title: "Invite only", description: "You invite builders directly", color: "text-primary" },
   curated: { title: "Curated", description: "You review each applicant manually", color: "text-amber", comingSoon: true },
 }
@@ -81,14 +85,6 @@ const AMENITY_OPTIONS: { key: keyof CreateHackerHouseInput; label: string; descr
   { key: "includes_internet", label: "Internet", description: "High-speed WiFi included" },
 ]
 
-const GATE_TYPE_OPTIONS: { value: string; title: string; description: string; available: boolean }[] = [
-  { value: "talent_skills", title: "Talent Skills", description: "Require verified skills from Talent Protocol", available: true },
-  { value: "poap", title: "POAPs", description: "Require POAP attendance proof", available: true },
-  { value: "human_passport", title: "Human Passport", description: "Require human verification", available: false },
-  { value: "world_id", title: "World ID", description: "Require World ID verification", available: false },
-  { value: "nft", title: "NFT Ownership", description: "Require specific NFT holdings", available: false },
-  { value: "blockchain_activity", title: "Blockchain Activity", description: "Require on-chain history", available: false },
-]
 
 const STEPS = ["House", "Amenities", "Community", "Access", "Payment", "Check-in"] as const
 type Step = (typeof STEPS)[number]
@@ -293,6 +289,7 @@ export function CreateHackerHouseForm({
     trigger,
     setError,
     setValue,
+    watch,
     formState: { isSubmitting, errors: formErrors },
   } = useForm<CreateHackerHouseInput>({
     resolver: zodResolver(createHackerHouseSchema),
@@ -326,11 +323,13 @@ export function CreateHackerHouseForm({
       application_deadline: undefined,
       application_form_url: "",
       has_event: false,
+      event_id: undefined,
       event_name: "",
       event_url: "",
       event_start_date: "",
       event_end_date: "",
       event_timing: [],
+      event_goers_only: false,
       // Web3 escrow defaults
       contract_type: "admin_wallet",
       host_safe: "",
@@ -343,12 +342,8 @@ export function CreateHackerHouseForm({
     },
   })
 
-  const { fields: gateFields, append: appendGate, remove: removeGate } = useFieldArray({
-    control,
-    name: "gates",
-  })
-
   const hasEvent = useWatch({ control, name: "has_event" })
+  const watchedEventId = useWatch({ control, name: "event_id" })
   const watchedModality = useWatch({ control, name: "modality" })
   const watchedHouseType = useWatch({ control, name: "house_type" })
   const watchedYieldMode = useWatch({ control, name: "yield_mode" })
@@ -378,6 +373,7 @@ export function CreateHackerHouseForm({
       setValue("deposit_amount_usdc", watchedPricePerPerson)
     }
   }, [watchedPricePerPerson, setValue])
+  const watchedApplicationType = useWatch({ control, name: "application_type" })
   const watchedRegion = useWatch({ control, name: "region" })
   const watchedCountry = useWatch({ control, name: "country" })
   const watchedCity = useWatch({ control, name: "city" })
@@ -1286,7 +1282,12 @@ export function CreateHackerHouseForm({
                       defaultValue=""
                       onChange={(e) => {
                         const event = availableEvents.find((ev) => ev.id === e.target.value)
-                        if (!event) return
+                        if (!event) {
+                          setValue("event_id", undefined)
+                          setValue("event_goers_only", false)
+                          return
+                        }
+                        setValue("event_id", event.id)
                         setValue("event_name", event.name)
                         setValue("event_url", event.website_url ?? "")
                         setValue("event_start_date", event.start_date)
@@ -1398,6 +1399,35 @@ export function CreateHackerHouseForm({
                     )
                   }}
                 />
+
+                {watchedEventId && (
+                  <Controller
+                    name="event_goers_only"
+                    control={control}
+                    render={({ field }) => (
+                      <label
+                        className={cn(
+                          "w-full flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer",
+                          field.value
+                            ? "border-primary bg-primary/5"
+                            : "border-muted-foreground/25 hover:border-primary/40",
+                        )}
+                      >
+                        <Checkbox
+                          checked={field.value ?? false}
+                          onCheckedChange={field.onChange}
+                          className="mt-0.5"
+                        />
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-foreground text-sm font-medium">Event attendees only</p>
+                          <p className="text-muted-foreground text-xs">
+                            Only builders who marked &quot;attending&quot; this event can apply.
+                          </p>
+                        </div>
+                      </label>
+                    )}
+                  />
+                )}
               </div>
             )}
           </SectionCard>
@@ -1506,146 +1536,58 @@ export function CreateHackerHouseForm({
               )}
             />
 
-            {/* ── GATES ── */}
-            <div className="border-t border-border pt-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-display font-bold text-foreground text-base flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" />
-                    Entry requirements
-                  </h3>
-                  <p className="text-muted-foreground text-xs mt-0.5">
-                    Set gates builders must pass to apply. All are verified server-side — only pass/fail is shown.
-                  </p>
-                </div>
-              </div>
-
-              {gateFields.map((gateField, index) => {
-                const gateType = gateField.gate_type
-
-                return (
-                  <div
-                    key={gateField.id}
-                    className="flex flex-col gap-3 p-4 rounded-lg border border-primary/20 bg-primary/5 mb-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">
-                        {GATE_TYPE_OPTIONS.find((g) => g.value === gateType)?.title ?? gateType}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeGate(index)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Talent Skills config */}
-                    {gateType === "talent_skills" && (
-                      <Field>
-                        <FieldLabel>Required skills</FieldLabel>
-                        <FieldDescription>
-                          Enter skills separated by comma (e.g. Solidity, React, Rust)
-                        </FieldDescription>
-                        <Controller
-                          name={`gates.${index}.config.required_skills`}
-                          control={control}
-                          render={({ field }) => (
-                            <Input
-                              value={(field.value as string[] | undefined)?.join(", ") ?? ""}
-                              onChange={(e) => {
-                                const skills = e.target.value
-                                  .split(",")
-                                  .map((s) => s.trim())
-                                  .filter(Boolean)
-                                field.onChange(skills)
-                              }}
-                              placeholder="Solidity, React, Rust"
-                            />
-                          )}
-                        />
-                      </Field>
-                    )}
-
-                    {/* POAP config */}
-                    {gateType === "poap" && (
-                      <Field>
-                        <FieldLabel>Minimum POAPs</FieldLabel>
-                        <FieldDescription>
-                          How many POAPs must the builder have?
-                        </FieldDescription>
-                        <Controller
-                          name={`gates.${index}.config.min_count`}
-                          control={control}
-                          render={({ field }) => (
-                            <Input
-                              type="number"
-                              min={1}
-                              value={field.value as number ?? 1}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                              placeholder="3"
-                            />
-                          )}
-                        />
-                      </Field>
-                    )}
-                  </div>
-                )
-              })}
-
-              {/* Add gate buttons */}
-              <div className="flex flex-wrap gap-2">
-                {GATE_TYPE_OPTIONS.map((gate) => {
-                  const alreadyAdded = gateFields.some((g) => g.gate_type === gate.value)
-                  return (
-                    <button
-                      key={gate.value}
-                      type="button"
-                      disabled={!gate.available || alreadyAdded}
-                      onClick={() => {
-                        if (gate.value === "talent_skills") {
-                          appendGate({
-                            gate_type: "talent_skills",
-                            config: { required_skills: [], min_count: 1 },
-                          })
-                        } else if (gate.value === "poap") {
-                          appendGate({
-                            gate_type: "poap",
-                            config: { mode: "count", min_count: 3 },
-                          })
-                        } else if (gate.value === "human_passport") {
-                          appendGate({
-                            gate_type: "human_passport",
-                            config: { required: true },
-                          })
-                        } else if (gate.value === "world_id") {
-                          appendGate({
-                            gate_type: "world_id",
-                            config: { verification_level: "device" },
-                          })
-                        }
-                      }}
-                      className={cn(
-                        "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border font-mono transition-all",
-                        alreadyAdded
-                          ? "border-primary/30 text-primary/50 bg-primary/5 cursor-not-allowed"
-                          : !gate.available
-                            ? "border-muted-foreground/15 text-muted-foreground/50 cursor-not-allowed"
-                            : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer",
-                      )}
-                    >
-                      <Plus className="w-3 h-3" />
-                      {gate.title}
-                      {!gate.available && (
-                        <span className="text-[10px] px-1 py-0.5 rounded-full bg-strategist/20 text-strategist">Soon</span>
-                      )}
-                      {alreadyAdded && <Check className="w-3 h-3 text-primary" />}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            {/* ── Gates (only when gated) ── */}
+            {watchedApplicationType === "gated" ? (
+              <>
+                <PoapGatePicker
+                  selectedPoapIds={
+                    (watch("gates") ?? [])
+                      .filter((g) => g.gate_type === "poap")
+                      .flatMap((g) => (g.config as { event_ids?: string[] }).event_ids ?? [])
+                  }
+                  onChange={(poaps) => {
+                    const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "poap")
+                    if (poaps.length === 0) {
+                      setValue("gates", existing)
+                    } else {
+                      setValue("gates", [...existing, {
+                        gate_type: "poap" as const,
+                        config: {
+                          mode: "specific" as const,
+                          event_ids: poaps.map((p) => p.id),
+                          poap_names: poaps.map((p) => p.name),
+                          poap_images: poaps.map((p) => p.image_url),
+                        },
+                      }])
+                    }
+                  }}
+                />
+                <SkillGatePicker
+                  selectedSkills={
+                    (watch("gates") ?? [])
+                      .filter((g) => g.gate_type === "skill")
+                      .flatMap((g) => (g.config as { skills?: string[] }).skills ?? [])
+                  }
+                  onChange={(skills) => {
+                    const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "skill")
+                    if (skills.length === 0) {
+                      setValue("gates", existing)
+                    } else {
+                      setValue("gates", [...existing, {
+                        gate_type: "skill" as const,
+                        config: { skills },
+                      }])
+                    }
+                  }}
+                />
+              </>
+            ) : watchedApplicationType === "invite_only" ? (
+              <InviteHomiesPicker
+                selectedUserIds={watch("invited_user_ids") ?? []}
+                onChange={(ids) => setValue("invited_user_ids", ids)}
+                maxInvites={watch("capacity") ?? undefined}
+              />
+            ) : null}
           </SectionCard>
         )}
 

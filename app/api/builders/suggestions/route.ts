@@ -38,6 +38,8 @@ interface UserRow {
   talent_tags: string[]
   talent_credentials: unknown[]
   poaps: { id: string; name: string; image_url: string; event_date: string }[]
+  seeking_skills: string[]
+  matching_cities: string[]
   onchain_since: string | null
   created_at: string
   updated_at: string
@@ -58,80 +60,106 @@ function getArchetypeAffinity(a: string | null, b: string | null): number {
 
 function intersect(a: string[] | null, b: string[] | null): string[] {
   if (!a || !b) return []
-  const setB = new Set(b)
-  return a.filter((item) => setB.has(item))
+  const setB = new Set(b.map((s) => s.toLowerCase()))
+  return a.filter((item) => setB.has(item.toLowerCase()))
 }
 
 function scoreBuilder(
   currentUser: UserRow,
   builder: UserRow,
+  sharedEventNames: string[],
 ): { score: number; reasons: string[] } {
   const reasons: string[] = []
   let score = 0
 
-  // Shared skills (weight: 25%)
+  // Complementary skills — builder has skills I'm seeking (weight: 20%)
+  const seekingSkills = currentUser.seeking_skills ?? []
+  const builderTags = builder.talent_tags ?? []
+  const builderSkills = builder.skills ?? []
+  const builderAllSkills = [...builderTags, ...builderSkills]
+  const complementarySkills = intersect(seekingSkills, builderAllSkills)
+  const compScore = Math.min(complementarySkills.length * 7, 20)
+  score += compScore
+  if (complementarySkills.length > 0) {
+    reasons.push(`Has ${complementarySkills.join(", ")} you're looking for`)
+  }
+
+  // Shared skills (weight: 15%)
   const sharedSkills = intersect(currentUser.skills, builder.skills)
   const maxSkills = Math.max((currentUser.skills ?? []).length, 1)
-  const skillsScore = (sharedSkills.length / maxSkills) * 25
+  const skillsScore = (sharedSkills.length / maxSkills) * 15
   score += skillsScore
   if (sharedSkills.length > 0) {
     reasons.push(`${sharedSkills.length} shared skill${sharedSkills.length !== 1 ? "s" : ""}`)
   }
 
-  // Complementary archetype (weight: 20%)
+  // Complementary archetype (weight: 18%)
   const archetypeAffinity = getArchetypeAffinity(
     currentUser.archetype,
     builder.archetype,
   )
-  const archetypeScore = archetypeAffinity * 20
+  const archetypeScore = archetypeAffinity * 18
   score += archetypeScore
   if (archetypeAffinity >= 0.7) {
     reasons.push("Complementary archetype")
   }
 
-  // Shared POAPs (weight: 15%)
-  const userPoapNames = (currentUser.poaps ?? []).map((p) => p.name)
-  const builderPoapNames = (builder.poaps ?? []).map((p) => p.name)
-  const sharedPoaps = intersect(userPoapNames, builderPoapNames)
-  const poapsScore = Math.min(sharedPoaps.length * 5, 15)
+  // Shared POAPs (weight: 12%)
+  const userPoapIds = (currentUser.poaps ?? []).map((p) => p.id)
+  const builderPoapIds = (builder.poaps ?? []).map((p) => p.id)
+  const sharedPoapIds = intersect(userPoapIds, builderPoapIds)
+  const poapsScore = Math.min(sharedPoapIds.length * 4, 12)
   score += poapsScore
-  if (sharedPoaps.length > 0) {
-    reasons.push(`${sharedPoaps.length} shared POAP${sharedPoaps.length !== 1 ? "s" : ""}`)
+  if (sharedPoapIds.length > 0) {
+    // Find a shared POAP name for the reason
+    const sharedPoapName = (currentUser.poaps ?? []).find((p) =>
+      builderPoapIds.includes(p.id),
+    )?.name
+    reasons.push(
+      sharedPoapName
+        ? `Both at ${sharedPoapName}`
+        : `${sharedPoapIds.length} shared POAP${sharedPoapIds.length !== 1 ? "s" : ""}`,
+    )
   }
 
-  // Shared Talent Tags (weight: 15%)
-  const sharedTags = intersect(currentUser.talent_tags, builder.talent_tags)
-  const tagsScore = Math.min(sharedTags.length * 3, 15)
-  score += tagsScore
-  if (sharedTags.length > 0) {
-    reasons.push(`${sharedTags.length} shared tag${sharedTags.length !== 1 ? "s" : ""}`)
+  // Matching cities — builder is in a city I want to match with (weight: 15%)
+  const matchingCities = currentUser.matching_cities ?? []
+  if (matchingCities.length > 0 && builder.city) {
+    const builderCityLower = builder.city.toLowerCase()
+    const cityMatch = matchingCities.find((c) => c.toLowerCase() === builderCityLower)
+    if (cityMatch) {
+      score += 15
+      reasons.push(`Based in ${builder.city}`)
+    }
   }
 
-  // Location proximity (weight: 10%)
-  let locationScore = 0
-  if (currentUser.city && builder.city && currentUser.city === builder.city) {
-    locationScore = 10
-    reasons.push("Same city")
-  } else if (
-    currentUser.country &&
-    builder.country &&
-    currentUser.country === builder.country
-  ) {
-    locationScore = 7
-    reasons.push("Same country")
-  } else if (
-    currentUser.region &&
-    builder.region &&
-    currentUser.region === builder.region
-  ) {
-    locationScore = 4
-    reasons.push("Same region")
+  // Same location fallback (weight: 8%)
+  if (matchingCities.length === 0 || !matchingCities.find((c) => c.toLowerCase() === (builder.city ?? "").toLowerCase())) {
+    let locationScore = 0
+    if (currentUser.city && builder.city && currentUser.city === builder.city) {
+      locationScore = 8
+      reasons.push("Same city")
+    } else if (
+      currentUser.country &&
+      builder.country &&
+      currentUser.country === builder.country
+    ) {
+      locationScore = 5
+      reasons.push("Same country")
+    } else if (
+      currentUser.region &&
+      builder.region &&
+      currentUser.region === builder.region
+    ) {
+      locationScore = 3
+      reasons.push("Same region")
+    }
+    score += locationScore
   }
-  score += locationScore
 
-  // Language overlap (weight: 10%)
+  // Language overlap (weight: 7%)
   const sharedLangs = intersect(currentUser.languages, builder.languages)
-  const langsScore = Math.min(sharedLangs.length * 5, 10)
+  const langsScore = Math.min(sharedLangs.length * 3.5, 7)
   score += langsScore
   if (sharedLangs.length > 0) {
     reasons.push(
@@ -139,7 +167,18 @@ function scoreBuilder(
     )
   }
 
-  // Talent score tier (weight: 5%)
+  // Shared events — attending same events (weight: 10%)
+  if (sharedEventNames.length > 0) {
+    const eventScore = Math.min(sharedEventNames.length * 5, 10)
+    score += eventScore
+    reasons.push(
+      sharedEventNames.length === 1
+        ? `Both attending ${sharedEventNames[0]}`
+        : `${sharedEventNames.length} shared events`,
+    )
+  }
+
+  // Talent score tier (weight: 3%)
   if (
     currentUser.talent_protocol_score !== null &&
     builder.talent_protocol_score !== null
@@ -147,11 +186,8 @@ function scoreBuilder(
     const diff = Math.abs(
       currentUser.talent_protocol_score - builder.talent_protocol_score,
     )
-    const tierScore = Math.max(5 - diff / 50, 0)
+    const tierScore = Math.max(3 - diff / 50, 0)
     score += tierScore
-    if (tierScore >= 3) {
-      reasons.push("Similar Talent score")
-    }
   }
 
   return { score, reasons }
@@ -187,6 +223,44 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ suggestions: [] })
   }
 
+  // Fetch current user's attended events (for event-based matching)
+  const { data: userAttendances } = await supabaseServer
+    .from("event_attendees")
+    .select("event_id")
+    .eq("user_id", currentUser.id)
+
+  const userEventIds = new Set(
+    (userAttendances ?? []).map((a) => a.event_id as string),
+  )
+
+  // Fetch all event attendees for those events + event names (for reasons)
+  let eventAttendeeMap: Record<string, Set<string>> = {} // event_id → set of user_ids
+  let eventNameMap: Record<string, string> = {} // event_id → event name
+
+  if (userEventIds.size > 0) {
+    const eventIdArray = [...userEventIds]
+
+    const { data: allAttendees } = await supabaseServer
+      .from("event_attendees")
+      .select("event_id, user_id")
+      .in("event_id", eventIdArray)
+
+    for (const row of allAttendees ?? []) {
+      const eid = row.event_id as string
+      if (!eventAttendeeMap[eid]) eventAttendeeMap[eid] = new Set()
+      eventAttendeeMap[eid].add(row.user_id as string)
+    }
+
+    const { data: events } = await supabaseServer
+      .from("events")
+      .select("id, name")
+      .in("id", eventIdArray)
+
+    for (const ev of events ?? []) {
+      eventNameMap[ev.id] = ev.name
+    }
+  }
+
   // Exclude builders already connected (accepted) or with a pending request
   // in either direction — rejected ones stay discoverable
   const { data: friendshipRows } = await supabaseServer
@@ -209,9 +283,18 @@ export async function GET(req: NextRequest) {
 
   // Score and sort
   const scored = candidates.map((builder) => {
+    // Find shared events between current user and this builder
+    const sharedEventNames: string[] = []
+    for (const [eid, attendees] of Object.entries(eventAttendeeMap)) {
+      if (attendees.has(builder.id)) {
+        sharedEventNames.push(eventNameMap[eid] ?? "an event")
+      }
+    }
+
     const { score, reasons } = scoreBuilder(
       currentUser as UserRow,
       builder as UserRow,
+      sharedEventNames,
     )
     const { email: _email, privy_id: _privyId, ...publicProfile } = builder
     return {

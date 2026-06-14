@@ -65,20 +65,16 @@ export async function POST(
   if (gates.length) {
     const { data: fullUser } = await supabaseServer
       .from("users")
-      .select("talent_tags, poaps, nfts, human_passport_verified, worldid_verified, worldid_verification_level, chain_activity")
+      .select("poaps, skills, talent_tags")
       .eq("id", user.id)
       .single()
 
     if (fullUser) {
       const results = evaluateGates(
         {
-          talent_tags: fullUser.talent_tags ?? [],
           poaps: fullUser.poaps ?? [],
-          nfts: fullUser.nfts ?? [],
-          human_passport_verified: fullUser.human_passport_verified ?? false,
-          worldid_verified: fullUser.worldid_verified ?? false,
-          worldid_verification_level: fullUser.worldid_verification_level ?? null,
-          chain_activity: fullUser.chain_activity ?? {},
+          skills: (fullUser as { skills?: string[] }).skills ?? [],
+          talent_tags: (fullUser as { talent_tags?: string[] }).talent_tags ?? [],
         },
         gates as HouseGate[],
       )

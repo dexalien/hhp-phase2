@@ -57,8 +57,8 @@ export const SKILL_LIBRARY: Record<string, SkillDef> = {
   // ── Frontend ────────────────────────────────────────────
   react:        { label: "React",         icon: icon("React"),        emoji: false, category: "Frontend" },
   nextjs:       { label: "Next.js",       icon: icon("NextJS"),       emoji: false, category: "Frontend" },
-  typescript:   { label: "TypeScript",    icon: icon("TypeScript"),   emoji: false, category: "Frontend" },
-  javascript:   { label: "JavaScript",    icon: icon("JavaScript"),   emoji: false, category: "Frontend" },
+  typescript:   { label: "TypeScript",    icon: `${ICON_BASE}/TypeScript.svg`,  emoji: false, category: "Frontend" },
+  javascript:   { label: "JavaScript",    icon: `${ICON_BASE}/JavaScript.svg`,  emoji: false, category: "Frontend" },
   vuejs:        { label: "Vue.js",        icon: icon("VueJS"),        emoji: false, category: "Frontend" },
   angular:      { label: "Angular",       icon: icon("Angular"),      emoji: false, category: "Frontend" },
   svelte:       { label: "Svelte",        icon: `${ICON_BASE}/Svelte.svg`, emoji: false, category: "Frontend" },
@@ -67,12 +67,12 @@ export const SKILL_LIBRARY: Record<string, SkillDef> = {
   tailwindcss:  { label: "Tailwind CSS",  icon: icon("TailwindCSS"),  emoji: false, category: "Frontend" },
   threejs:      { label: "Three.js",      icon: icon("ThreeJS"),      emoji: false, category: "Frontend" },
   graphql:      { label: "GraphQL",       icon: icon("GraphQL"),      emoji: false, category: "Frontend" },
-  frontend:     { label: "Frontend",      icon: icon("React"),        emoji: false, category: "Frontend" },
+  frontend:     { label: "Frontend",      icon: "🎨",                 emoji: true,  category: "Frontend" },
 
   // ── Backend ─────────────────────────────────────────────
   nodejs:       { label: "Node.js",       icon: icon("NodeJS"),       emoji: false, category: "Backend" },
   python:       { label: "Python",        icon: icon("Python"),       emoji: false, category: "Backend" },
-  rust:         { label: "Rust",          icon: icon("Rust"),         emoji: false, category: "Backend" },
+  rust:         { label: "Rust",          icon: "🦀",                 emoji: true,  category: "Backend" },
   go:           { label: "Go",            icon: `${ICON_BASE}/GoLang.svg`,  emoji: false, category: "Backend" },
   java:         { label: "Java",          icon: icon("Java"),         emoji: false, category: "Backend" },
   expressjs:    { label: "Express",       icon: icon("ExpressJS"),    emoji: false, category: "Backend" },
@@ -89,10 +89,10 @@ export const SKILL_LIBRARY: Record<string, SkillDef> = {
   // ── Blockchain / Web3 ───────────────────────────────────
   solidity:         { label: "Solidity",          icon: `${ICON_BASE}/Solidity.svg`,  emoji: false, category: "Blockchain" },
   "smart contracts":{ label: "Smart Contracts",   icon: `${ICON_BASE}/Solidity.svg`,  emoji: false, category: "Blockchain" },
-  ethereum:         { label: "Ethereum",          icon: `${ICON_BASE}/Ethereum.svg`,  emoji: false, category: "Blockchain" },
+  ethereum:         { label: "Ethereum",          icon: "🔷",  emoji: true,  category: "Blockchain" },
   ipfs:             { label: "IPFS",              icon: icon("IPFS"),                 emoji: false, category: "Blockchain" },
-  "protocol design":{ label: "Protocol Design",  icon: `${ICON_BASE}/Ethereum.svg`,  emoji: false, category: "Blockchain" },
-  "token design":   { label: "Token Design",     icon: "🪙", emoji: true, category: "Blockchain" },
+  "protocol design":{ label: "Protocol Design",  icon: "📐",  emoji: true,  category: "Blockchain" },
+  "token design":   { label: "Token Design",     icon: "💰", emoji: true, category: "Blockchain" },
   defi:             { label: "DeFi",              icon: "🏦", emoji: true, category: "Blockchain" },
   "zero knowledge": { label: "Zero Knowledge",   icon: "🔐", emoji: true, category: "Blockchain" },
   mev:              { label: "MEV",               icon: "⚡", emoji: true, category: "Blockchain" },
@@ -128,11 +128,13 @@ export const SKILL_LIBRARY: Record<string, SkillDef> = {
   elasticsearch:{ label: "Elasticsearch", icon: icon("Elasticsearch"),emoji: false, category: "Database" },
 
   // ── AI / ML ─────────────────────────────────────────────
-  pytorch:      { label: "PyTorch",       icon: icon("PyTorch"),      emoji: false, category: "AI / ML" },
-  tensorflow:   { label: "TensorFlow",    icon: icon("TensorFlow"),   emoji: false, category: "AI / ML" },
-  opencv:       { label: "OpenCV",        icon: icon("OpenCV"),       emoji: false, category: "AI / ML" },
-  scikitlearn:  { label: "scikit-learn",  icon: icon("ScikitLearn"),  emoji: false, category: "AI / ML" },
-  "ai / ml":    { label: "AI / ML",       icon: icon("PyTorch"),      emoji: false, category: "AI / ML" },
+  pytorch:       { label: "PyTorch",       icon: icon("PyTorch"),      emoji: false, category: "AI / ML" },
+  tensorflow:    { label: "TensorFlow",    icon: icon("TensorFlow"),   emoji: false, category: "AI / ML" },
+  opencv:        { label: "OpenCV",        icon: icon("OpenCV"),       emoji: false, category: "AI / ML" },
+  scikitlearn:   { label: "scikit-learn",  icon: icon("ScikitLearn"),  emoji: false, category: "AI / ML" },
+  "ai / ml":     { label: "AI / ML",       icon: icon("PyTorch"),      emoji: false, category: "AI / ML" },
+  openai:        { label: "OpenClaw",      icon: "🦞",                  emoji: true,  category: "AI / ML" },
+  "ai agents":   { label: "AI Agents",     icon: "🤖",                  emoji: true,  category: "AI / ML" },
 
   // ── Mobile ──────────────────────────────────────────────
   flutter:      { label: "Flutter",       icon: icon("Flutter"),      emoji: false, category: "Mobile" },

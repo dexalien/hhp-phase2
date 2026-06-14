@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useImportPoaps } from "@/services/api/integrations"
+import { useSyncLinkedWallets } from "@/services/api/wallets"
 import { syncAndGetProfile } from "@/services/api/profile"
 import { usePatchProfile } from "@/services/api/profile"
 import { queryKeys } from "@/lib/query-keys"
@@ -24,6 +25,7 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
   const [isImporting, setIsImporting] = useState(false)
   const [isLinkingWallet, setIsLinkingWallet] = useState(false)
   const importPoaps = useImportPoaps()
+  const syncLinked = useSyncLinkedWallets()
   const patchProfile = usePatchProfile()
   const queryClient = useQueryClient()
 
@@ -34,6 +36,8 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
       setIsLinkingWallet(true)
       try {
         await syncAndGetProfile()
+        // Reconcile the newly linked (ownership-proven) wallet, then import.
+        await syncLinked.mutateAsync().catch(() => {})
         await importPoaps.mutateAsync(undefined)
         queryClient.invalidateQueries({ queryKey: [queryKeys.profile] })
       } finally {
@@ -74,7 +78,7 @@ export function ProfileOnchain({ profile, isOwner }: ProfileOnchainProps) {
   return (
     <div className="flex flex-col gap-6">
       {/* Sync button */}
-      {isOwner && profile.wallet_address && (
+      {isOwner && (
         <div className="flex justify-end">
           <Button
             type="button"

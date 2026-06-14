@@ -100,7 +100,7 @@ export function StepIdentity({ onNext, onBack, loading, error }: StepIdentityPro
             </p>
             <div className="flex-1 h-px bg-border" />
           </div>
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
             {CYPHER_KITTENS.map((kitten) => {
               const isSelected = selectedAvatar === kitten.src
 
@@ -111,7 +111,7 @@ export function StepIdentity({ onNext, onBack, loading, error }: StepIdentityPro
                   onClick={() => setSelectedAvatar(kitten.src)}
                   disabled={loading}
                   className={cn(
-                    "group relative flex flex-col items-center gap-4 rounded-2xl border-2 p-6",
+                    "group relative flex flex-col items-center gap-3 rounded-2xl border-2 p-4",
                     "transition-all duration-200 cursor-pointer",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -137,7 +137,7 @@ export function StepIdentity({ onNext, onBack, loading, error }: StepIdentityPro
                   )}
 
                   {/* GIF */}
-                  <div className="relative w-40 h-40 rounded-xl overflow-hidden">
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden">
                     <img
                       src={kitten.src}
                       alt={kitten.label}

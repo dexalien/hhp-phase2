@@ -22,19 +22,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
   }
 
-  // Check user is verified
   const { data: user } = await supabaseServer
     .from("users")
     .select("is_verified")
     .eq("privy_id", privyUserId)
     .single()
-
-  if (!user?.is_verified) {
-    return NextResponse.json(
-      { message: "Only verified users can upload a banner" },
-      { status: 403 },
-    )
-  }
 
   const formData = await req.formData()
   const file = formData.get("file") as File | null
@@ -47,6 +39,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { message: "Invalid file type. Use JPEG, PNG, WebP, GIF or AVIF" },
       { status: 400 },
+    )
+  }
+
+  // Animated GIF banners are a verified-only perk. Static images are open to all.
+  if (file.type === "image/gif" && !user?.is_verified) {
+    return NextResponse.json(
+      { message: "Only verified users can upload animated GIF banners" },
+      { status: 403 },
     )
   }
 

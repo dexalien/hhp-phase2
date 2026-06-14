@@ -29,6 +29,7 @@ export interface FriendshipWithUser extends Friendship {
     handle: string | null
     archetype: string | null
     avatar_url: string | null
+    skills: string[] | null
   }
   direction: "sent" | "received"
 }
@@ -499,7 +500,7 @@ export interface EventRequest {
 
 /* ── Gates & Multi-Wallet ── */
 
-export type GateType = "poap"
+export type GateType = "poap" | "skill"
 
 export interface PoapGateConfig {
   mode: "specific"
@@ -508,7 +509,11 @@ export interface PoapGateConfig {
   poap_images?: string[]
 }
 
-export type GateConfig = PoapGateConfig
+export interface SkillGateConfig {
+  skills: string[]
+}
+
+export type GateConfig = PoapGateConfig | SkillGateConfig
 
 export interface HouseGate {
   id: string
@@ -524,6 +529,13 @@ export interface GateCheckResult {
   passed: boolean
   /** Generic reason — never reveals user data */
   reason: string
+  /**
+   * Names of the user's own credentials that satisfied this gate (matched POAP
+   * names or skills). Only the credentials the host already required in the gate
+   * — never the user's full POAP/skill list. Used to tell the host what the
+   * applicant passed with. Empty when the gate did not pass.
+   */
+  matched: string[]
 }
 
 export interface UserWallet {
@@ -533,6 +545,11 @@ export interface UserWallet {
   label: string | null
   is_primary: boolean
   created_at: string
+  /** Ownership proven (Privy linkWallet / admin vouch / legacy). Only verified wallets feed credentials. */
+  verified: boolean
+  /** 'privy_link' | 'admin_mock' | 'legacy' */
+  verification_method: string | null
+  verified_at: string | null
 }
 
 export interface ProfileVisibility {

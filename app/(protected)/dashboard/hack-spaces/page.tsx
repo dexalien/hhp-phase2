@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useQueryStates, parseAsString } from "nuqs"
-import { Search, X } from "lucide-react"
+import { Search, X, ChevronDown } from "lucide-react"
 import { useFilteredHackSpaces } from "@/services/api/hack-spaces"
 import { useDebounce } from "@/hooks/use-debounce"
 import { HackSpaceCard } from "../_components/hack-space-card"
@@ -13,6 +13,7 @@ import { BackButton } from "../../_components/back-button"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { ARCHETYPES } from "@/lib/onboarding"
 import type {
@@ -326,14 +327,39 @@ export default function HackSpacesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {hackSpaces.map((hs) => (
-              <HackSpaceCard
-                key={hs.id}
-                hackSpace={hs}
-                currentUserId={profile?.id ?? null}
-              />
-            ))}
+          <div className="flex flex-col gap-4">
+            {STATUS_OPTIONS.map(({ value: status, label, colorVar }) => {
+              const items = hackSpaces.filter((hs) => hs.status === status)
+              if (items.length === 0) return null
+              return (
+                <Collapsible key={status} defaultOpen>
+                  <CollapsibleTrigger className="w-full flex items-center justify-between py-2 px-1 group cursor-pointer">
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="size-2.5 rounded-full shrink-0"
+                        style={{ background: `var(${colorVar})` }}
+                      />
+                      <h2 className="font-display font-bold text-foreground text-base">{label}</h2>
+                      <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-sm">
+                        {items.length}
+                      </span>
+                    </div>
+                    <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                      {items.map((hs) => (
+                        <HackSpaceCard
+                          key={hs.id}
+                          hackSpace={hs}
+                          currentUserId={profile?.id ?? null}
+                        />
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )
+            })}
           </div>
         )}
 

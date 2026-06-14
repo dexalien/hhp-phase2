@@ -63,8 +63,13 @@ export const SKILLS_BY_ARCHETYPE: Record<ArchetypeId, string[]> = {
 export const ALL_SKILLS = Object.values(SKILLS_BY_ARCHETYPE).flat()
 
 export const CYPHER_KITTENS = [
-  { id: "cat-red", src: "/cypher-kitten/cat-red.gif", label: "Red Kitten" },
-  { id: "cat-yellow", src: "/cypher-kitten/cat-yellow.gif", label: "Yellow Kitten" },
+  { id: "cat-01", src: "/cypher-kitten/cat-01.gif", label: "Kitten 01" },
+  { id: "cat-02", src: "/cypher-kitten/cat-02.gif", label: "Kitten 02" },
+  { id: "cat-03", src: "/cypher-kitten/cat-03.gif", label: "Kitten 03" },
+  { id: "cat-04", src: "/cypher-kitten/cat-04.gif", label: "Kitten 04" },
+  { id: "cat-05", src: "/cypher-kitten/cat-05.gif", label: "Kitten 05" },
+  { id: "cat-06", src: "/cypher-kitten/cat-06.gif", label: "Kitten 06" },
+  { id: "cat-07", src: "/cypher-kitten/cat-07.gif", label: "Kitten 07" },
 ] as const
 
 // Re-exported from constants for backward compat

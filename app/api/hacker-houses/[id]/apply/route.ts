@@ -39,7 +39,7 @@ export async function POST(
 
   const { data: hackerHouse } = await supabaseServer
     .from("hacker_houses")
-    .select("id, name, creator_id, status")
+    .select("id, name, creator_id, status, event_id, event_goers_only")
     .eq("id", hackerHouseId)
     .single()
 
@@ -51,31 +51,45 @@ export async function POST(
     return NextResponse.json({ message: "This Hacker House is not accepting applications" }, { status: 400 })
   }
 
+  // ── Event attendee gate ─────────────────────────────────────────────
+  if (hackerHouse.event_goers_only && hackerHouse.event_id) {
+    const { data: attendance } = await supabaseServer
+      .from("event_attendees")
+      .select("id")
+      .eq("event_id", hackerHouse.event_id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    if (!attendance) {
+      return NextResponse.json(
+        { message: "This house is restricted to event attendees. Mark yourself as attending the event first." },
+        { status: 403 },
+      )
+    }
+  }
+
   // ── Gate validation ──────────────────────────────────────────────────
   const { data: gates } = await supabaseServer
-    .from("gates")
+    .from("house_gates")
     .select("*")
-    .eq("entity_type", "hacker_house")
-    .eq("entity_id", hackerHouseId)
+    .eq("hacker_house_id", hackerHouseId)
+
+  let matchedPoaps: string[] = []
+  let matchedSkills: string[] = []
 
   if (gates?.length) {
-    // Fetch full user data for gate evaluation
     const { data: fullUser } = await supabaseServer
       .from("users")
-      .select("talent_tags, poaps, nfts, human_passport_verified, worldid_verified, worldid_verification_level, chain_activity")
+      .select("poaps, skills, talent_tags")
       .eq("id", user.id)
       .single()
 
     if (fullUser) {
       const results = evaluateGates(
         {
-          talent_tags: fullUser.talent_tags ?? [],
           poaps: fullUser.poaps ?? [],
-          nfts: fullUser.nfts ?? [],
-          human_passport_verified: fullUser.human_passport_verified ?? false,
-          worldid_verified: fullUser.worldid_verified ?? false,
-          worldid_verification_level: fullUser.worldid_verification_level ?? null,
-          chain_activity: fullUser.chain_activity ?? {},
+          skills: (fullUser as { skills?: string[] }).skills ?? [],
+          talent_tags: (fullUser as { talent_tags?: string[] }).talent_tags ?? [],
         },
         gates as HouseGate[],
       )
@@ -87,6 +101,10 @@ export async function POST(
           { status: 403 },
         )
       }
+
+      // Credentials the applicant passed with — only what the host's gates asked for.
+      matchedPoaps = results.filter((r) => r.gate_type === "poap").flatMap((r) => r.matched)
+      matchedSkills = results.filter((r) => r.gate_type === "skill").flatMap((r) => r.matched)
     }
   }
 
@@ -132,12 +150,25 @@ export async function POST(
     return NextResponse.json({ message: "Database error" }, { status: 500 })
   }
 
-  // Notify creator (only on first apply)
+  // Notify creator (only on first apply). If gates were passed, tell the host
+  // which of their required credentials the applicant matched on.
+  let notificationBody = `${user.handle ?? "Someone"} applied to your hacker house "${hackerHouse.name}".`
+  if (matchedPoaps.length || matchedSkills.length) {
+    const parts: string[] = []
+    if (matchedPoaps.length) {
+      parts.push(`${matchedPoaps.length} POAP${matchedPoaps.length > 1 ? "s" : ""} (${matchedPoaps.join(", ")})`)
+    }
+    if (matchedSkills.length) {
+      parts.push(`${matchedSkills.length} skill${matchedSkills.length > 1 ? "s" : ""} (${matchedSkills.join(", ")})`)
+    }
+    notificationBody += ` Passed the gate with ${parts.join(" and ")}.`
+  }
+
   await supabaseServer.from("notifications").insert({
     user_id: hackerHouse.creator_id,
     type: "hacker_house_application",
     title: "New application",
-    body: `${user.handle ?? "Someone"} applied to your hacker house "${hackerHouse.name}".`,
+    body: notificationBody,
     link: `/dashboard/hacker-houses/${hackerHouseId}`,
   })
 

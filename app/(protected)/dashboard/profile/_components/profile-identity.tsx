@@ -10,6 +10,7 @@ import type { ArchetypeId } from "@/lib/onboarding"
 interface ProfileIdentityProps {
   profile: UserProfile
   action?: React.ReactNode
+  matchReasons?: string[]
 }
 
 const ARCHETYPE_VARIANT: Record<
@@ -25,7 +26,7 @@ function truncateWallet(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
-export function ProfileIdentity({ profile, action }: ProfileIdentityProps) {
+export function ProfileIdentity({ profile, action, matchReasons }: ProfileIdentityProps) {
   const archetypeData = ARCHETYPES.find((a) => a.id === profile.archetype)
   const archetypeVar = archetypeData?.colorVar ?? "--primary"
   const badgeVariant =
@@ -90,8 +91,8 @@ export function ProfileIdentity({ profile, action }: ProfileIdentityProps) {
 
             <div className="flex items-start gap-2 flex-wrap">
               <h2
-                className="font-display font-bold text-foreground leading-none break-all"
-                style={{ fontSize: "clamp(1.6rem, 4.5vw, 2.4rem)" }}
+                className="font-display font-bold text-foreground leading-none truncate w-full"
+                style={{ fontSize: "clamp(1.2rem, 3.5vw, 2rem)" }}
               >
                 {profile.handle ?? "—"}
               </h2>
@@ -131,6 +132,31 @@ export function ProfileIdentity({ profile, action }: ProfileIdentityProps) {
             <p className="text-sm text-muted-foreground italic">
               No bio yet.
             </p>
+          )}
+          {matchReasons && matchReasons.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {matchReasons.map((reason, i) => {
+                const isSkillMatch = reason.startsWith("Has ")
+                return (
+                  <span
+                    key={i}
+                    className="px-2 py-0.5 rounded-full text-[10px] font-mono leading-none"
+                    style={isSkillMatch ? {
+                      background: `color-mix(in oklch, #22c55e 15%, transparent)`,
+                      color: "#22c55e",
+                      border: `1px solid color-mix(in oklch, #22c55e 35%, transparent)`,
+                      fontWeight: 600,
+                    } : {
+                      background: `color-mix(in oklch, var(${archetypeVar}) 12%, transparent)`,
+                      color: `var(${archetypeVar})`,
+                      border: `1px solid color-mix(in oklch, var(${archetypeVar}) 25%, transparent)`,
+                    }}
+                  >
+                    {reason}
+                  </span>
+                )
+              })}
+            </div>
           )}
           {action && <div>{action}</div>}
         </div>

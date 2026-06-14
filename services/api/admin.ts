@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { genericAuthRequest } from "@/lib/api-client"
 import { useAppQuery, useAppMutation } from "@/lib/query-hooks"
 import { queryKeys } from "@/lib/query-keys"
-import type { AdminStats, AdminUser, HHPEvent, EventRequest } from "@/lib/types"
+import type { AdminStats, AdminUser, HHPEvent, EventRequest, UserWallet } from "@/lib/types"
 import type { CreateEventInput, UpdateEventInput } from "@/lib/schemas/event"
 
 // ── Stats ──
@@ -140,6 +140,37 @@ export const useToggleAdmin = (targetId: string) => {
   return useAppMutation<{ is_admin: boolean }, { user: AdminUser }>({
     fetcher: (body) =>
       genericAuthRequest<{ user: AdminUser }>("post", `/api/admin/users/${targetId}/toggle-admin`, body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminUsers] })
+      },
+    },
+  })
+}
+
+/**
+ * Admin-only: attach a mock data wallet to a user (buildathon seeding).
+ * Bypasses ownership proof — never exposed to normal users.
+ */
+export const useAdminAddMockWallet = (targetId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<{ wallet_address: string; label?: string }, { wallet: UserWallet }>({
+    fetcher: (body) =>
+      genericAuthRequest<{ wallet: UserWallet }>("post", `/api/admin/users/${targetId}/wallets`, body),
+    options: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: [queryKeys.adminUsers] })
+      },
+    },
+  })
+}
+
+/** Admin-only: run POAP sync for a target user (includes mock wallets). */
+export const useAdminSyncPoaps = (targetId: string) => {
+  const queryClient = useQueryClient()
+  return useAppMutation<void, { poaps: unknown[]; count: number }>({
+    fetcher: () =>
+      genericAuthRequest<{ poaps: unknown[]; count: number }>("post", `/api/admin/users/${targetId}/sync-poaps`),
     options: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKeys.adminUsers] })

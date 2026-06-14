@@ -41,10 +41,9 @@ export async function GET(
 
   // Fetch gates for this house
   const { data: gates } = await supabaseServer
-    .from("gates")
+    .from("house_gates")
     .select("*")
-    .eq("entity_type", "hacker_house")
-    .eq("entity_id", id)
+    .eq("hacker_house_id", id)
 
   const participants = (data.all_applications ?? [])
     .filter((a: { status: string }) => a.status === "accepted")

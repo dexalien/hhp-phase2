@@ -30,14 +30,13 @@ export async function GET(
   const [{ data: user }, { data: gates }] = await Promise.all([
     supabaseServer
       .from("users")
-      .select("id, talent_tags, poaps, nfts, human_passport_verified, worldid_verified, worldid_verification_level, chain_activity")
+      .select("id, poaps, skills, talent_tags")
       .eq("privy_id", privyUserId)
       .single(),
     supabaseServer
-      .from("gates")
+      .from("house_gates")
       .select("*")
-      .eq("entity_type", "hacker_house")
-      .eq("entity_id", hackerHouseId),
+      .eq("hacker_house_id", hackerHouseId),
   ])
 
   if (!user) {
@@ -51,13 +50,9 @@ export async function GET(
 
   const results = evaluateGates(
     {
-      talent_tags: user.talent_tags ?? [],
       poaps: user.poaps ?? [],
-      nfts: user.nfts ?? [],
-      human_passport_verified: user.human_passport_verified ?? false,
-      worldid_verified: user.worldid_verified ?? false,
-      worldid_verification_level: user.worldid_verification_level ?? null,
-      chain_activity: user.chain_activity ?? {},
+      skills: (user as { skills?: string[] }).skills ?? [],
+      talent_tags: (user as { talent_tags?: string[] }).talent_tags ?? [],
     },
     gates as HouseGate[],
   )

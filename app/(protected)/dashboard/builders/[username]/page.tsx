@@ -3,7 +3,7 @@
 import { use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useBuilderProfile } from "@/services/api/profile"
+import { useBuilderProfile, useSuggestedBuilders } from "@/services/api/profile"
 import { useFriendshipStatus } from "@/services/api/friendships"
 import { ProfileView } from "../../profile/_components/profile-view"
 import { PageContainer } from "../../_components/page-container"
@@ -17,7 +17,9 @@ export default function BuilderProfilePage({ params }: BuilderProfilePageProps) 
   const { username } = use(params)
   const { data: profile, isLoading, isError } = useBuilderProfile(username)
   const { data: friendshipStatus } = useFriendshipStatus(profile?.id ?? "")
+  const { data: suggestedBuilders } = useSuggestedBuilders()
   const isMatched = friendshipStatus?.status === "accepted"
+  const matchReasons = suggestedBuilders?.find((b) => b.id === profile?.id)?.match_reasons ?? []
 
   return (
     <PageContainer>
@@ -49,7 +51,7 @@ export default function BuilderProfilePage({ params }: BuilderProfilePageProps) 
           </Link>
         </div>
       ) : (
-        <ProfileView profile={profile} isOwner={false} isMatched={isMatched} />
+        <ProfileView profile={profile} isOwner={false} isMatched={isMatched} matchReasons={matchReasons} />
       )}
     </PageContainer>
   )

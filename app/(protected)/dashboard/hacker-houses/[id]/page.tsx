@@ -44,10 +44,12 @@ import {
   Wallet,
   Wifi,
   X,
+  Zap,
 } from "lucide-react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { use, useState, useEffect, useRef } from "react"
+import { SkillCard } from "@/app/(protected)/dashboard/profile/_components/skill-card"
 import { PageContainer } from "../../_components/page-container"
 import { BackButton } from "../../../_components/back-button"
 import { HackerHouseApplicationManager } from "./_components/hacker-house-application-manager"
@@ -780,8 +782,22 @@ export default function HackerHouseDetailPage({
           })()}
 
           {/* ── Added Hacker Homies ── */}
-          <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+          {(() => {
+            const isOpen = hackerHouse.application_type === "open"
+            const showPrivacy = !isOpen && !isAccepted && !isOwner
+            return (
+          <section className="mb-8 relative">
+            {showPrivacy && (
+              <div className="absolute inset-0 z-10 rounded-xl backdrop-blur-sm bg-card/40 flex flex-col items-center justify-center gap-2">
+                <Lock className="size-5 text-muted-foreground" />
+                <p className="text-xs font-mono text-muted-foreground text-center px-4">
+                  {hackerHouse.application_type === "invite_only"
+                    ? "Invite only — join to see who's inside"
+                    : "Pass the gates to see who's inside"}
+                </p>
+              </div>
+            )}
+            <div className={cn("flex items-center justify-between mb-4", showPrivacy && "select-none")}>
               <h2 className="font-display font-bold text-lg text-foreground">Hacker Homies</h2>
               <span className="text-muted-foreground text-sm">{homies?.length ?? 0} hackers</span>
             </div>
@@ -874,6 +890,8 @@ export default function HackerHouseDetailPage({
               })}
             </div>
           </section>
+            )
+          })()}
 
           {/* ── Who this is for ── */}
           {hackerHouse.profile_sought.length > 0 && (
@@ -892,73 +910,120 @@ export default function HackerHouseDetailPage({
             </section>
           )}
 
-          {/* ── Entry Requirements (Gates) ── */}
-          {hasGates && (
-            <section className="mb-8">
-              <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
-                <Shield className="size-4 text-primary" />
-                Entry Requirements
-              </h2>
-              <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3">
-                {hackerHouse.gates!.map((gate) => {
-                  const checkResult = gateCheck?.results?.find((r) => r.gate_type === gate.gate_type)
-                  const passed = checkResult?.passed
-                  const gateLabels: Record<string, string> = {
-                    talent_skills: "Verified Skills",
-                    poap: "POAP Attendance",
-                    nft: "NFT Ownership",
-                    human_passport: "Human Passport",
-                    world_id: "World ID",
-                    blockchain_activity: "Blockchain Activity",
-                  }
+          {/* ── POAP Gate ── */}
+          {hasGates && (() => {
+            const poapGate = hackerHouse.gates!.find((g) => g.gate_type === "poap")
+            const config = poapGate?.config as { event_ids?: string[]; poap_names?: string[]; poap_images?: string[] } | undefined
+            if (!config?.event_ids?.length) return null
+            const checkResult = gateCheck?.results?.find((r) => r.gate_type === "poap")
+            const passed = checkResult?.passed
 
-                  return (
-                    <div key={gate.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "size-8 rounded-full flex items-center justify-center shrink-0",
-                          passed === true
-                            ? "bg-[#6EE76E]/20"
-                            : passed === false
-                              ? "bg-destructive/20"
-                              : "bg-muted",
-                        )}>
-                          {passed === true ? (
-                            <Check className="size-4 text-[#6EE76E]" />
-                          ) : passed === false ? (
-                            <X className="size-4 text-destructive" />
-                          ) : (
-                            <Shield className="size-4 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
-                            {gateLabels[gate.gate_type] ?? gate.gate_type}
-                          </p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {checkResult?.reason ?? "Checking..."}
-                          </p>
-                        </div>
+            return (
+              <section className="mb-8">
+                <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+                  <Shield className="size-4 text-primary" />
+                  POAP Required
+                  {passed !== undefined && (
+                    <span className={cn(
+                      "text-xs font-mono px-2 py-0.5 rounded-full ml-auto",
+                      passed ? "bg-[#6EE76E]/10 text-[#6EE76E]" : "bg-destructive/10 text-destructive",
+                    )}>
+                      {passed ? "Qualified" : "Required"}
+                    </span>
+                  )}
+                </h2>
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <p className="text-xs text-muted-foreground font-mono mb-4">
+                    You need at least one of these POAPs to join
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {(config?.event_ids ?? []).map((id, i) => (
+                      <div
+                        key={id}
+                        className="flex flex-col items-center gap-2 rounded-xl border p-3 text-center border-primary/30 bg-primary/5"
+                      >
+                        {config?.poap_images?.[i] && (
+                          <img
+                            src={config.poap_images[i]}
+                            alt={config?.poap_names?.[i] ?? "POAP"}
+                            loading="lazy"
+                            className="w-14 h-14 rounded-full object-cover"
+                          />
+                        )}
+                        <p className="text-[10px] font-mono text-foreground leading-tight line-clamp-2">
+                          {config?.poap_names?.[i] ?? `POAP #${i + 1}`}
+                        </p>
                       </div>
-                      {passed !== undefined && (
-                        <span className={cn(
-                          "text-xs font-mono px-2 py-0.5 rounded-full",
-                          passed ? "bg-[#6EE76E]/10 text-[#6EE76E]" : "bg-destructive/10 text-destructive",
-                        )}>
-                          {passed ? "Qualified" : "Required"}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-
-                {gateCheck && !gateCheck.qualified && !isOwner && (
-                  <div className="mt-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                    <p className="text-xs text-destructive font-mono">
-                      You don&apos;t meet all requirements to apply. Complete the missing verifications in your profile.
-                    </p>
+                    ))}
                   </div>
-                )}
+
+                  {gateCheck && !gateCheck.qualified && !isOwner && (
+                    <div className="mt-4 flex flex-col items-center gap-2 py-3">
+                      <img src="/cypher-kitten/cat-crying.gif" alt="Crying kitten" className="size-16" />
+                      <p className="text-xs text-destructive font-mono text-center">
+                        No cumplís los requisitos. Asistí a estos eventos para calificar.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )
+          })()}
+
+          {/* ── Skill Gate ── */}
+          {hasGates && (() => {
+            const skillGate = hackerHouse.gates!.find((g) => g.gate_type === "skill")
+            const config = skillGate?.config as { skills?: string[] } | undefined
+            if (!config?.skills?.length) return null
+            const checkResult = gateCheck?.results?.find((r) => r.gate_type === "skill")
+            const passed = checkResult?.passed
+            return (
+              <section className="mb-8">
+                <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+                  <Zap className="size-4 text-primary" />
+                  Skills Required
+                  {passed !== undefined && (
+                    <span className={cn(
+                      "text-xs font-mono px-2 py-0.5 rounded-full ml-auto",
+                      passed ? "bg-[#6EE76E]/10 text-[#6EE76E]" : "bg-destructive/10 text-destructive",
+                    )}>
+                      {passed ? "Qualified" : "Required"}
+                    </span>
+                  )}
+                </h2>
+                <div className="bg-card border border-border rounded-xl p-5">
+                  <p className="text-xs text-muted-foreground font-mono mb-4">
+                    You need at least one of these skills to join
+                  </p>
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                    {config.skills.map((skill) => (
+                      <SkillCard key={skill} skill={skill} size="xs" />
+                    ))}
+                  </div>
+                  {gateCheck && !gateCheck.qualified && !isOwner && (
+                    <div className="mt-4 flex flex-col items-center gap-2 py-3">
+                      <img src="/cypher-kitten/cat-crying.gif" alt="Crying kitten" className="size-16" />
+                      <p className="text-xs text-destructive font-mono text-center">
+                        No cumplís los requisitos. Necesitás al menos una de estas skills.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )
+          })()}
+
+          {/* ── Event Attendees Only gate ── */}
+          {hackerHouse.event_goers_only && hackerHouse.event_name && (
+            <section className="mb-8">
+              <div className="bg-card border border-primary/30 rounded-xl p-5 flex items-start gap-3">
+                <Shield className="size-4 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Event attendees only</p>
+                  <p className="text-xs text-muted-foreground font-mono mt-1">
+                    Only builders attending <span className="text-primary">{hackerHouse.event_name}</span> can apply to this house.
+                  </p>
+                </div>
               </div>
             </section>
           )}

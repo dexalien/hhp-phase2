@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
   const { data: user } = await supabaseServer
     .from("users")
-    .select("id")
+    .select("id, handle")
     .eq("privy_id", privyUserId)
     .single()
 
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { has_event, gates, ...fields } = parsed.data
+  const { has_event, gates, invited_user_ids, ...fields } = parsed.data
 
   const insertData = {
     creator_id: user.id,
@@ -175,11 +175,13 @@ export async function POST(req: NextRequest) {
     sponsor_community_id: has_event ? null : (fields.sponsor_community_id ?? null),
     lat: fields.lat ?? null,
     lng: fields.lng ?? null,
+    event_id: has_event ? (fields.event_id || null) : null,
     event_name: has_event ? (fields.event_name || null) : null,
     event_url: has_event ? (fields.event_url || null) : null,
     event_start_date: has_event ? (fields.event_start_date || null) : null,
     event_end_date: has_event ? (fields.event_end_date || null) : null,
     event_timing: has_event ? (fields.event_timing ?? []) : [],
+    event_goers_only: has_event ? (fields.event_goers_only ?? false) : false,
     // Web3 escrow fields — only set for paid/staking modality
     host_safe: fields.host_safe || null,
     deposit_amount_usdc: fields.deposit_amount_usdc ?? null,
@@ -200,16 +202,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Database error" }, { status: 500 })
   }
 
+  // Send invitations if invite_only house. Use the same notification type the
+  // invite/uninvite, invite-status and homies routes key on — otherwise these
+  // create-time invites are orphaned (not shown as invited, not removable).
+  if (invited_user_ids?.length) {
+    const creatorHandle = (user as { id: string; handle?: string | null }).handle ?? "A host"
+    const notifRows = invited_user_ids.map((uid) => ({
+      user_id: uid,
+      type: "hacker_house_invite",
+      title: "You're invited!",
+      body: `@${creatorHandle} invited you to join "${data.name}"`,
+      link: `/dashboard/hacker-houses/${data.id}`,
+    }))
+    const { error: notifError } = await supabaseServer.from("notifications").insert(notifRows)
+    if (notifError) {
+      console.error("[POST /api/hacker-houses] invite notifications", notifError)
+    }
+  }
+
   // Insert gates if provided
   if (gates?.length) {
     const gateRows = gates.map((g) => ({
-      entity_type: "hacker_house" as const,
-      entity_id: data.id,
+      hacker_house_id: data.id,
       gate_type: g.gate_type,
       config: g.config,
     }))
     const { error: gatesError } = await supabaseServer
-      .from("gates")
+      .from("house_gates")
       .insert(gateRows)
 
     if (gatesError) {

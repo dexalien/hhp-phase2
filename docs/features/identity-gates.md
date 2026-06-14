@@ -176,12 +176,14 @@ CREATE TABLE house_gates (
 
 | gate_type | config | Status |
 |---|---|---|
-| `talent_skills` | `{ required_skills: string[], min_count: 1 }` | Implementado |
-| `poap` | `{ mode: "count" \| "specific", min_count?: 3, event_ids?: [] }` | Implementado |
+| `poap` | `PoapGateConfig` → `{ mode: "specific", event_ids: string[], poap_names?, poap_images? }` | Implementado |
+| `skill` | `SkillGateConfig` → `{ skills: string[] }` | Implementado |
 | `nft` | `{ contracts: [{ address, chain_id, name }] }` | Engine ready, UI pending |
 | `human_passport` | `{ required: true }` | Engine ready, integration pending |
 | `world_id` | `{ verification_level: "device" \| "orb" }` | Engine ready, integration pending |
 | `blockchain_activity` | `{ min_tx_count?: 10, chains?: [42161], min_age_days?: 365 }` | Engine ready, integration pending |
+
+> Tipos en `lib/types.ts`: `GateType = "poap" | "skill"`, `GateConfig = PoapGateConfig | SkillGateConfig`.
 
 ### Gate Engine
 
@@ -192,9 +194,16 @@ function evaluateGates(user: GateUserData, gates: HouseGate[]): GateCheckResult[
 function allGatesPassed(results: GateCheckResult[]): boolean
 ```
 
-- Logica AND: todos los gates deben pasar
-- Cada gate retorna `{ gate_type, passed, reason }` con razon generica (sin datos sensibles)
-- Ejemplo: `{ gate_type: "talent_skills", passed: false, reason: "Missing required skills: Solidity" }`
+**Semantica AND entre gates, OR dentro de cada gate:**
+- **AND entre gates** — si una casa tiene un gate POAP *y* un gate skill, el aplicante debe pasar **ambos** (`allGatesPassed` = todos `passed`).
+- **OR dentro de un gate** — un gate POAP con 10 event_ids pasa si el user tiene **al menos uno**. Un gate skill con 5 skills pasa si el user tiene **al menos uno**.
+- Ejemplo: casa con gate POAP (4 POAPs) + gate skill (5 skills) ⇒ entra quien tenga ≥1 de esos POAPs **Y** ≥1 de esos skills.
+
+**Resultado por gate** — `{ gate_type, passed, reason, matched }`:
+- `reason`: razon generica (sin datos sensibles), p.ej. `"Requires a specific skill"`.
+- `matched`: nombres de las credenciales **propias del user** que satisficieron el gate (POAPs o skills). Solo lo que el host ya pidio en su gate — nunca la lista completa del user. Vacio si no paso.
+
+**Notificacion al host** — al pasar el gate y aplicar, el host recibe en `POST /api/hacker-houses/[id]/apply` una notificacion que incluye con que paso: *"Passed the gate with 2 POAPs (ETHGlobal, Devcon) and 1 skill (Solidity)."* Esto respeta la privacidad: solo revela las credenciales que el propio host exigio en el gate, no el resto del perfil on-chain del builder.
 
 ### API
 
@@ -204,14 +213,19 @@ function allGatesPassed(results: GateCheckResult[]): boolean
 | `GET /api/hacker-houses/[id]` | GET | Incluye `gates` en la respuesta |
 | `GET /api/hacker-houses/[id]/gates/check` | GET | Evalua user autenticado contra gates, retorna `{ qualified, results }` |
 | `POST /api/hacker-houses/[id]/apply` | POST | Valida gates antes de procesar aplicacion. Si falla: 403 con gates no cumplidos |
+| `POST /api/communities/[id]/join` | POST | Valida gates antes de agregar al miembro. Si falla: 403 |
+| `POST /api/hack-spaces/[id]/apply` | POST | Valida gates antes de procesar aplicacion. Si falla: 403 con gates no cumplidos |
+
+> **Cobertura de enforcement (2026-06-14):** los tres tipos de entidad (hacker house, community, hack space) ahora **evaluan los gates server-side** al unirse/aplicar, pasando `poaps + skills + talent_tags` al engine (antes community join y hack-space apply pasaban solo `poaps`, por lo que un skill gate siempre fallaba / no se aplicaba). Hacker houses leen/escriben en `house_gates`; communities y hack-spaces usan la tabla generica `gates` via `lib/gate-helpers.ts`. Al pasar el gate, hacker house apply y hack-space apply notifican al creador con las credenciales matcheadas (`matched`).
 
 ### UI: Crear House (Form - Step Access)
 
 Seccion "Entry requirements" con icono Shield despues de `application_deadline`:
-- Dropdown para agregar gate type
-- Config dinamica por tipo (multi-select skills, number input min_count)
-- Cards removibles por gate
-- Solo `talent_skills` y `poap` disponibles en Fase 1 (los demas marcados "coming soon")
+- `PoapGatePicker` (multi-select de POAPs) → `config: { mode: "specific", event_ids, poap_names?, poap_images? }`
+- `SkillGatePicker` (multi-select de skills) → `config: { skills }`
+- Los pickers preservan el otro gate al editar (no se pisan entre si)
+- Solo `skill` y `poap` disponibles en Fase 1 (los demas marcados "coming soon")
+- El mismo par de pickers se usa en los forms de community y hack-space
 
 ### UI: House Detail
 

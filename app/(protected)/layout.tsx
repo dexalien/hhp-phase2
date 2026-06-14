@@ -55,7 +55,7 @@ export default function ProtectedLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="pb-16 md:pb-0">
+      <SidebarInset className="pb-16 md:pb-0 h-dvh overflow-hidden">
         {!isWorkspace && !isProfile && <WalletBadge />}
         {children}
       </SidebarInset>

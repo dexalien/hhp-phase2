@@ -13,6 +13,8 @@ export const COMMUNITY_CATEGORIES = [
   "Other",
 ] as const
 
+export const ACCESS_TYPES = ["open", "gated", "invite_only"] as const
+
 export const createCommunitySchema = z.object({
   name: z.string().min(3, "Minimum 3 characters").max(80),
   description: z.string().min(10, "Minimum 10 characters").max(500),
@@ -26,6 +28,8 @@ export const createCommunitySchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   gates: z.array(gateSchema).optional(),
+  access_type: z.enum(ACCESS_TYPES).optional(),
+  invited_user_ids: z.array(z.string()).optional(),
 })
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>

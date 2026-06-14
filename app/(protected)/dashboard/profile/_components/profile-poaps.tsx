@@ -47,21 +47,9 @@ export function ProfilePoaps({ profile, isOwner }: ProfilePoapsProps) {
     [featuredPoaps, patchProfile],
   )
 
-  if (!profile.poaps || profile.poaps.length === 0) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-sm text-muted-foreground italic">
-          {isOwner
-            ? profile.wallet_address
-              ? "No POAPs found on this wallet."
-              : "Link a wallet to see your POAP collection."
-            : "No POAPs to show."}
-        </p>
-      </div>
-    )
-  }
+  const hasPoaps = profile.poaps && profile.poaps.length > 0
 
-  const filtered = profile.poaps
+  const filtered = (profile.poaps ?? [])
     .filter((p) =>
       !poapSearch.trim() || p.name.toLowerCase().includes(poapSearch.toLowerCase()),
     )
@@ -78,13 +66,13 @@ export function ProfilePoaps({ profile, isOwner }: ProfilePoapsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        {isOwner && (
+      <div className="flex items-center justify-between gap-3">
+        {isOwner && hasPoaps && (
           <p className="text-[10px] font-mono text-muted-foreground">
             Click the star to feature POAPs on your public profile
           </p>
         )}
-        {isOwner && profile.wallet_address && (
+        {isOwner && (
           <Button
             type="button"
             variant="outline"
@@ -104,7 +92,17 @@ export function ProfilePoaps({ profile, isOwner }: ProfilePoapsProps) {
         )}
       </div>
 
-      {profile.poaps.length > 6 && (
+      {!hasPoaps && (
+        <div className="py-8 text-center">
+          <p className="text-sm text-muted-foreground italic">
+            {isOwner
+              ? "No POAPs found. Click Sync POAPs to import from your wallets."
+              : "No POAPs to show."}
+          </p>
+        </div>
+      )}
+
+      {hasPoaps && filtered.length > 6 && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
           <input
@@ -121,7 +119,7 @@ export function ProfilePoaps({ profile, isOwner }: ProfilePoapsProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5">
+      {hasPoaps && <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5">
         {visible.map((poap) => {
           const isFeatured = featuredPoaps.includes(poap.id)
           return (
@@ -203,9 +201,9 @@ export function ProfilePoaps({ profile, isOwner }: ProfilePoapsProps) {
             </span>
           </button>
         )}
-      </div>
+      </div>}
 
-      {poapSearch.trim() && (
+      {hasPoaps && poapSearch.trim() && (
         <p className="text-[10px] font-mono text-muted-foreground text-right">
           {filtered.length} matching &ldquo;{poapSearch}&rdquo;
         </p>

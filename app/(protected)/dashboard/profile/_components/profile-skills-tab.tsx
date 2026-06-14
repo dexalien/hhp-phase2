@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useCallback } from "react"
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { usePatchProfile } from "@/services/api/profile"
 import { ProfileTags } from "./profile-tags"
@@ -12,7 +12,6 @@ import type { UserProfile } from "@/lib/types"
 interface ProfileSkillsTabProps {
   profile: UserProfile
   isOwner: boolean
-  isMatched?: boolean
 }
 
 function SkillCarousel({
@@ -81,8 +80,7 @@ function SkillCarousel({
   )
 }
 
-export function ProfileSkillsTab({ profile, isOwner, isMatched = false }: ProfileSkillsTabProps) {
-  const canSeeAll = isOwner || isMatched
+export function ProfileSkillsTab({ profile, isOwner }: ProfileSkillsTabProps) {
   const patchProfile = usePatchProfile()
   const skills = profile.skills ?? []
   const seekingSkills = profile.seeking_skills ?? []
@@ -211,16 +209,10 @@ export function ProfileSkillsTab({ profile, isOwner, isMatched = false }: Profil
           <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-[0.15em]">
             Looking for
           </p>
-          {canSeeAll ? (
-            seekingSkills.length > 0
-              ? <SkillCarousel skills={seekingSkills} emptyKey="seeking-ro" />
-              : <p className="text-sm text-muted-foreground italic">No skills specified.</p>
-          ) : (
-            <div className="flex items-center gap-2 py-2">
-              <Lock className="size-3.5 text-muted-foreground shrink-0" />
-              <p className="text-xs font-mono text-muted-foreground">Connect to see what skills this builder is looking for</p>
-            </div>
-          )}
+          {seekingSkills.length > 0
+            ? <SkillCarousel skills={seekingSkills} emptyKey="seeking-ro" />
+            : <p className="text-sm text-muted-foreground italic">No skills specified.</p>
+          }
         </section>
       )}
     </div>

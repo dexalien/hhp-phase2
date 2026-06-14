@@ -116,9 +116,10 @@ interface ProfileViewProps {
   profile: UserProfile
   isOwner: boolean
   isMatched?: boolean
+  matchReasons?: string[]
 }
 
-export function ProfileView({ profile, isOwner, isMatched = false }: ProfileViewProps) {
+export function ProfileView({ profile, isOwner, isMatched = false, matchReasons }: ProfileViewProps) {
   const [isEditing, setIsEditing] = useState(false)
   const { data: hackSpaces = [], isLoading: isLoadingSpaces } = useMyHackSpaces(profile.id)
   const { data: hackerHouses = [], isLoading: isLoadingHouses } = useMyHackerHouses(profile.id)
@@ -161,6 +162,7 @@ export function ProfileView({ profile, isOwner, isMatched = false }: ProfileView
         <div className="shrink-0">
           <ProfileIdentity
             profile={profile}
+            matchReasons={!isOwner && !isMatched ? matchReasons : undefined}
             action={isOwner ? (
               <Button
                 type="button"
@@ -320,7 +322,7 @@ export function ProfileView({ profile, isOwner, isMatched = false }: ProfileView
 
           {/* ── Skills tab ── */}
           <TabsContent value="skills" className="p-5 overflow-y-auto min-h-0 flex-1">
-            <ProfileSkillsTab profile={profile} isOwner={isOwner} isMatched={isMatched} />
+            <ProfileSkillsTab profile={profile} isOwner={isOwner} />
           </TabsContent>
 
           {/* ── POAPs tab ── */}
