@@ -13,7 +13,7 @@ const serverEnvSchema = z.object({
   WORLD_ID_APIKEY: z.string().min(1).optional(),
 })
 
-export const serverEnv = serverEnvSchema.parse({
+const parsedServer = serverEnvSchema.safeParse({
   PRIVY_APP_SECRET: process.env.PRIVY_APP_SECRET,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   POAP_APIKEY: process.env.POAP_APIKEY,
@@ -23,3 +23,14 @@ export const serverEnv = serverEnvSchema.parse({
   HUMAN_PASSPORT_APIKEY: process.env.HUMAN_PASSPORT_APIKEY,
   WORLD_ID_APIKEY: process.env.WORLD_ID_APIKEY,
 })
+
+if (!parsedServer.success) {
+  const details = parsedServer.error.issues
+    .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+    .join("\n")
+  throw new Error(
+    `Invalid or missing server environment variables:\n${details}`,
+  )
+}
+
+export const serverEnv = parsedServer.data
