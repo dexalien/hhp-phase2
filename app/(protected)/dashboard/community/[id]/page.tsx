@@ -15,6 +15,7 @@ import {
   Pencil,
   Image as ImageIcon,
   Shield,
+  Zap,
 } from "lucide-react"
 import { useCommunity, useJoinCommunity, useLeaveCommunity, useCommunityMembers, useUpdateCommunity } from "@/services/api/communities"
 import { CommunityForm } from "../create/_components/create-community-form"
@@ -292,6 +293,34 @@ export default function CommunityDetailPage() {
                             {config.poap_names?.[i] ?? `POAP #${i + 1}`}
                           </p>
                         </div>
+                      ))}
+                    </div>
+                  </section>
+                )
+              })()}
+
+              {/* Skill Gate */}
+              {community.gates && community.gates.length > 0 && (() => {
+                const skillGate = community.gates.find((g) => g.gate_type === "skill")
+                const config = skillGate?.config as { skills?: string[] } | undefined
+                if (!config?.skills?.length) return null
+                return (
+                  <section className="col-span-full bg-card border border-border rounded-lg p-5">
+                    <h3 className="font-display font-bold text-sm text-foreground mb-3 flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" />
+                      Skills Required
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-mono mb-3">
+                      You need at least one of these skills to join
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {config.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium border border-primary/30 bg-primary/5 text-foreground"
+                        >
+                          {skill}
+                        </span>
                       ))}
                     </div>
                   </section>

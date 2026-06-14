@@ -58,7 +58,7 @@ export async function GET(
 
   // Add paid builders
   for (const app of applications ?? []) {
-    const u = app.applicant as { id: string; handle: string | null; archetype: string | null; avatar_url: string | null }
+    const u = app.applicant as unknown as { id: string; handle: string | null; archetype: string | null; avatar_url: string | null }
     if (!u || paidIds.has(u.id)) continue
     paidIds.add(u.id)
     homies.push({
@@ -104,7 +104,7 @@ export async function GET(
   }
 
   // 4. Add creator if not already in the list
-  const creator = house.creator as { id: string; handle: string | null; archetype: string | null; avatar_url: string | null }
+  const creator = house.creator as unknown as { id: string; handle: string | null; archetype: string | null; avatar_url: string | null }
   if (creator && !paidIds.has(creator.id) && !homies.some((h) => h.id === creator.id)) {
     homies.unshift({
       id: creator.id,

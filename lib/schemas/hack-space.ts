@@ -5,7 +5,7 @@ import { gateSchema } from "./hacker-house"
 const TRACKS = ["DeFi", "DAO tools", "AI", "Social", "Gaming", "NFTs", "Infrastructure", "Other"] as const
 const STAGES = ["idea", "prototype", "in_development"] as const
 const EXPERIENCE_LEVELS = ["beginner", "intermediate", "advanced"] as const
-const APPLICATION_TYPES = ["open", "invite_only", "curated"] as const
+const APPLICATION_TYPES = ["open", "gated", "invite_only", "curated"] as const
 const EVENT_TIMINGS = ["before", "during", "after"] as const
 
 export const createHackSpaceSchema = z.object({
@@ -28,13 +28,18 @@ export const createHackSpaceSchema = z.object({
   // Access
   application_type: z.enum(APPLICATION_TYPES),
   application_deadline: z.string().optional(),
+  // Invite-only: friends to invite (transient — not persisted on the table, used by the form)
+  invited_user_ids: z.array(z.string()).optional(),
   // Event (optional)
   has_event: z.boolean().optional(),
   event_name: z.string().optional(),
   event_url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   event_start_date: z.string().optional(),
   event_end_date: z.string().optional(),
-  event_timing: z.array(z.enum(EVENT_TIMINGS)).min(1).optional(),
+  // NOTE: must NOT be `.min(1)` here — the form default is `[]`, and `.optional()`
+  // only allows `undefined`, so `.min(1)` on `[]` would fail validation silently
+  // and block submit ("Launch Space" doing nothing).
+  event_timing: z.array(z.enum(EVENT_TIMINGS)).optional(),
   gates: z.array(gateSchema).optional(),
 })
 

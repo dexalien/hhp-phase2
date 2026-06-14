@@ -42,8 +42,8 @@ export default function DashboardPage() {
         <WelcomeHeader />
         <ContextBanner />
         <UpcomingEventsFeed />
-        <HackSpacesFeed currentUserId={profile?.id ?? null} />
         <HackerHousesFeed currentUserId={profile?.id ?? null} />
+        <HackSpacesFeed currentUserId={profile?.id ?? null} />
         <CommunitiesFeed />
         <SuggestedBuildersFeed />
         <ActiveCitiesSection />

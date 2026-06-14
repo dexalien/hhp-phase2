@@ -4,10 +4,11 @@ import { Fragment, useRef, useState } from "react"
 import { useForm, useWatch, Controller } from "react-hook-form"
 import { PoapGatePicker } from "@/components/poap-gate-picker"
 import { SkillGatePicker } from "@/components/skill-gate-picker"
+import { InviteHomiesPicker } from "@/components/invite-homies-picker"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { ARCHETYPES, ALL_SKILLS } from "@/lib/onboarding"
+import { ARCHETYPES } from "@/lib/onboarding"
 import {
   createHackSpaceSchema,
   type CreateHackSpaceInput,
@@ -72,9 +73,13 @@ const EXPERIENCE_LABELS: Record<string, string> = {
 
 const APPLICATION_TYPE_LABELS: Record<
   string,
-  { title: string; description: string }
+  { title: string; description: string; comingSoon?: boolean }
 > = {
   open: { title: "Open", description: "Anyone can apply" },
+  gated: {
+    title: "Gated",
+    description: "Only builders who hold the required POAPs / skills can apply",
+  },
   invite_only: {
     title: "Invite only",
     description: "You invite builders directly",
@@ -82,6 +87,7 @@ const APPLICATION_TYPE_LABELS: Record<
   curated: {
     title: "Curated",
     description: "You review each applicant manually",
+    comingSoon: true,
   },
 }
 
@@ -113,7 +119,6 @@ const FIELD_TO_STEP: Partial<Record<keyof CreateHackSpaceInput, Step>> = {
   repo_url: "Project",
   image_url: "Project",
   looking_for: "Team",
-  skills_needed: "Team",
   max_team_size: "Team",
   experience_level: "Team",
   language: "Team",
@@ -206,7 +211,6 @@ export function HackSpaceForm({
       repo_url: "",
       image_url: "",
       looking_for: [],
-      skills_needed: [],
       max_team_size: 5,
       experience_level: "intermediate",
       language: ["English"],
@@ -226,6 +230,7 @@ export function HackSpaceForm({
   })
 
   const hasEvent = useWatch({ control, name: "has_event" })
+  const accessType = useWatch({ control, name: "application_type" })
   const watchedRegion = useWatch({ control, name: "region" })
   const watchedCountry = useWatch({ control, name: "country" })
   const currentImageUrl = useWatch({ control, name: "image_url" })
@@ -601,43 +606,6 @@ export function HackSpaceForm({
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="skills_needed"
-              control={control}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel>
-                    Skills needed{" "}
-                    <span className="text-muted-foreground font-normal">
-                      (optional)
-                    </span>
-                  </FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {ALL_SKILLS.map((skill) => {
-                      const value = field.value ?? []
-                      const selected = value.includes(skill)
-                      return (
-                        <TogglePill
-                          key={skill}
-                          selected={selected}
-                          onClick={() =>
-                            field.onChange(
-                              selected
-                                ? value.filter((s) => s !== skill)
-                                : [...value, skill],
-                            )
-                          }
-                        >
-                          {selected ? "✓ " : ""}
-                          {skill}
-                        </TogglePill>
-                      )
-                    })}
-                  </div>
                 </Field>
               )}
             />
@@ -1022,30 +990,46 @@ export function HackSpaceForm({
                   <FieldLabel>Application type</FieldLabel>
                   <RadioGroup
                     value={field.value}
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      // Clear incompatible fields when switching access type
+                      if (value !== "gated") setValue("gates", [])
+                      if (value !== "invite_only") setValue("invited_user_ids", [])
+                    }}
                     className="gap-2"
                   >
-                    {APPLICATION_TYPES.map((t) => (
-                      <label
-                        key={t}
-                        className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
-                          field.value === t
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40",
-                        )}
-                      >
-                        <RadioGroupItem value={t} />
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">
-                            {APPLICATION_TYPE_LABELS[t].title}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-mono">
-                            {APPLICATION_TYPE_LABELS[t].description}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
+                    {APPLICATION_TYPES.map((t) => {
+                      const label = APPLICATION_TYPE_LABELS[t]
+                      const disabled = label.comingSoon === true
+                      return (
+                        <label
+                          key={t}
+                          className={cn(
+                            "w-full flex items-center gap-4 p-4 rounded-lg border transition-all",
+                            disabled
+                              ? "border-border opacity-50 cursor-not-allowed"
+                              : field.value === t
+                                ? "border-primary bg-primary/5 cursor-pointer"
+                                : "border-border hover:border-primary/40 cursor-pointer",
+                          )}
+                        >
+                          <RadioGroupItem value={t} disabled={disabled} />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                              {label.title}
+                              {disabled && (
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                  Coming soon
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {label.description}
+                            </span>
+                          </div>
+                        </label>
+                      )
+                    })}
                   </RadioGroup>
                 </Field>
               )}
@@ -1073,49 +1057,60 @@ export function HackSpaceForm({
               )}
             />
 
-            {/* POAP Gate Filter */}
-            <PoapGatePicker
-              selectedPoapIds={
-                (watch("gates") ?? [])
-                  .filter((g) => g.gate_type === "poap")
-                  .flatMap((g) => (g.config as { event_ids?: string[] }).event_ids ?? [])
-              }
-              onChange={(poaps) => {
-                const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "poap")
-                if (poaps.length === 0) {
-                  setValue("gates", existing)
-                } else {
-                  setValue("gates", [...existing, {
-                    gate_type: "poap" as const,
-                    config: {
-                      mode: "specific" as const,
-                      event_ids: poaps.map((p) => p.id),
-                      poap_names: poaps.map((p) => p.name),
-                      poap_images: poaps.map((p) => p.image_url),
-                    },
-                  }])
-                }
-              }}
-            />
-            {/* Skill Gate Filter */}
-            <SkillGatePicker
-              selectedSkills={
-                (watch("gates") ?? [])
-                  .filter((g) => g.gate_type === "skill")
-                  .flatMap((g) => (g.config as { skills?: string[] }).skills ?? [])
-              }
-              onChange={(skills) => {
-                const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "skill")
-                if (skills.length === 0) {
-                  setValue("gates", existing)
-                } else {
-                  setValue("gates", [...existing, {
-                    gate_type: "skill" as const,
-                    config: { skills },
-                  }])
-                }
-              }}
-            />
+            {/* Gated: POAP + Skill gate pickers (only shown for the gated option) */}
+            {accessType === "gated" && (
+              <>
+                <PoapGatePicker
+                  selectedPoapIds={
+                    (watch("gates") ?? [])
+                      .filter((g) => g.gate_type === "poap")
+                      .flatMap((g) => (g.config as { event_ids?: string[] }).event_ids ?? [])
+                  }
+                  onChange={(poaps) => {
+                    const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "poap")
+                    if (poaps.length === 0) {
+                      setValue("gates", existing)
+                    } else {
+                      setValue("gates", [...existing, {
+                        gate_type: "poap" as const,
+                        config: {
+                          mode: "specific" as const,
+                          event_ids: poaps.map((p) => p.id),
+                          poap_names: poaps.map((p) => p.name),
+                          poap_images: poaps.map((p) => p.image_url),
+                        },
+                      }])
+                    }
+                  }}
+                />
+                <SkillGatePicker
+                  selectedSkills={
+                    (watch("gates") ?? [])
+                      .filter((g) => g.gate_type === "skill")
+                      .flatMap((g) => (g.config as { skills?: string[] }).skills ?? [])
+                  }
+                  onChange={(skills) => {
+                    const existing = (watch("gates") ?? []).filter((g) => g.gate_type !== "skill")
+                    if (skills.length === 0) {
+                      setValue("gates", existing)
+                    } else {
+                      setValue("gates", [...existing, {
+                        gate_type: "skill" as const,
+                        config: { skills },
+                      }])
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {/* Invite only: friend picker (same as community / hacker house flows) */}
+            {accessType === "invite_only" && (
+              <InviteHomiesPicker
+                selectedUserIds={watch("invited_user_ids") ?? []}
+                onChange={(ids) => setValue("invited_user_ids", ids)}
+              />
+            )}
           </SectionCard>
         )}
 

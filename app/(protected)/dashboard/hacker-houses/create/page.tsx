@@ -145,7 +145,15 @@ export default function CreateHackerHousePage() {
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Deploy failed"
-        toast.error(`Contract deploy failed: ${msg}`, { id: "deploy" })
+        // The house already exists in the DB (created above). The escrow is the
+        // only thing missing — the host can deploy it later from the house page,
+        // and the payment page shows "escrow not deployed yet" until they do.
+        const rejected = /reject|denied|cancel|user.?refused/i.test(msg)
+        if (rejected) {
+          toast.info("House created — escrow not deployed yet. Finish setup from the house page to accept payments.", { id: "deploy", duration: 6000 })
+        } else {
+          toast.error(`House created, but escrow deploy failed: ${msg}. Retry from the house page.`, { id: "deploy", duration: 6000 })
+        }
         // Still navigate — the DB record was created; creator can retry deploy later
       }
     } else {

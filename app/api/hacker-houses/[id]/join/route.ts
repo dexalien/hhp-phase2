@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { privy } from "@/lib/privy"
 import { supabaseServer } from "@/lib/supabase-server"
+import { evaluateGates, allGatesPassed } from "@/lib/gate-engine"
+import type { HouseGate } from "@/lib/types"
 
 async function getPrivyUserId(req: NextRequest): Promise<string | null> {
   const token = req.headers.get("authorization")?.replace("Bearer ", "")
@@ -36,12 +38,94 @@ export async function POST(
 
   const { data: hackerHouse } = await supabaseServer
     .from("hacker_houses")
-    .select("id, creator_id, status")
+    .select("id, creator_id, status, application_type, event_id, event_goers_only")
     .eq("id", hackerHouseId)
     .single()
 
   if (!hackerHouse) {
     return NextResponse.json({ message: "Hacker House not found" }, { status: 404 })
+  }
+
+  const isCreator = hackerHouse.creator_id === user.id
+
+  // Only joinable while the house is live. (Source of truth for paid houses is
+  // the on-chain escrow; this route just syncs the DB after a real deposit, but
+  // it must never grant a spot when the house isn't accepting members.)
+  if (!isCreator && !["open", "full", "active"].includes(hackerHouse.status)) {
+    return NextResponse.json({ message: "This Hacker House is not accepting members" }, { status: 400 })
+  }
+
+  // ── Invite-only enforcement ──────────────────────────────────────────
+  // The payment UI hides the deposit box for uninvited users, but the route
+  // must enforce it too — otherwise a direct POST bypasses the invite.
+  if (!isCreator && hackerHouse.application_type === "invite_only") {
+    const { data: invite } = await supabaseServer
+      .from("notifications")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("type", "hacker_house_invite")
+      .eq("link", `/dashboard/hacker-houses/${hackerHouseId}`)
+      .maybeSingle()
+
+    if (!invite) {
+      return NextResponse.json(
+        { message: "This house is invite only. You need an invite from the host to join." },
+        { status: 403 },
+      )
+    }
+  }
+
+  // ── Event attendee gate ──────────────────────────────────────────────
+  if (!isCreator && hackerHouse.event_goers_only && hackerHouse.event_id) {
+    const { data: attendance } = await supabaseServer
+      .from("event_attendees")
+      .select("id")
+      .eq("event_id", hackerHouse.event_id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    if (!attendance) {
+      return NextResponse.json(
+        { message: "This house is restricted to event attendees." },
+        { status: 403 },
+      )
+    }
+  }
+
+  // ── Identity gates ───────────────────────────────────────────────────
+  // A legit member who reached payment already meets these (they read from the
+  // user's own DB record), so this never blocks a valid join — it only stops a
+  // direct call from someone who doesn't qualify.
+  if (!isCreator) {
+    const { data: gates } = await supabaseServer
+      .from("house_gates")
+      .select("*")
+      .eq("hacker_house_id", hackerHouseId)
+
+    if (gates?.length) {
+      const { data: fullUser } = await supabaseServer
+        .from("users")
+        .select("poaps, skills, talent_tags")
+        .eq("id", user.id)
+        .single()
+
+      const results = evaluateGates(
+        {
+          poaps: fullUser?.poaps ?? [],
+          skills: (fullUser as { skills?: string[] } | null)?.skills ?? [],
+          talent_tags: (fullUser as { talent_tags?: string[] } | null)?.talent_tags ?? [],
+        },
+        gates as HouseGate[],
+      )
+
+      if (!allGatesPassed(results)) {
+        const failed = results.filter((r) => !r.passed)
+        return NextResponse.json(
+          { message: "You don't meet the requirements for this house", gates: failed },
+          { status: 403 },
+        )
+      }
+    }
   }
 
   // Upsert application as accepted (handles both new join and existing pending application)

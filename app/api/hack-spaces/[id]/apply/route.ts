@@ -40,7 +40,7 @@ export async function POST(
 
   const { data: hackSpace } = await supabaseServer
     .from("hack_spaces")
-    .select("id, name, creator_id, status")
+    .select("id, title, creator_id, status")
     .eq("id", hackSpaceId)
     .single()
 
@@ -112,7 +112,7 @@ export async function POST(
   }
 
   // Notify creator. If gates were passed, tell them which required credentials matched.
-  let notificationBody = `${user.handle ?? "Someone"} applied to your Hack Space "${hackSpace.name}".`
+  let notificationBody = `${user.handle ?? "Someone"} applied to your Hack Space "${hackSpace.title}".`
   if (matchedPoaps.length || matchedSkills.length) {
     const parts: string[] = []
     if (matchedPoaps.length) {

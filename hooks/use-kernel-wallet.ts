@@ -46,7 +46,7 @@ export function useKernelWallet() {
           const created = await createWallet()
           console.log("[KernelWallet] createWallet returned:", typeof created, created ? Object.keys(created as object) : "null")
           // Try using the returned object directly if it has getEthereumProvider
-          if (created && typeof (created as Record<string, unknown>).getEthereumProvider === "function") {
+          if (created && typeof (created as unknown as Record<string, unknown>).getEthereumProvider === "function") {
             wallet = created as unknown as typeof walletsRef.current[0]
             console.log("[KernelWallet] using returned object directly")
           }
