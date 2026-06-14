@@ -50,15 +50,21 @@ export function useKernelWallet() {
       //    address, which would orphan the user's houses/funds.
       let wallet = findEmbedded(walletsRef.current)
 
-      // Does this user OWN a Privy embedded wallet (email/social login)? Check
-      // linked_accounts, not just the live wallets array — the embedded wallet
-      // may not be hydrated yet at connect() time even though the user has one.
-      const ownsEmbedded =
-        !!wallet ||
-        (userRef.current?.linkedAccounts?.some(
-          (a) => a.type === "wallet" &&
-            (a as { walletClientType?: string }).walletClientType === "privy",
-        ) ?? false)
+      // Should this user sign with an embedded wallet? YES whenever they
+      // authenticated with anything other than a bare external wallet (email,
+      // social, etc.) — even if they later linked a MetaMask as a read-only DATA
+      // wallet. We key off LOGIN TYPE, not whether an embedded wallet already
+      // exists: email/social users are provisioned an embedded wallet on demand,
+      // so checking only for an existing privy wallet would miss them and let a
+      // linked MetaMask (still linked in Privy after being removed from our
+      // profile) get picked as the signer.
+      const accounts = userRef.current?.linkedAccounts ?? []
+      const hasEmbeddedAccount = accounts.some(
+        (a) => a.type === "wallet" &&
+          (a as { walletClientType?: string }).walletClientType === "privy",
+      )
+      const hasNonWalletLogin = accounts.some((a) => a.type !== "wallet")
+      const ownsEmbedded = !!wallet || hasEmbeddedAccount || hasNonWalletLogin
 
       console.log("[KernelWallet] after step 1:", wallet
         ? `found ${wallet.walletClientType}/${wallet.connectorType}`
