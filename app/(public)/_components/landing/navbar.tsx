@@ -40,16 +40,25 @@ export function Navbar() {
           </span>
         </div>
 
-        {!isLoading && isAuthenticated ? (
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link
-            href="/dashboard"
-            className="h-10 px-6 inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-sm font-bold rounded-xl border-2 border-purple-400/30 shadow-lg transition-all duration-300 hover:scale-[1.02]"
+            href="/presentation"
+            className="text-sm font-medium text-white/70 transition-colors hover:text-white"
           >
-            Go to Dashboard
+            Pitch
           </Link>
-        ) : (
-          <AuthButton className="h-10 px-6 inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-sm font-bold rounded-xl border-2 border-purple-400/30 shadow-lg transition-all duration-300 hover:scale-[1.02]" />
-        )}
+
+          {!isLoading && isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="h-10 px-6 inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-sm font-bold rounded-xl border-2 border-purple-400/30 shadow-lg transition-all duration-300 hover:scale-[1.02]"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <AuthButton className="h-10 px-6 inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-sm font-bold rounded-xl border-2 border-purple-400/30 shadow-lg transition-all duration-300 hover:scale-[1.02]" />
+          )}
+        </div>
       </nav>
     </header>
   )
