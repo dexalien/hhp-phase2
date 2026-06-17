@@ -42,17 +42,10 @@ export function Navbar() {
 
         <div className="flex items-center gap-4 sm:gap-6">
           <Link
-            href="/pitch"
-            className="text-sm font-medium text-white/70 transition-colors hover:text-white"
+            href="/arbitrum-pitch"
+            className="h-10 px-6 inline-flex items-center justify-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-sm font-bold rounded-xl border-2 border-purple-400/30 shadow-lg transition-all duration-300 hover:scale-[1.02]"
           >
-            Pitch
-          </Link>
-
-          <Link
-            href="/presentation"
-            className="text-sm font-medium text-white/70 transition-colors hover:text-white"
-          >
-            Presentation
+            Learn more
           </Link>
 
           {!isLoading && isAuthenticated ? (

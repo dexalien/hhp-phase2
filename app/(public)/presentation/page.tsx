@@ -3,6 +3,7 @@ import { PresentationDeck } from "./_components/presentation-deck"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://hackerhouse.app"),
+  robots: { index: false, follow: false },
   title: "Hacker House Protocol — Pitch",
   description:
     "The coordination layer for builders who co-live, co-build and travel to the same events. VERIFY → MATCH → CO-LIVE, coordinated by an escrow contract on Arbitrum.",
