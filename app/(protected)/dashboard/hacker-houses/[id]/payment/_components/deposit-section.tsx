@@ -142,11 +142,17 @@ export function DepositSection({ escrowAddress, escrow, builderSpot, walletReady
       client: kernelClient as import("@zerodev/sdk/clients").KernelAccountClient,
     })
     if (!txHash) return // deposit failed — error shown by hook
-    // Sync DB: create accepted application so participants_count updates
-    try {
-      await genericAuthRequest("post", `/api/hacker-houses/${hackerHouseId}/join`, {})
-    } catch {
-      // Non-critical — on-chain deposit succeeded, DB sync can be retried
+    // Sync DB: create the accepted application so participants_count / "Full"
+    // status update. The on-chain deposit already succeeded, so a transient
+    // failure here would silently leave the card undercounting — retry a couple
+    // of times before giving up.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await genericAuthRequest("post", `/api/hacker-houses/${hackerHouseId}/join`, {})
+        break
+      } catch {
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 800))
+      }
     }
     queryClient.invalidateQueries({ queryKey: [queryKeys.escrowState] })
     queryClient.invalidateQueries({ queryKey: [queryKeys.hackerHouse] })

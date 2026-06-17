@@ -38,7 +38,7 @@ export async function POST(
 
   const { data: hackerHouse } = await supabaseServer
     .from("hacker_houses")
-    .select("id, creator_id, status, application_type, event_id, event_goers_only")
+    .select("id, creator_id, status, application_type, event_id, event_goers_only, capacity")
     .eq("id", hackerHouseId)
     .single()
 
@@ -145,6 +145,35 @@ export async function POST(
   if (error) {
     console.error("[POST /api/hacker-houses/:id/join]", error)
     return NextResponse.json({ message: "Database error" }, { status: 500 })
+  }
+
+  // Keep the house status in sync with occupancy so the dashboard card shows
+  // "Full". Filled spots = accepted applications, counting the host as one spot
+  // even when they have no application of their own (same rule the list/detail
+  // endpoints use for participants_count). Only flip open → full here; freeing a
+  // spot (cancel/leave) is handled where that happens.
+  if (hackerHouse.status === "open") {
+    const { data: accepted } = await supabaseServer
+      .from("applications")
+      .select("applicant_id")
+      .eq("hacker_house_id", hackerHouseId)
+      .eq("status", "accepted")
+      .eq("target_type", "hacker_house")
+
+    const acceptedIds = (accepted ?? []).map((a) => a.applicant_id)
+    const creatorAccepted = acceptedIds.includes(hackerHouse.creator_id)
+    const filledSpots = acceptedIds.length + (creatorAccepted ? 0 : 1)
+
+    if (filledSpots >= hackerHouse.capacity) {
+      const { error: statusError } = await supabaseServer
+        .from("hacker_houses")
+        .update({ status: "full" })
+        .eq("id", hackerHouseId)
+        .eq("status", "open")
+      if (statusError) {
+        console.error("[POST /api/hacker-houses/:id/join] status flip", statusError)
+      }
+    }
   }
 
   return NextResponse.json({ joined: true })
