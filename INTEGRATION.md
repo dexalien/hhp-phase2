@@ -16,7 +16,7 @@ The `integration` branch is the complete Hacker House Protocol stack — fronten
 | **Account Abstraction** | `feature/zerodev` | ZeroDev kernel accounts (ERC-4337), gasless transactions, Privy wallet → smart wallet bridge |
 | **Escrow UI** | `feature/web3-ui` | Payment page, deposit flow, escrow status, host actions (release/cancel), create form with web3 fields |
 | **GMX Yield** | `feature/gmx` | Yield display on house detail + cards, `usePendingYield` hook, deposit success screen |
-| **Smart Contracts** | `feature/smart-contract` | Solidity contracts (Foundry), deployed on Arbitrum Sepolia, 20/20 tests passing |
+| **Smart Contracts** | `feature/smart-contract` | Solidity contracts (Foundry), deployed on Arbitrum Sepolia, 26/26 tests passing |
 
 ---
 
@@ -57,7 +57,7 @@ The `integration` branch is the complete Hacker House Protocol stack — fronten
 │                          │            ├── USDC deposits      │
 │  Vercel (Deploy)         │            ├── SpotNFT (ERC-721)  │
 │                          │            ├── release / cancel   │
-│                          │            └── GMX yield (stub)   │
+│                          │            └── YieldAdapter (10%)  │
 └──────────────────────────┴───────────────────────────────────┘
 ```
 
@@ -67,8 +67,8 @@ The `integration` branch is the complete Hacker House Protocol stack — fronten
 
 | Contract | Address |
 |---|---|
-| **HackerHouseFactory** | [`0x318a6205B49188e00a5306e30843A271156Ca8a7`](https://sepolia.arbiscan.io/address/0x318a6205B49188e00a5306e30843A271156Ca8a7) |
-| **MockUSDC** | [`0x70705F3665A4134C5E82B0114887BA82bbFf1c92`](https://sepolia.arbiscan.io/address/0x70705F3665A4134C5E82B0114887BA82bbFf1c92) |
+| **HackerHouseFactory** | [`0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5`](https://sepolia.arbiscan.io/address/0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5) |
+| **MockUSDC** | [`0x999579cc79400a1b59b119b6697664Dd9122Ad93`](https://sepolia.arbiscan.io/address/0x999579cc79400a1b59b119b6697664Dd9122Ad93) |
 
 **Escrow lifecycle:**
 
@@ -124,22 +124,22 @@ Write operations go through `kernelClient.sendUserOperation()`:
 
 ---
 
-## GMX Yield Integration
+## Yield Integration (pluggable adapter)
 
-Locked USDC deposits generate yield via GMX perpetuals protocol on Arbitrum:
+Locked USDC deposits in a staking house generate yield through a pluggable `IYieldAdapter`. The escrow never talks to a yield source directly — it forwards deposits to whatever adapter it was deployed with:
 
-- `pendingYield()` returns accrued USDC in real time
-- `yieldDest()` determines if yield goes to host or is split among builders
-- Phase 1 (current): stub returns 0 — UI is wired, contract integration pending
-- Phase 2: `GMXStrategy.sol` implements `IYieldAdapter` for live yield
+- `pendingYield()` returns accrued USDC in real time (passthrough from the escrow to the adapter)
+- `yieldDest()` determines if yield goes to the host or is split among builders
+- **Testnet (current):** `MockYieldAdapter` accrues a simulated **10% APY** using time-based math (`yield = principal × APY_BPS × elapsed / (10000 × 365 days)`), minting MockUSDC to itself to represent earned yield. The Factory deploys one adapter per staking house.
+- **Mainnet (planned):** `GMXStrategy` implements the same `IYieldAdapter` against GMX V2 Earn vaults on Arbitrum One. Swapping it in requires **zero** changes to the escrow or frontend.
 
-The yield display is already visible on house detail pages and house cards when `yield_mode === 'gmx'`.
+The yield display (`yield-section.tsx` + `usePendingYield`) is already visible on the payment and house detail pages when `yield_mode === 'gmx'`.
 
 ---
 
 ## Wiring — Frontend ↔ Contract
 
-All hooks are connected to the deployed contracts on Arbitrum Sepolia. No mocks, no stubs (except GMX yield which returns 0 by design in Phase 1).
+All hooks are connected to the deployed contracts on Arbitrum Sepolia. No mocks, no stubs — staking houses accrue real (simulated 10% APY) yield through `MockYieldAdapter` on testnet; the mainnet `GMXStrategy` is the only piece still pending.
 
 **Contract addresses** are configured via environment variables (`env.ts`):
 - `NEXT_PUBLIC_FACTORY_ADDRESS` — HackerHouseFactory
@@ -190,8 +190,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_PRIVY_APP_ID=
 
 # Smart Contracts (Arbitrum Sepolia)
-NEXT_PUBLIC_FACTORY_ADDRESS=0x318a6205B49188e00a5306e30843A271156Ca8a7
-NEXT_PUBLIC_USDC_ADDRESS=0x70705F3665A4134C5E82B0114887BA82bbFf1c92
+NEXT_PUBLIC_FACTORY_ADDRESS=0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5
+NEXT_PUBLIC_USDC_ADDRESS=0x999579cc79400a1b59b119b6697664Dd9122Ad93
 
 # ZeroDev (Account Abstraction)
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=
@@ -208,14 +208,14 @@ pnpm dev              # Frontend — localhost:3000
 
 cd contracts
 forge build           # Compile contracts
-forge test -v         # Run 20 tests
+forge test -v         # Run 26 tests
 ```
 
 ---
 
 ## Test Results
 
-**Smart Contracts:** 20/20 passing
+**Smart Contracts:** 26/26 passing
 
 ```
 forge test -v
@@ -237,9 +237,15 @@ forge test -v
 [PASS] test_transfer_spot
 [PASS] test_transfer_spot_wrong_owner
 [PASS] test_transfer_spot_to_existing_depositor
-[PASS] test_factory_creates_house
-[PASS] test_pending_yield_returns_zero
+[PASS] test_factory_creates_staking_house
+[PASS] test_pending_yield_returns_zero_no_adapter
 [PASS] test_yield_dest_readable
+[PASS] test_staking_deposit_forwards_to_adapter
+[PASS] test_staking_pending_yield_accrues
+[PASS] test_staking_release_distributes_yield_to_host
+[PASS] test_staking_release_distributes_yield_to_builders
+[PASS] test_staking_cancel_withdraws_from_adapter
+[PASS] test_staking_requires_gmx_yield_mode
 ```
 
 **Frontend:** `pnpm build` passes with zero errors.

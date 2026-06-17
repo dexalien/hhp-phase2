@@ -282,6 +282,6 @@ Filtros en URL via `nuqs` (`useQueryStates`). Parámetros: `status`, `profile_so
 
 **Pendiente (Fase 2 — on-chain):**
 - Liquidación on-chain de pago/staking: escrow, split automático, devolución de stake (columnas `escrow_address`, `host_safe`, `deposit_amount_usdc`, `withdraw_date`, `house_type`, `yield_mode`, `yield_dest` ya en DB, sin endpoints)
-- Filtros on-chain (POAPs, NFTs, Talent Score)
+- Filtros on-chain (POAPs, NFTs, skills) — verificación de skills en planificación
 - Key NFT por cupo
 - HHP POAPs por asistencia

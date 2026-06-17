@@ -230,19 +230,20 @@ function createHouse(
 
 ---
 
-### 4. `YieldAdapter.sol` (interface only — Phase 1 stub)
+### 4. `IYieldAdapter` + `MockYieldAdapter.sol`
 
-For Phase 1, implement as a stub/interface only. The escrow references it but GMX integration is not wired up yet.
+The escrow forwards staking deposits to a pluggable yield adapter. The interface decouples the escrow from any specific yield source — swapping the implementation requires no escrow or frontend changes.
 
 ```solidity
 interface IYieldAdapter {
     function deposit(uint256 amount) external;
     function withdraw(uint256 amount) external returns (uint256 received);
     function pendingYield() external view returns (uint256);
+    function totalDeposited() external view returns (uint256);
 }
 ```
 
-The `GMXStrategy.sol` implementation comes after the core escrow is working.
+**Testnet:** `MockYieldAdapter` implements this with a simulated **10% APY** (`APY_BPS = 1000`, time-based; mints MockUSDC to itself to represent earned yield). The Factory deploys one adapter per staking house. **Mainnet:** `GMXStrategy.sol` implements the same interface against GMX V2 Earn vaults on Arbitrum One.
 
 ---
 

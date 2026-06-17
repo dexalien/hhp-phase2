@@ -53,15 +53,14 @@ La capa de coordinación para builders que co-viven, co-construyen y van a los m
 
 **VERIFY → MATCH → CO-LIVE**
 
-- **VERIFY** — Tu identidad on-chain es tu credencial: score de Talent Protocol, POAPs de eventos a los que asististe, historial de wallet. No lo declarás — lo probás.
+- **VERIFY** — Tu identidad on-chain es tu credencial: POAPs de eventos a los que asististe e historial de wallet. No lo declarás — lo probás. Tus skills las elegís en tu perfil (hoy self-declared; la verificación de skills está en el roadmap).
 - **MATCH** — Explorá Hacker Houses que encajen con tu perfil *y* para las que califiques. Cada house define sus propios requisitos de acceso on-chain.
 - **CO-LIVE** — Una vez aceptado, coordinás tu cupo on-chain en Arbitrum. Pool de fondos entre builders, liberación automática al organizador, reembolso automático si no se completa. Sin intermediarios.
 
 | Requisito | Quién entra |
 |---|---|
-| Score Talent Protocol ≥ 60 | Builders con reputación verificada |
-| POAP de evento Web3 | Builders que ya estuvieron en un hackathon |
-| 5+ POAPs | Builders con trayectoria en el ecosistema |
+| POAP de un evento específico (ej. ETHGlobal) | Builders que asistieron a ese evento (verificado on-chain) |
+| Skill requerida (ej. Solidity) | Builders con esa skill (self-declared hoy; verificación en roadmap) |
 
 **La confianza va en ambos sentidos:** la house verifica al builder (gating on-chain) y el builder puede confiar en la house — comunidades y empresas pasan por una **verificación manual** que les otorga un sello de **✓ Verificado**.
 
@@ -130,7 +129,7 @@ La confirmación de tu Hacker House es un **Booking NFT en Arbitrum** — con fe
 
 **Lo que ya vive en el producto.**
 
-- **Cypher Identity** — Login con email/social/wallet vía Privy; importa score de Talent Protocol y POAPs. Tu reputación on-chain es tu perfil.
+- **Cypher Identity** — Login con email/social/wallet vía Privy; conectá tus POAPs y elegí tus skills con el skill selector (self-declared hoy; verificación de skills en el roadmap). Tu reputación on-chain es tu perfil.
 - **Hacker Houses** — Crear con capacidad, fechas, ciudad y modalidad (sponsored / copayment / staking); gating de acceso; gestión completa de aplicaciones. Pueden ser creadas por un builder, una comunidad o una empresa.
 - **Sello de verificado** — Comunidades y empresas pasan por una verificación manual que les da un badge **✓ Verificado**, aumentando la confianza de los builders para unirse a sus houses.
 - **Hack Spaces** — Publicá proyectos virtuales con roles abiertos; matching algorítmico te conecta con los builders correctos.
@@ -182,7 +181,7 @@ La confirmación de tu Hacker House es un **Booking NFT en Arbitrum** — con fe
 
 **Ya construido. Esto es lo que estamos cerrando.**
 
-✅ Auth + Cypher Identity — perfil on-chain con Talent Protocol, POAPs y wallet
+✅ Auth + Cypher Identity — perfil con POAPs, historial de wallet y skill selector (skills self-declared)
 ✅ Hacker Houses — crear (3 modalidades), listar, aplicar, unirse, gestionar aplicaciones + UI de pago/staking
 ✅ Comunidades — CRUD completo, miembros, mini-eventos con RSVP, verificación y sponsorship
 ✅ Events — catálogo, solicitudes de evento y panel de revisión admin
@@ -193,7 +192,7 @@ La confirmación de tu Hacker House es un **Booking NFT en Arbitrum** — con fe
 🔨 Smart contract Arbitrum — `HackerHouseEscrow` desplegado en **testnet** (deposit / release / refund / Booking NFT)
 🔨 Integración contrato ↔ UI de pago de Hacker Houses (la UI ya está lista)
 🔨 Yield del staking vía GMX — frontend ya cableado, leyendo del contrato
-🔨 Gating on-chain — requisitos por score, cantidad de POAPs o POAPs específicos
+🔨 Gating — requisitos por POAPs específicos (on-chain) o skills requeridas (self-declared)
 
 🎤 **Notas de orador**
 - Honestidad estratégica: mostrar lo verde (hecho) y lo amarillo (en curso). Los jueces valoran saber exactamente dónde está la línea.
@@ -207,7 +206,7 @@ La confirmación de tu Hacker House es un **Booking NFT en Arbitrum** — con fe
 | Fase | Foco |
 |---|---|
 | **Buildathon (ahora)** | Pool on-chain + escrow + Booking NFT + yield vía GMX + Comunidades como growth layer |
-| **Fase 2** | Houses patrocinadas · Filtros de acceso on-chain (score, POAPs) |
+| **Fase 2** | Houses patrocinadas · Verificación de skills (credenciales verificables / on-chain — en planificación) |
 | **V2** | Chat interno · Gobernanza de comunidades · Experiencia gamificada · Cypher Kittens NFT |
 | **V3** | ZK Matching · ZK Identity · Cross-chain |
 
@@ -222,13 +221,12 @@ La confirmación de tu Hacker House es un **Booking NFT en Arbitrum** — con fe
 
 ## SLIDE 11 — Team
 
-**3 builders que vivieron el problema en carne propia.**
+**2 builders que vivieron el problema en carne propia.**
 
-- **Dex** — Founder & Frontend · originó la idea coordinando una hacker house en EthGlobal Buenos Aires
+- **Dex** — Founder · Frontend + toda la capa on-chain (contratos en Arbitrum + yield vía GMX) · originó la idea coordinando una hacker house en EthGlobal Buenos Aires
 - **Sergio** — Fullstack · co-vivió esa misma hacker house con Dex
-- **Julio** — Web3 / Smart Contracts (escrow en Arbitrum + yield vía GMX)
 
-> Dex y Sergio se conocieron coordinando una hacker house — literalmente el caso de uso del producto. Julio se sumó para construir la capa on-chain.
+> Dex y Sergio se conocieron coordinando una hacker house — literalmente el caso de uso del producto.
 
 🎤 **Notas de orador**
 - Va casi al final a propósito (tip de pitch: presentarte *después* de enganchar, no al inicio).

@@ -66,7 +66,7 @@ No new on-chain writes — this is read-only data surfacing. Yield distribution 
 
 `HackerHouseEscrow` exposes `pendingYield()` as a passthrough to the `IYieldAdapter`. The escrow also exposes `yieldDest()` (enum: 0=HOST, 1=BUILDERS) and `nextBookingId()` (number of filled spots).
 
-If Julio implements `YieldAdapter` as a separate contract, update `use-pending-yield.ts` to accept a `yieldAdapterAddress` param.
+If `YieldAdapter` is implemented as a separate contract, update `use-pending-yield.ts` to accept a `yieldAdapterAddress` param.
 
 ### Hook: `usePendingYield`
 
@@ -118,7 +118,7 @@ See `contracts-spec.md` for the full contract spec.
 | `use-pending-yield.ts` hook | Done |
 | `yield-section.tsx` component | Done |
 | Payment page wired | Done |
-| Contract `pendingYield()` deployed | Pending Julio |
+| Contract `pendingYield()` deployed | Done |
 | GMX yield actually accruing | Pending GMX strategy deploy |
 
 ---
@@ -136,7 +136,7 @@ See `contracts-spec.md` for the full contract spec.
 ## Dependencies
 
 - `feature/web3-ui` — must be merged first (provides `useEscrowState`, `useBuilderSpot`, payment page skeleton)
-- Julio's `HackerHouseEscrow` with `pendingYield()` passthrough
+- The `HackerHouseEscrow` with `pendingYield()` passthrough
 
 ---
 

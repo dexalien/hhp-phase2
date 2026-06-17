@@ -1,5 +1,7 @@
 # Navegación y Rutas — Hacker House Protocol
 
+> ⚠️ **LEGACY — Talent Protocol.** Las menciones a "Talent Score" en las descripciones de `/dashboard/profile` y `/onboarding` son **legacy**: Talent fue reemplazado por un skill selector self-declared (skills no verificadas). El código sigue presente pero deprecado. La verificación de skills está en el roadmap.
+
 ## Bottom Navigation (mobile)
 
 `app/(protected)/_components/bottom-nav.tsx` — solo mobile (`md:hidden`). 4 tabs + botón central de creación.

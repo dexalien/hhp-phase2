@@ -1,4 +1,4 @@
-# GMX Yield — Frontend Requirements for Julio
+# GMX Yield — Frontend Requirements (web3)
 
 ## Context
 

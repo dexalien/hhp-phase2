@@ -190,7 +190,7 @@ args: [
     depositAmount,
     withdrawDate,
     capacity,
-    houseType,   // 0=CO_PAYMENT, 1=STAKING (Hybrid planned as future Staking sub-option)
+    houseType,   // 0=CO_PAYMENT, 1=STAKING (2=HYBRID exists in enum but is unused — see docs/ideas-to-explore.md)
     yieldMode,   // 0=NONE, 1=GMX
     yieldDest,   // 0=HOST, 1=BUILDERS
     houseName,   // string — passed to SpotNFT for metadata

@@ -46,7 +46,7 @@ Formulario multi-step de 4 pasos implementado en `app/(protected)/dashboard/hack
 ### Step 4 — Acceso
 - Tipo de aplicación (`application_type`): `open · invite_only · curated`
 - Deadline para aplicar (`application_deadline`) — opcional
-- ~~Filtros on-chain: POAPs, NFTs, Talent Protocol score~~ → **Pospuesto a Fase 2**
+- ~~Filtros on-chain: POAPs, NFTs, skills~~ → **Pospuesto a Fase 2** (verificación de skills en planificación)
 
 ---
 
@@ -243,4 +243,4 @@ Incluye todos los campos del formulario más:
 **Pendiente:**
 - Notificación al creador al recibir una aplicación a Hack Space (existe para Hacker Houses, no para Hack Spaces)
 - Shortcut Hack Space → Hacker House cuando el equipo está completo — pendiente
-- Filtros on-chain (POAPs, NFTs, Talent Protocol score) — Fase 2
+- Filtros on-chain (POAPs, NFTs, skills) — Fase 2 (verificación de skills en planificación)

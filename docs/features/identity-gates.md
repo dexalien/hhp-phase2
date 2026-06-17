@@ -5,6 +5,8 @@ Sistema de verificacion de identidad on-chain, gating para Hacker Houses y match
 **Status**: Fase 1 implementada (junio 2026) — branch `feature/identity-gates`
 **Principio**: Privacy by Design — verificado pero no revelado.
 
+> ⚠️ **LEGACY — Talent Protocol.** La integración de Talent Protocol fue **reemplazada por un skill selector self-declared** en el perfil. El código (`/api/integrations/talent-protocol`, `useImportTalentScore`, columna `talent_protocol_score`, pesos de matching `talent_tags`/`talent_score`) **sigue presente pero está deprecado y pendiente de remover**. La verificación de skills está en el roadmap (en planificación). Las referencias técnicas a Talent más abajo describen ese código legacy.
+
 ---
 
 ## Arquitectura de Privacidad

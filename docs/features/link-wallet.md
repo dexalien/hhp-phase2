@@ -5,6 +5,8 @@
 **Status**: ✅ Implemented — 2026-04-06
 **Complexity**: Small
 
+> ⚠️ **LEGACY — Talent Protocol.** El auto-import de Talent Protocol (`useImportTalentScore`, `/api/integrations/talent-protocol`) descrito abajo es **legacy**: Talent fue reemplazado por un skill selector self-declared. El código **sigue presente pero está deprecado y pendiente de remover**. El link de wallet sigue siendo válido para importar POAPs. La verificación de skills está en el roadmap.
+
 ---
 
 ## Overview

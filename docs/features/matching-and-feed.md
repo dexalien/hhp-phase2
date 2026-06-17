@@ -2,6 +2,8 @@
 
 El matching opera en dos ejes: **contenido** (Hack Spaces y Hacker Houses relevantes) y **personas** (sugerencias de builders). El feed es el punto de entrada principal post-login.
 
+> ⚠️ **LEGACY — Talent Protocol.** El score y los tags de Talent Protocol (`talent_score`, `talent_tags`) que pesan en el algoritmo de abajo son **legacy**: Talent fue reemplazado por un skill selector self-declared. El código y los pesos **siguen presentes pero están deprecados y pendientes de remover/recalibrar**. La verificación de skills está en el roadmap.
+
 ---
 
 ## Variables del Algoritmo

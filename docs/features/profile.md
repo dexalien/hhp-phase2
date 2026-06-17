@@ -2,6 +2,8 @@
 
 Rutas: `/dashboard/profile` (propio) · `/dashboard/builders/[username]` (público — ✅ implementado)
 
+> ⚠️ **LEGACY — Talent Protocol.** La integración de Talent Protocol fue **reemplazada por un skill selector self-declared** en el perfil. El código (`/api/integrations/talent-protocol`, `useImportTalentScore`, columna `talent_protocol_score`, pesos de matching `talent_tags`/`talent_score`) **sigue presente pero está deprecado y pendiente de remover**. La verificación de skills está en el roadmap (en planificación). Las referencias técnicas a Talent más abajo describen ese código legacy.
+
 ---
 
 ## Concepto

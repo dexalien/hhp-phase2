@@ -233,7 +233,7 @@ All fields are stored in Supabase `hacker_houses` table. Migration applied.
 ## What Does NOT Work (Remaining)
 
 1. **No GMXStrategy** — MockYieldAdapter works on testnet; real GMX V2 adapter needed for mainnet
-2. **Hybrid mode** — planned as future Staking sub-option (host receives deposit, yield distributed to builders at checkout)
+2. **Hybrid mode** — `HouseType.HYBRID` enum exists in the contract and `'hybrid'` is reserved in the DB CHECK, but it is **unused** (no hybrid house has been created). Not on the roadmap — it's an open idea (see [`docs/ideas-to-explore.md`](../ideas-to-explore.md))
 
 ---
 

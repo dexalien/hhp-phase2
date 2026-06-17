@@ -58,13 +58,13 @@ Entidad verificada manualmente por el equipo HHP. El sistema de verificación ya
 | Auth | Privy (`@privy-io/react-auth` + `@privy-io/node`) — login social + email + wallets + embedded wallet. Verificación de access-token en cada API route. |
 | Backend / DB | Supabase — Postgres + RLS (cliente service-role en server). Solo DB, sin Supabase Auth. No se usan Edge Functions ni Realtime. |
 | Frontend | Next.js 16.1 App Router · React 19.2 · TypeScript strict · Tailwind CSS v4 — deploy en Vercel |
-| Blockchain | Arbitrum One — `HackerHouseEscrow.sol` (escrow de co-living, scope del buildathon). Lectura de datos on-chain vía APIs de Talent Protocol y POAP (no hay RPC propio configurado). |
+| Blockchain | Arbitrum One — `HackerHouseEscrow.sol` (escrow de co-living, scope del buildathon). Lectura de datos on-chain vía API de POAP (no hay RPC propio configurado). |
 | Mapa | Leaflet + react-leaflet · tiles CARTO dark (`basemaps.cartocdn.com`) · geocoding Nominatim (OpenStreetMap) |
 | Validación | Zod v3 (esquemas en `lib/schemas/*`) · acceso a DB vía Supabase JS client (sin ORM) |
 | Estado servidor | TanStack Query (client) · axios (`genericAuthRequest`) |
 | Formularios | react-hook-form 7 + @hookform/resolvers 3 (Zod) |
 | UI | shadcn/ui (Radix primitives) · sonner (toasts) · nuqs (URL state) · lucide-react (iconos) · embla-carousel · recharts |
-| Integraciones | Talent Protocol (score + tags + credentials) · POAP |
+| Integraciones | POAP · ~~Talent Protocol~~ *(legacy — deprecado, reemplazado por skill selector self-declared; verificación de skills en roadmap)* |
 
 ---
 

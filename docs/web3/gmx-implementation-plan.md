@@ -1,6 +1,6 @@
 # GMX Staking — Implementation Plan
 
-> Created 2026-06-12. Julio unavailable — full implementation falls on the team.
+> Created 2026-06-12. Full implementation handled by the team.
 > Read `gmx-status-report.md` first for current state baseline.
 
 ---

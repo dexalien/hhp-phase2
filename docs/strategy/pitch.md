@@ -33,14 +33,13 @@
 
 **Headline:** VERIFY → MATCH → CO-LIVE
 
-- **VERIFY** — Tu identidad on-chain es tu credencial: score de Talent Protocol, POAPs de eventos a los que asististe, historial de wallet. No lo declarás — lo probás.
-- **MATCH** — Explorá Hacker Houses que encajen con tu perfil *y* para las que califiques. Cada house define sus propios requisitos de acceso: mínimo de score en Talent Protocol, cantidad de POAPs, o POAPs específicos de ciertos eventos.
+- **VERIFY** — Tu identidad on-chain es tu credencial: POAPs de eventos a los que asististe e historial de wallet. No lo declarás — lo probás. Tus skills las elegís en tu perfil (hoy self-declared; la verificación de skills está en el roadmap).
+- **MATCH** — Explorá Hacker Houses que encajen con tu perfil *y* para las que califiques. Cada house define sus propios requisitos de acceso: POAPs específicos de ciertos eventos, o skills requeridas.
 - **CO-LIVE** — Una vez aceptado, coordinás tu cupo on-chain en Arbitrum. Pool de fondos entre builders, liberación automática al organizador, reembolso automático si no se completa. Sin intermediarios.
 
-**Ejemplos de gating on-chain:**
-- *"Esta house requiere score ≥ 60 en Talent Protocol"* — solo builders con reputación verificada
-- *"Esta house requiere un POAP de ETHGlobal"* — solo quienes ya estuvieron en un evento
-- *"Esta house requiere 5+ POAPs"* — builders con trayectoria demostrable en el ecosistema
+**Ejemplos de gating:**
+- *"Esta house requiere un POAP de ETHGlobal"* — solo quienes ya estuvieron en un evento (verificado on-chain)
+- *"Esta house requiere la skill Solidity"* — solo builders con esa skill (self-declared hoy; verificación en el roadmap)
 
 **La confianza va en ambos sentidos.** La house verifica al builder (gating on-chain), y el builder puede confiar en la house: las creadas por una comunidad o empresa pasan por una verificación manual que les otorga un sello de **✓ Verificado**. Es la confianza que antes ponía la marca del evento — ahora la pone el protocolo.
 
@@ -110,7 +109,7 @@ La confirmación de tu Hacker House es un **NFT en Arbitrum** con fechas, ubicac
 
 **Headline:** Ya construido. Esto es lo que falta.
 
-✅ Auth + Cypher Identity — perfil on-chain con Talent Protocol, POAPs y wallet
+✅ Auth + Cypher Identity — perfil con POAPs, historial de wallet y skill selector (skills self-declared)
 ✅ Hacker Houses — crear (3 modalidades), listar, aplicar, unirse, gestionar aplicaciones + UI de pago/staking
 ✅ Comunidades — CRUD completo, miembros, mini-eventos con RSVP, verificación y sponsorship
 ✅ Events — catálogo, solicitudes de evento y panel de revisión admin
@@ -120,7 +119,7 @@ La confirmación de tu Hacker House es un **NFT en Arbitrum** con fechas, ubicac
 🔨 Smart contract Arbitrum — `HackerHouseEscrow` desplegado en **testnet** (deposit / release / refund / NFT de booking)
 🔨 Integración contrato ↔ UI de pago de Hacker Houses (la UI ya está lista)
 🔨 Yield del staking vía GMX — frontend ya cableado, leyendo del contrato
-🔨 Gating on-chain — requisitos de acceso por score, cantidad de POAPs o POAPs específicos
+🔨 Gating — requisitos de acceso por POAPs específicos (on-chain) o skills requeridas (self-declared)
 
 ---
 
@@ -129,7 +128,7 @@ La confirmación de tu Hacker House es un **NFT en Arbitrum** con fechas, ubicac
 | Fase | Foco |
 |---|---|
 | **Buildathon (ahora)** | Pool on-chain + NFT booking + Yield vía GMX + Comunidades como growth layer |
-| **Fase 2** | Houses patrocinadas · Filtros on-chain |
+| **Fase 2** | Houses patrocinadas · Verificación de skills (credenciales verificables / on-chain — en planificación) |
 | **V2** | Chat interno · Gobernanza de comunidades · Experiencia gamificada |
 | **V3** | ZK Matching · ZK Identity · Cross-chain |
 

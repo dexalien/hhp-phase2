@@ -13,8 +13,8 @@ This branch was created from `feature/zerodev`. Both must be merged to `developm
 A new step appears in the house creation form when modality is `paid` or `staking`. Fields:
 - Deposit amount per builder (USDC)
 - Withdraw date (earliest the creator can collect funds)
-- House type: Co-payment | Staking | Hybrid
-- Yield mode (required for Staking/Hybrid, optional otherwise)
+- House type: Co-payment | Staking *(Hybrid exists in the enum but is unused — no hybrid house is created; see `docs/ideas-to-explore.md`)*
+- Yield mode (required for Staking, optional otherwise)
 - Yield destination: To Host | To Builders
 - Host Safe address (defaults to creator's kernel wallet if left empty)
 
@@ -96,11 +96,13 @@ development      →  main         (after NEXT_PUBLIC_FACTORY_ADDRESS is set in 
 
 ## Next steps (priority TBD)
 
-- Transfer spot UI (`useTransferSpot`)
-- Yield display — pending GMX YieldAdapter deploy
+- Transfer spot UI — the `useTransferSpot` hook and the `transferSpot()` contract call exist, but no UI wires them yet
+- Real GMX yield accrual — pending the mainnet `GMXStrategy` adapter (the yield **display** + `MockYieldAdapter` are already built and wired via `yield-section.tsx` / `usePendingYield`)
 - Gnosis Safe creation UI — `feature/multisig` branch
 - Wallet connect in onboarding flow
 - Hide cancel button after release (`useEscrowState` soft guard)
+
+> Built since this branch was written: `deploy-escrow-panel.tsx` (retry a rejected/failed Factory deploy from the payment page) and `yield-section.tsx` (live yield display).
 
 ---
 
@@ -108,4 +110,4 @@ development      →  main         (after NEXT_PUBLIC_FACTORY_ADDRESS is set in 
 
 - `feature/zerodev` — all ZeroDev hooks
 - `docs/web3/zerodev-integration.md` — hook reference
-- `docs/web3/contracts-spec.md` — contract spec (Julio)
+- `docs/web3/contracts-spec.md` — contract spec

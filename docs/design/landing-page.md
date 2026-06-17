@@ -62,9 +62,11 @@ Tres cards con emoji, nombre, tagline, body y skills. Subtítulo: "The protocol 
 ### 6. Verification — "Your Web3 history matters." (`verification.tsx`)
 Bloque centrado sobre tu reputación on-chain. Pills de color:
 - On-chain reputation `#6B00C9`
-- Verified skills `#8B78E6`
+- Skills `#8B78E6`
 - NFTs & POAPs `#990070`
-- Talent Protocol score `#6EE76E`
+- Wallet history `#6EE76E`
+
+> ⚠️ **Legacy:** el componente `verification.tsx` todavía muestra pills de "Verified skills" y "Talent Protocol score". Talent es legacy (reemplazado por skill selector self-declared) y las skills aún no están verificadas — pills pendientes de actualizar. La verificación de skills está en el roadmap.
 
 Copy de cierre: "Your identity lives on the protocol. Not on a platform."
 

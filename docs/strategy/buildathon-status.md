@@ -15,7 +15,7 @@
 - [x] Builder Discovery — matching algorítmico, filtros, suggested builders
 - [x] Mapa interactivo — houses, eventos, comunidades con pins
 - [x] Notificaciones
-- [x] Perfil — editar, on-chain data, POAPs, Talent Protocol
+- [x] Perfil — editar, on-chain data, POAPs, skills (skill selector self-declared)
 - [x] Bottom nav mobile + sidebar desktop
 - [x] Landing page
 
@@ -24,14 +24,14 @@
 - [x] `SpotNFT.sol` — ERC-721 booking NFT, solo escrow puede mint/burn
 - [x] `HackerHouseFactory.sol` — deploya escrow + NFT pairs
 - [x] `MockUSDC.sol` — testnet ERC-20, 6 decimals, mint público
-- [x] 20/20 tests passing (Foundry)
+- [x] 26/26 tests passing (Foundry)
 - [x] Deployed en Arbitrum Sepolia
 
 ### Deployed Contracts (Arbitrum Sepolia — chainId 421614)
 | Contract | Address |
 |---|---|
-| HackerHouseFactory | `0x318a6205B49188e00a5306e30843A271156Ca8a7` |
-| MockUSDC | `0x70705F3665A4134C5E82B0114887BA82bbFf1c92` |
+| HackerHouseFactory | `0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5` |
+| MockUSDC | `0x999579cc79400a1b59b119b6697664Dd9122Ad93` |
 
 ### Account Abstraction (feature/zerodev → integration)
 - [x] `lib/zerodev.ts` — createKernelClient, getPublicClient
@@ -56,7 +56,7 @@
 - [x] `use-pending-yield.ts` — lee pendingYield, yieldDest, nextBookingId
 - [x] Yield section en house detail page
 - [x] GMX badge en house cards
-- [x] Nota: stub retorna 0 — GMX real es Phase 2
+- [x] `MockYieldAdapter` acumula 10% APY simulado en testnet (1 adapter por casa de staking); GMX V2 real es mainnet/Phase 2
 
 ### Privacy by Design (diferenciador para jueces)
 - [x] ZeroDev kernel wallets — builders interactúan con contratos via smart account, nunca exponen wallet personal
@@ -154,8 +154,8 @@ integration             ← TODO mergeado, build passing ← TRABAJAMOS ACÁ
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_PRIVY_APP_ID=...
-NEXT_PUBLIC_FACTORY_ADDRESS=0x318a6205B49188e00a5306e30843A271156Ca8a7
-NEXT_PUBLIC_USDC_ADDRESS=0x70705F3665A4134C5E82B0114887BA82bbFf1c92
+NEXT_PUBLIC_FACTORY_ADDRESS=0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5
+NEXT_PUBLIC_USDC_ADDRESS=0x999579cc79400a1b59b119b6697664Dd9122Ad93
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=...
 NEXT_PUBLIC_ZERODEV_BUNDLER_URL=https://rpc.zerodev.app/api/v3/<project-id>/chain/421614
 ```

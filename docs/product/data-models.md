@@ -2,6 +2,8 @@
 
 Shapes de datos del frontend. Refleja `lib/types.ts` y las tablas de Supabase. Todos los tipos viven en `lib/types.ts`; los schemas Zod (validación de inputs) en `lib/schemas/`.
 
+> ⚠️ **LEGACY — Talent Protocol.** Los campos `talent_protocol_score`, `talent_tags` y `talent_credentials` son **legacy**: Talent fue reemplazado por un skill selector self-declared. Siguen en los tipos/DB pero están **deprecados y pendientes de remover**. La verificación de skills está en el roadmap.
+
 ---
 
 ## Profile (Builder)

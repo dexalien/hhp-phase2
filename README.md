@@ -2,9 +2,28 @@
 
 > **Find your Builder. Build together. Live the protocol.**
 
-**The coordination layer for builders who co-live, co-build, and show up to the same events.**
+**The on-chain coordination layer for builders who co-live, co-build, and show up to the same events.**
 
 Built at the **Arbitrum Open House London Buildathon** — June 2026.
+
+---
+
+## Table of Contents
+
+- [The Problem](#the-problem)
+- [The Solution](#the-solution)
+- [How It Works](#how-it-works)
+- [Architecture](#architecture)
+- [Smart Contracts](#smart-contracts)
+- [The Yield System](#the-yield-system)
+- [Account Abstraction & Wallet Architecture](#account-abstraction--wallet-architecture)
+- [Identity & Gates](#identity--gates)
+- [Privacy by Design](#privacy-by-design)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Business Model](#business-model)
+- [Roadmap](#roadmap)
+- [Getting Started](#getting-started)
 
 ---
 
@@ -28,25 +47,25 @@ When someone organizes a Hacker House, they become a single point of failure:
 
 ```
 VERIFY    Your on-chain identity is your credential.
-          Talent Protocol score, event POAPs, wallet history.
-          You don't declare it — you prove it.
+          Event POAPs and wallet history — you don't declare it, you prove it.
+          (Skills you pick in your profile; on-chain skill verification is on the roadmap.)
 
-MATCH     Explore Hacker Houses that fit your profile and that
-          you actually qualify for. Each house sets its own
-          on-chain access requirements.
+MATCH     Explore Hacker Houses that fit your profile and that you actually
+          qualify for. Each house sets its own access requirements.
 
 CO-LIVE   Once accepted, coordinate your spot on-chain on Arbitrum.
           Pooled deposits, automatic release to the organizer,
           automatic refund if the house doesn't fill. No middlemen.
 ```
 
-### On-chain gating examples
+### Gating examples
 
 | Requirement | Who gets in |
 |---|---|
-| Talent Protocol score ≥ 60 | Verified builders with reputation |
-| Web3 event POAP | Builders who've shipped at a hackathon |
-| 5+ POAPs | Builders with a track record in the ecosystem |
+| Holds a specific event POAP (e.g. ETHGlobal) | Builders who attended that event (verified on-chain) |
+| Has a required skill (e.g. Solidity) | Builders with that skill *(self-declared today; verification on the roadmap)* |
+
+The trust goes both ways. The house verifies the builder (gating), and the builder can trust the house: houses created by a community or company go through a manual review that grants them a **✓ Verified** badge.
 
 ---
 
@@ -57,93 +76,161 @@ Builder arrives → Explores Houses (city, dates, vibe, profile fit)
        ↓
 Applies to a house they qualify for
        ↓
-Accepted → Deposits their share of the pool on Arbitrum
+Accepted → Deposits their share of the pool on Arbitrum (gasless)
        ↓
-House fills up  →  funds released to organizer  →  Booking NFT minted
-House doesn't fill  →  automatic refund to every builder
+House fills up  →  funds released to organizer  →  Spot NFT stays in the builder's wallet
+House cancelled →  100% refund to every builder  →  Spot NFTs burned
 ```
 
-Your Hacker House confirmation is a **Booking NFT on Arbitrum** — with dates, location, and house details. Your keys live on-chain.
+Your Hacker House confirmation is a **Spot NFT on Arbitrum** — minted to your wallet the moment you pay, with the house name and your spot number baked into on-chain metadata.
 
 ---
 
-## Features
+## Architecture
 
-### Cypher Identity
-- Login with email, social, or wallet via **Privy** (embedded wallet auto-generated for non-crypto-native builders)
-- Import your **Talent Protocol** score and skills automatically
-- Connect **POAPs** from events you've attended
-- Add multiple **read-only data wallets** — aggregate POAPs and on-chain credentials from all your wallets
-- Your on-chain reputation is your profile
+Hacker House Protocol is a full-stack application: a Next.js frontend, a Supabase backend, a set of Solidity contracts on Arbitrum, and an ERC-4337 account-abstraction layer that makes every on-chain action gasless.
 
-### Hacker Houses — Full E2E On-Chain Flow
-- **Create** — multi-step wizard: basics, access rules, payment/escrow config, check-in details, images
-- **Deploy** — one click deploys a new HackerHouseEscrow + SpotNFT + YieldAdapter on Arbitrum via Factory (single transaction). If the deploy is rejected or fails, the house is created in the DB and the host can **retry the deploy** from its payment page — it's never left in a half-created state
-- **Deposit** — builders mint testnet USDC, then Pay My Share in a single gasless transaction (approve + deposit batched via ZeroDev)
-- **SpotNFT** — each deposit mints a Key NFT to the builder as proof of their spot. NFT metadata displays "House Name - Spot #1" (1-indexed). The house name is passed from the creation form through Factory → SpotNFT constructor
-- **Yield** — staking deposits generate yield in real time (10% APY on testnet via MockYieldAdapter, GMX V2 on mainnet). Yield goes to host or is split among builders, configurable at creation
-- **Release** — host releases funds after withdraw date: withdraws from yield adapter, distributes yield, 99.5% to host + 0.5% protocol fee
-- **Cancel** — host cancels at any time, funds withdrawn from adapter, 100% refund to all builders, all NFTs burned. No fee on cancel.
-- **Refund verification** — builders can verify their refund on Arbiscan directly from the UI
-- **Invite Only** — houses can be gated to invited builders only; capacity-enforced invitations sent as real notifications
-- Two modalities: **Co-Payment** (split cost) and **Staking** (returned after checkout + yield). **Hybrid** mode (partial payment + partial stake) planned as a future Staking option
-- Image carousel, amenities, event association, participant roster
-- Full application management — accept, reject, waitlist
+```
+┌─────────────────────────────────────────────────────────────┐
+│                          FRONTEND                            │
+│       Next.js 16 · React 19 · Tailwind v4 · shadcn/ui        │
+│                                                              │
+│   Dashboard ─── Hacker Houses ─── Payment Page               │
+│        │              │                │                     │
+│        │              │         ┌──────┴──────┐              │
+│        │              │         │  Deposit    │              │
+│        │              │         │  Release    │              │
+│        │              │         │  Cancel     │              │
+│        │              │         │  Transfer   │              │
+│        │              │         │  Yield      │              │
+│        │              │         └──────┬──────┘              │
+├────────┼──────────────┼────────────────┼─────────────────────┤
+│        │           HOOKS LAYER          │                    │
+│        │                                │                    │
+│   TanStack Query           ZeroDev + viem/wagmi              │
+│   (API / server state)     (on-chain state)                  │
+│        │                                │                    │
+│   useHackerHouses()        useKernelWallet()                 │
+│   useCommunities()         useDeposit() / useRelease()       │
+│   useBuilders()            useEscrowState() / useBuilderSpot()│
+│                            usePendingYield()                 │
+├───────────────────────────┼──────────────────────────────────┤
+│        BACKEND             │            BLOCKCHAIN           │
+│                            │                                 │
+│   Supabase (Postgres+RLS)  │      Arbitrum Sepolia           │
+│   Next.js API routes       │                                 │
+│   (all data flows here)    │      HackerHouseFactory         │
+│                            │        └── HackerHouseEscrow    │
+│   Privy (Auth)             │              ├── USDC deposits  │
+│                            │              ├── SpotNFT (721)   │
+│   Vercel (Deploy)          │              └── YieldAdapter   │
+└────────────────────────────┴──────────────────────────────────┘
+```
 
-### Identity Gates
-- Hosts set verifiable on-chain requirements at creation: minimum POAP count, specific event POAPs, Talent Protocol skills
-- The same gate engine protects **Hacker Houses, Communities, and Hack Spaces** — one evaluation path (AND across gates, OR within a gate)
-- Gate evaluation happens server-side — applicants see ✓/✗, never their raw data
-- Builder profile gates are aggregated across all linked wallets (a POAP in any wallet passes the gate)
-- Privacy-first: gate results reveal no personal data to the host
+### Principles
 
-### Builder Discovery
-- Browse builders by archetype (Visionary / Strategist / Builder), skills, location, and language
-- Suggested connections based on your profile and activity
-- Follow builders and build your network
-- "Skills I'm looking for" — set complementary skills to improve match quality
+- **The client never touches the database directly.** Every read and write goes through a Next.js API route (`app/api/*`) that verifies the Privy access token and talks to Supabase with the service-role key. Row Level Security is the second line of defense.
+- **On-chain reads are free.** State like pool size, spots taken, and accrued yield is read through a `viem` public client — no gas, no wallet prompt.
+- **On-chain writes are gasless.** Every transaction is an ERC-4337 UserOperation sponsored by a paymaster. The builder signs, the bundler pays.
 
-### Hack Spaces
-- Post a virtual collaboration project with open roles
-- Define the archetypes and skills you're looking for
-- Algorithmic matching surfaces your space to the right builders
+### On-chain data flow
 
-### Communities
-- Create or join builder communities with invite links
-- Community badge surfaces on profiles and builder cards
-- Filter discovery and houses by community
+The frontend reads contract state via a `viem` public client (free, no gas):
 
-### Interactive Map
-- Live map of active Hacker Houses and events by city
-- Pin on location with direct CTA to apply or join
+| Hook | Reads from contract |
+|---|---|
+| `useEscrowState` | `totalDeposited`, `cancelled`, `released`, `withdrawDate`, `capacity`, `nextBookingId` |
+| `useBuilderSpot` | `hasDeposited`, `deposits`, `builderBooking` |
+| `usePendingYield` | `pendingYield`, `yieldDest`, `nextBookingId` |
+
+Write operations go through the ZeroDev kernel client as sponsored UserOperations:
+
+| Hook | Contract call | Gas |
+|---|---|---|
+| `useCreateHouse` | `Factory.createHouse()` | Sponsored |
+| `useDeposit` | `USDC.approve()` + `Escrow.deposit()` | Sponsored (batched, atomic) |
+| `useRelease` | `Escrow.release()` | Sponsored |
+| `useCancelHouse` | `Escrow.cancelHouse()` | Sponsored |
+| `useTransferSpot` | `Escrow.transferSpot()` | Sponsored |
 
 ---
 
-## Smart Contracts — Deployed on Arbitrum Sepolia
+## Smart Contracts
 
-**Source:** [`contracts/`](./contracts/) · **Framework:** Foundry · **Tests:** 26/26 passing
+**Source:** [`contracts/`](./contracts/) · **Framework:** Foundry · **Tests:** 26/26 passing · **Network:** Arbitrum Sepolia (chainId 421614)
 
 | Contract | Address | Arbiscan |
 |---|---|---|
-| **HackerHouseFactory** | `0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5` | [View ↗](https://sepolia.arbiscan.io/address/0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5#code) |
-| **MockUSDC** | `0x999579cc79400a1b59b119b6697664Dd9122Ad93` | [View ↗](https://sepolia.arbiscan.io/address/0x999579cc79400a1b59b119b6697664Dd9122Ad93#code) |
+| **HackerHouseFactory** | `0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5` | [Verified ↗](https://sepolia.arbiscan.io/address/0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5#code) |
+| **MockUSDC** | `0x999579cc79400a1b59b119b6697664Dd9122Ad93` | [Verified ↗](https://sepolia.arbiscan.io/address/0x999579cc79400a1b59b119b6697664Dd9122Ad93#code) |
 
-The contract replaces blind trust in the organizer with a trustless, automatic escrow:
+The system is six contracts: a permissionless **Factory**, a per-house **Escrow**, a per-house **SpotNFT**, a pluggable **YieldAdapter** (with its `IYieldAdapter` interface), and a **MockUSDC** test token.
+
+### One contract per house
+
+The Factory deploys a fresh, isolated set of contracts for every Hacker House — if one house has an issue, no other house is affected. A single `createHouse()` call orchestrates the whole thing atomically:
+
+```
+HackerHouseFactory.createHouse(usdc, hostSafe, depositAmount, withdrawDate,
+                               capacity, houseType, yieldMode, yieldDest, houseName)
+   │
+   ├─ 1. Deploy a YieldAdapter      (only if the house is STAKING / yieldMode = GMX)
+   ├─ 2. Deploy the HackerHouseEscrow
+   ├─ 3. Deploy the SpotNFT(escrow, houseName)
+   ├─ 4. escrow.initialize(spotNFT)      ← links escrow → NFT
+   └─ 5. adapter.initialize(escrow)      ← links adapter → escrow
+   →  emits HouseCreated(creator, escrow, spotNFT, yieldAdapter)
+```
+
+**The initialize pattern.** The escrow, the NFT, and the adapter have a circular dependency — each needs another's address. The Factory solves it by deploying first and wiring after: the escrow is constructed without its SpotNFT, then `initialize()`'d once the NFT exists; the adapter is constructed without its escrow, then `initialize()`'d once the escrow exists. The Factory runs both initializations in the same transaction, so a house is never left half-wired.
+
+### The escrow lifecycle
+
+`HackerHouseEscrow.sol` replaces blind trust in the organizer with a trustless, automatic escrow.
 
 | Function | Who calls it | What happens |
 |---|---|---|
-| `createHouse()` | Factory | Deploys Escrow + SpotNFT + YieldAdapter in a single transaction |
-| `deposit()` | Accepted builder | Locks USDC in escrow, forwards to yield adapter if staking, mints SpotNFT |
-| `release()` | Host (after withdraw date) | Withdraws from adapter, distributes yield, 99.5% to host + 0.5% fee |
-| `cancelHouse()` | Creator | Withdraws from adapter, 100% refund to all builders, SpotNFTs burned |
-| `transferSpot()` | Spot holder | Transfers spot + deposit record to another builder |
-| `pendingYield()` | Anyone (view) | Returns accrued yield from the adapter in real time |
+| `deposit(bookingId)` | Accepted builder | Pulls `depositAmount` USDC, forwards it to the yield adapter (if staking), mints a SpotNFT. `bookingId` must equal `nextBookingId` — sequential, no gaps |
+| `release()` | Host (after `withdrawDate`) | Withdraws principal + yield from the adapter, sends **99.5%** to the host and a **0.5% fee** to the HHP treasury. Fee is charged **on principal only** |
+| `cancelHouse()` | Creator | Withdraws everything from the adapter, refunds **100%** to every builder, burns all SpotNFTs. **No fee** on cancel |
+| `transferSpot(bookingId, newBuilder)` | Spot holder | Moves the spot, the deposit record, and the SpotNFT to another builder |
+| `pendingYield()` | Anyone (view) | Returns accrued yield from the adapter, in real time |
 
-Each house is an isolated contract — if one has issues, others are unaffected. Each staking house gets its own yield adapter (1:1 relationship).
+**Yield destination** is fixed at creation: `HOST` adds all yield to the host's payout, `BUILDERS` splits it equally across depositors (`perBuilder = yield / nextBookingId`).
 
-### Yield System — Pluggable Adapter Architecture
+### SpotNFT — your key, fully on-chain
 
-Locked deposits don't just sit idle — they generate yield while awaiting release.
+Each deposit mints an ERC-721 `SpotNFT` to the builder as proof of their spot. Only the owning escrow can mint or burn it. The metadata is generated **entirely on-chain** — `tokenURI()` returns a Base64-encoded JSON data URI, no IPFS, no external server:
+
+```json
+{
+  "name": "House Name - Spot #1",
+  "description": "Hacker House Protocol - Your key to House Name...",
+  "image": "https://hackerhouse.app/assets/nft-key.png",
+  "attributes": [
+    { "trait_type": "House", "value": "House Name" },
+    { "trait_type": "Spot",  "value": "#1" },
+    { "trait_type": "Protocol", "value": "Hacker House Protocol" }
+  ]
+}
+```
+
+Spot numbers are 1-indexed for humans (`bookingId + 1`). The house name flows from the creation form → Factory → SpotNFT constructor.
+
+---
+
+## The Yield System
+
+Locked deposits don't sit idle — for staking houses, they generate yield while they wait for release. The escrow never talks to a yield source directly; it talks to a pluggable **`IYieldAdapter`**:
+
+```solidity
+interface IYieldAdapter {
+    function deposit(uint256 amount) external;
+    function withdraw(uint256 amount) external returns (uint256 received);
+    function pendingYield() external view returns (uint256);
+    function totalDeposited() external view returns (uint256);
+}
+```
 
 ```
 Builder deposits USDC ──► Escrow ──► YieldAdapter (holds funds, accrues yield)
@@ -155,157 +242,134 @@ Builder deposits USDC ──► Escrow ──► YieldAdapter (holds funds, accr
               ┌─────────────────┼─────────────────┐
               ▼                 ▼                  ▼
          Host gets         Builders get       Treasury gets
-      principal + yield*    yield share*        0.5% fee
+       principal + yield*   yield share*        0.5% fee
+                    (* depending on yieldDest)
 ```
 
-**How it works:**
+- **MockYieldAdapter (testnet)** — simulates a **10% APY** (`APY_BPS = 1000`) with time-based math: `yield = principal × APY_BPS × elapsed / (10000 × 365 days)`. Because GMX V2 doesn't exist on Sepolia, it mints MockUSDC to itself to represent earned yield.
+- **GMXStrategy (mainnet, planned)** — same interface, real yield from GMX V2 Earn vaults on Arbitrum One. Because both implement `IYieldAdapter`, **swapping the adapter requires zero changes to the escrow or the frontend.**
 
-- **IYieldAdapter** — a pluggable interface (`deposit`, `withdraw`, `pendingYield`, `totalDeposited`) that decouples the escrow from any specific yield source
-- **MockYieldAdapter** (testnet) — simulates 10% APY using time-based math: `yield = principal × APY × elapsed / year`. Mints MockUSDC to itself to represent earned yield
-- **GMXStrategy** (mainnet, planned) — same interface, real yield from GMX V2 Earn vaults on Arbitrum One. Swapping adapters requires **zero frontend changes**
-- **Yield destination** is set at house creation:
-  - `HOST` — all yield added to the host's payout on release
-  - `BUILDERS` — yield split equally among all depositors on release
+Each staking house gets its own adapter (1:1), deployed by the Factory alongside the escrow.
 
-The Factory handles the full lifecycle in one transaction: deploys the adapter → deploys the escrow → deploys the SpotNFT → initializes both adapter and escrow with each other's addresses. The frontend sends one `createHouse()` call with 9 parameters (including `houseName`) — no multi-step process.
+### How the frontend reads yield
 
-**Technical note — the initialize pattern:**
-The adapter and escrow have a circular dependency (each needs the other's address). We solve this with an `initialize()` pattern: the adapter is deployed first without knowing its escrow, then initialized after the escrow is deployed. This is the same pattern used for the SpotNFT ↔ Escrow link. The Factory orchestrates both initializations atomically.
+`usePendingYield` polls three view functions every 60s and renders the staking house's live yield without any wallet prompt (free reads):
 
-### Three House Modalities
+| Data | Source | Displayed as |
+|---|---|---|
+| Total accrued yield | `pendingYield()` | `"0.0412 USDC"` or `"Accruing…"` when 0 |
+| Destination | `yieldDest()` | `"Goes to host"` / `"Goes to builders"` |
+| Per-builder share | `pendingYield() / nextBookingId()` | `"~0.0103 USDC per builder"` |
 
-| Modality | How deposits work | Yield | Use case |
-|---|---|---|---|
-| **Co-Payment** | Builders split the cost equally. Funds released to host after withdraw date. | None | Standard Hacker House — everyone chips in |
-| **Staking** | Builders lock USDC as commitment. **Full deposit returned** after checkout + yield earned. | Yes — via adapter | Proof-of-commitment houses. Builders get their money back + yield |
+On the contract side, `Escrow.pendingYield()` is a passthrough to the adapter's `pendingYield()`. The frontend reads from the escrow address — it doesn't need to know the adapter exists.
 
-> **Hybrid mode** (planned) — a future Staking sub-option where the host receives the deposit on release while yield stays locked until checkout and is distributed to all builders. Same escrow contract, different distribution logic.
+### Why GMX, and what the mainnet adapter does
 
-### Why Arbitrum
-
-- **Low gas fees** — deploy cost $0.01. Co-living deposits ($50–$500/person) need cheap transactions.
-- **GMX V2 on Arbitrum** — native yield source for staking deposits via GM tokens. No bridging needed.
-- **EVM-native** — standard Solidity, Foundry, no chain-specific changes
-- **Privy + ZeroDev support** — auth and account abstraction layers already support Arbitrum
-- **Ecosystem alignment** — this buildathon *is* Arbitrum. The fit is direct.
-
-### Verifying Contracts
-
-Both Factory and MockUSDC are verified using Foundry's Standard JSON Input method (no Arbiscan API key required on Sepolia).
-
-```bash
-# Generate Standard JSON Input from contracts/ directory
-forge verify-contract CONTRACT_ADDRESS src/ContractName.sol:ContractName \
-  --chain arbitrum-sepolia \
-  --show-standard-json-input > verify-contractname.json
-```
-
-Then upload at [sepolia.arbiscan.io/verifyContract](https://sepolia.arbiscan.io/verifyContract):
-- Compiler Type: `Solidity (Standard-Json-Input)`
-- Compiler Version: `v0.8.28+commit.7893614a`
-- License: `MIT`
-- Leave Constructor Arguments empty (Factory and MockUSDC have no constructor args)
-
-> **Note:** HackerHouseEscrow and SpotNFT are deployed dynamically via internal calls inside ERC-4337 UserOperations. Arbiscan Sepolia cannot index contracts deployed this way. Both will be verifiable on mainnet.
+On Arbitrum One, `GMXStrategy` (the production `IYieldAdapter`) routes staked USDC into **GMX V2 Earn vaults** (GM liquidity pools) and reports the accrued yield through the same `pendingYield()` / `withdraw()` interface the escrow already calls. GMX is the natural fit: it's **native to Arbitrum** (no bridging), it's a mature perps/LP protocol with real USDC yield, and the adapter pattern means the escrow, the hooks, and the UI all stay byte-for-byte identical when `MockYieldAdapter` is swapped for `GMXStrategy`.
 
 ---
 
-## Wallet Architecture & On-Chain Identity
+## Account Abstraction & Wallet Architecture
 
-This section maps every address, hash, and on-chain artifact HHP produces — useful when reading Arbiscan or debugging transactions.
-
-### Three identity layers
-
-Every builder on HHP operates through three distinct layers:
+Builders never pay gas and never expose a personal wallet on-chain. Every builder operates through three layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  LAYER 1: Embedded Wallet (EOA)                             │
-│  Generated by Privy at sign-up                              │
-│  Role: SIGNER — holds the cryptographic key                 │
-│  On-chain: never appears directly                           │
-│  Visible: "Connected Wallet" inside the app                 │
+│  LAYER 1 — Embedded Wallet (EOA)                            │
+│  Generated by Privy at sign-up. Role: SIGNER.               │
+│  Never appears on-chain — signs UserOperations off-chain.   │
 └──────────────────────────┬──────────────────────────────────┘
-                           │ signs UserOperations
+                           │ signs
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  LAYER 2: Smart Wallet / Kernel (ERC-4337)                  │
-│  Deployed by ZeroDev on the builder's first transaction     │
-│  Role: ON-CHAIN ACTOR — pays, receives NFTs, calls contracts│
-│  On-chain: yes — searchable on Arbiscan                     │
-│  This is "your address" from the contracts' perspective     │
+│  LAYER 2 — Smart Wallet / Kernel (ERC-4337)                 │
+│  Deployed by ZeroDev on the builder's first transaction.    │
+│  Role: ON-CHAIN ACTOR — pays, receives NFTs, calls escrow.  │
+│  This is "your address" from the contracts' point of view.  │
 └──────────────────────────┬──────────────────────────────────┘
                            │ UserOps route through
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  LAYER 3: EntryPoint ERC-4337                               │
-│  Global standard contract (same address on every EVM chain) │
-│  Role: EXECUTOR — receives UserOps from the bundler         │
-│        and executes them on behalf of the Smart Wallet      │
+│  LAYER 3 — EntryPoint (ERC-4337)                            │
+│  Global standard contract. Role: EXECUTOR — runs UserOps    │
+│  submitted by the bundler on behalf of the Smart Wallet.    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**The golden rule:** what the user signs is a **UserOperation**, not an Ethereum transaction. The actual Ethereum transaction is created by the **bundler** (ZeroDev) — it pays its own gas and submits it to the EntryPoint on your behalf.
+**What the user signs is a UserOperation, not an Ethereum transaction.** The real transaction is built and paid for by the bundler (ZeroDev) and submitted to the EntryPoint. When the builder clicks "Pay My Share", ZeroDev batches `USDC.approve()` + `escrow.deposit()` into one atomic, gas-sponsored UserOp — the builder gets a SpotNFT having never held ETH.
 
-### UserOperation hashes vs Ethereum transaction hashes
+### The ZeroDev stack
 
-Every action (mint, pay, cancel) produces a hash. They all look identical (`0x` + 64 hex chars), but they are different things:
-
-| Hash type | Who generates it | Where to look it up |
+| Role | Package | Notes |
 |---|---|---|
-| **UserOperation hash** | ZeroDev / Privy when building the UserOp | JiffyScan (if the bundler reports it) |
-| **Ethereum tx hash** | The Arbitrum node when confirming the block | Arbiscan — search by Smart Wallet address |
+| Smart wallet (Kernel) | `@zerodev/sdk` v5 | ERC-4337 smart account |
+| Signature validator | `@zerodev/ecdsa-validator` v5 | Validates the embedded EOA's signature on every UserOp |
+| Auth + embedded wallet | `@privy-io/react-auth` v3 | The signer (Layer 1) |
+| EVM utils | `viem` | Wallet client + public client |
+| Bundler peer dep | `permissionless` 0.2.57 | **Locked** — do not upgrade to 0.3.x (Privy v3 pins `^0.2.47`) |
 
-When the ZeroDev SDK returns a hash to the frontend after a deposit or mint, that is a **UserOp hash** — Arbiscan will not find it by that hash. To find the actual transaction: go to Arbiscan → search the Smart Wallet address → check internal transactions. The EntryPoint's calls to your Smart Wallet appear there.
+Four infrastructure components do the work behind the button:
 
-### Why `0x000...000` appears as "From" when minting
+- **Kernel** — the smart-account contract. Its address is **counterfactual**: deterministically derived from the embedded signer, so the same signer always maps to the same Kernel. The contract is only actually deployed on the builder's **first** transaction (the EntryPoint deploys it inline).
+- **ECDSA Validator** — a Kernel plugin that checks each UserOp was signed by the builder's embedded EOA.
+- **Bundler** — collects UserOps, packs them into a real Ethereum transaction, and submits it. Endpoint: `https://rpc.zerodev.app/api/v3/<project-id>/chain/421614`.
+- **Paymaster** — sponsors the gas (`sponsorUserOperation`), so the builder pays zero ETH.
 
-In the ERC-721 standard, a mint is defined as a `Transfer` event **from the zero address**:
-
-```
-Transfer(address(0), recipientAddress, tokenId)
-```
-
-When a builder pays for a spot, the Escrow calls `spotNFT.mint(builder, bookingId)`. Solidity's `_mint()` emits `Transfer(address(0), smartWallet, tokenId)`. Arbiscan displays this as `From: 0x0000...0000`. This is correct EIP-721 behavior — it signals creation, not an actual transfer from that address.
-
-### Why HackerHouseEscrow and SpotNFT don't appear on Arbiscan
-
-Both contracts are deployed **dynamically** by the Factory, which is called from inside a UserOperation:
+### A gasless deposit, end to end
 
 ```
-Bundler submits Ethereum tx
-  → EntryPoint.handleOps(UserOp)
-      → Smart Wallet executes HackerHouseFactory.createHouse()
-          → Factory deploys new HackerHouseEscrow(...)  ← internal call
-          → Factory deploys new SpotNFT(...)             ← internal call
+1. LOGIN (off-chain)
+   Privy authenticates (MetaMask / Google / email) and creates an Embedded
+   wallet (Layer 1) in the browser. Nothing touches the chain.
+
+2. KERNEL CONNECT (once per session) — useKernelWallet.connect()
+   Resolve the embedded wallet (getEmbeddedConnectedWallet → privy → createWallet)
+   → wrap it in a viem WalletClient
+   → createKernelClient(walletClient): ECDSA validator + Paymaster + Bundler
+   → getKernelAddress(): the counterfactual Layer-2 address (not deployed yet)
+
+3. MINT USDC (testnet)  — UserOp: MockUSDC.mint(kernel, 10e6)
+   Embedded signs off-chain → Bundler → Paymaster sponsors gas → EntryPoint
+   deploys the Kernel (first tx) and runs the mint. 10 USDC land in the Kernel.
+
+4. PAY MY SHARE — one BATCHED UserOp, two calls, atomic:
+   ├─ USDC.approve(escrow, 10e6)
+   └─ escrow.deposit(bookingId)
+        → escrow USDC.transferFrom(kernel, escrow, 10e6)
+        → escrow mints SpotNFT(tokenId = bookingId) to the kernel
+   The builder signs once; both calls succeed or both revert.
 ```
 
-Arbiscan Sepolia does not index contracts deployed via internal calls inside UserOperations. The contracts exist and are fully functional — they just don't appear in the explorer's contract list. This limitation is specific to the Sepolia testnet explorer; mainnet explorers index all contracts regardless of how they were deployed.
+### Reads vs writes — two separate paths
 
-### Address map (testnet)
+To stay gasless *and* avoid rate limits, reads and writes don't share an endpoint:
 
-| Entity | Type | On Arbiscan |
-|---|---|---|
-| Embedded Wallet (Privy signer) | EOA | Not present — signs off-chain only |
-| Smart Wallet (ZeroDev Kernel) | Contract | Yes — your on-chain identity |
-| EntryPoint ERC-4337 `0x4337009B...` | Contract (global) | Yes — standard deploy |
-| HackerHouseFactory `0x751ea80F...` | Contract | Yes — [verified ↗](https://sepolia.arbiscan.io/address/0x751ea80fae2f714812bf0317be4df96fd3ffcfb5#code) |
-| MockUSDC `0x999579cc...` | Contract | Yes — [verified ↗](https://sepolia.arbiscan.io/address/0x999579cc79400a1b59b119b6697664dd9122ad93#code) |
-| HackerHouseEscrow (per house) | Contract (dynamic) | Not indexed on Sepolia |
-| SpotNFT (per house) | Contract (dynamic) | Not indexed on Sepolia |
+- **Writes** go through the ZeroDev **Bundler** as sponsored UserOps.
+- **Reads** go through a public Arbitrum RPC (`https://sepolia-rollup.arbitrum.io/rpc`) via a singleton `viem` public client. Each read hook batches its calls into a single **multicall**: `useEscrowState` (6 reads → 1), `useBuilderSpot` (3 → 1), `usePendingYield` (3 → 1) — ~12 RPC calls collapse to ~3 per page load.
+
+> **`hostSafe`.** The escrow only checks `msg.sender == hostSafe` in `release()` — it doesn't care what kind of address that is. For the buildathon, `hostSafe` is the creator's Kernel address (single signer). For production it can be a Gnosis Safe (M-of-N) with **zero contract changes** — only the frontend adds the Safe SDK.
+
+### Two things that surprise people on Arbiscan
+
+- **Mints show `from: 0x000…000`.** EIP-721 defines a mint as `Transfer(address(0), recipient, tokenId)` — correct behavior, signals creation.
+- **Per-house Escrow and SpotNFT contracts aren't indexed on Sepolia.** They're deployed *dynamically*, via internal calls inside a UserOperation, and Arbiscan Sepolia doesn't index contracts created that way. They exist and work fully — the Factory and MockUSDC (deployed normally) are verified and visible. Mainnet explorers index all of them.
 
 ### Data wallets (read-only)
 
-Builders can link additional wallets as **read-only data sources**:
+Builders can link additional wallets as **read-only data sources** to aggregate POAPs and on-chain credentials. A data wallet only counts once ownership is proven by signing via Privy `linkWallet` (reconciled server-side against Privy's `linked_accounts`). There is no plain-text address input, and a wallet already registered to another user can't be reused — so you can only present credentials from wallets you actually control. Data wallets are never used for transactions and never shown in the public profile.
 
-- They are never used for transactions or connected to the ZeroDev Kernel
-- They exist purely to import on-chain credentials: POAPs, NFTs, blockchain activity
-- POAP imports aggregate across all linked wallets and deduplicate by event
-- Identity gates evaluate against the union of all wallets — a credential in any wallet passes
+---
 
-**Ownership proof required.** A data wallet only counts once the user has proven they own it by signing via Privy `linkWallet` (reconciled server-side against Privy's `linked_accounts`). There is no plain-text address input — you cannot claim a wallet you don't control. A wallet already registered to any other user cannot be reused (global anti-reuse), and POAP sync only ever reads the primary wallet plus wallets marked `verified`. This keeps credentials and gates honest: you can only present credentials from wallets you actually hold.
+## Identity & Gates
 
-The primary wallet (Privy-generated) is always the payment and signing wallet. Data wallets are stored separately and are never exposed in the public profile.
+A host can gate any Hacker House (and Communities and Hack Spaces — one shared engine) on verifiable requirements. The gate engine (`lib/gate-engine.ts`) supports two gate types:
+
+- **POAP gate** — the builder must hold at least one of the required event POAPs (verified on-chain across all their linked wallets).
+- **Skill gate** — the builder must have at least one of the required skills.
+
+Gates compose as **AND across gates, OR within a gate**. Evaluation happens **server-side**: the applicant sees only ✓/✗, and the host never sees raw data — no score, no wallet, no POAP list.
+
+> **On skills:** today skills are **self-declared** through the profile skill selector — the builder picks them; they are not yet verified on-chain. **On-chain skill verification is on the roadmap (in planning).** A legacy Talent Protocol integration still lives in the codebase but is deprecated and pending removal.
 
 ---
 
@@ -313,12 +377,47 @@ The primary wallet (Privy-generated) is always the payment and signing wallet. D
 
 Privacy is a first-class feature, not an afterthought.
 
-- **No personal wallet exposure** — all on-chain interactions go through ZeroDev Kernel wallets; personal addresses never appear on-chain
-- **Identity verified, not revealed** — gates check credentials server-side and return only ✓/✗. The host never sees a builder's score, wallet, or POAP list
-- **Credentials you actually own** — data wallets require a signature to prove ownership and a wallet can't be reused across accounts, so no one can claim another person's POAPs or pass a gate with a wallet they don't control
-- **Selective disclosure** — builders choose which POAPs and skills are public; the rest is used internally for matching and gates only
-- **On-chain anonymity** — Arbiscan shows Kernel wallet addresses only; no link to the user's identity, personal wallet, or email
-- **Private Bridge (planned)** — anonymous withdrawals via Railgun on Arbitrum to break the on-chain link between Kernel and destination wallet
+- **No personal wallet exposure** — all on-chain interactions go through ZeroDev Kernel wallets; personal addresses never appear on-chain.
+- **Identity verified, not revealed** — gates check credentials server-side and return only ✓/✗.
+- **Credentials you actually own** — data wallets require a signature to prove ownership, and a wallet can't be reused across accounts.
+- **Selective disclosure** — builders choose which POAPs and skills are public; the rest is used internally for matching and gates only.
+- **Private Bridge (planned)** — anonymous withdrawals via Railgun on Arbitrum to break the on-chain link between the Kernel wallet and a destination wallet.
+
+---
+
+## Features
+
+### Cypher Identity
+- Login with email, social, or wallet via **Privy** (embedded wallet auto-generated for non-crypto-native builders)
+- Connect **POAPs** from events you've attended; add read-only **data wallets** to aggregate credentials
+- Pick your **skills** with the profile skill selector (self-declared today; on-chain verification on the roadmap)
+- Your on-chain reputation is your profile
+
+### Hacker Houses — full E2E on-chain flow
+- **Create** — multi-step wizard: basics, access rules, payment/escrow config, check-in details, images
+- **Deploy** — one click deploys a fresh Escrow + SpotNFT (+ YieldAdapter for staking) via the Factory in a single transaction; retryable from the payment page if a deploy is rejected
+- **Deposit** — mint testnet USDC, then "Pay My Share" in one gasless, batched transaction (approve + deposit)
+- **Spot NFT** — each deposit mints an on-chain Key NFT proving your spot
+- **Release / Cancel** — host releases after the withdraw date (99.5% host + 0.5% fee) or cancels any time for a 100% refund with NFTs burned
+- **Transfer** — the escrow supports handing your spot (and deposit) to another builder via `transferSpot()` (contract + `useTransferSpot` hook ready; in-app UI pending)
+- Two modalities: **Co-Payment** (split cost) and **Staking** (deposit returned after checkout + yield)
+
+### Identity Gates
+- Hosts set POAP and skill requirements at creation; one engine protects Houses, Communities, and Hack Spaces
+- Server-side evaluation, privacy-first: applicants see ✓/✗, hosts never see raw data
+
+### Builder Discovery
+- Browse builders by archetype (Visionary / Strategist / Builder), skills, location, and language
+- Algorithmic suggestions, follow builders, set "skills I'm looking for" to improve match quality
+
+### Hack Spaces
+- Post a virtual collaboration project with open roles; matching surfaces it to the right builders
+
+### Communities
+- Create or join builder communities with invite links; community badge on profiles and cards; filter discovery and houses by community; mini-events with RSVP
+
+### Interactive Map
+- Live map of active Hacker Houses, events, and communities by city, with location blurring for privacy
 
 ---
 
@@ -328,14 +427,15 @@ Privacy is a first-class feature, not an afterthought.
 |---|---|
 | **Frontend** | Next.js 16 App Router · React 19 · TypeScript (strict) · Tailwind CSS v4 |
 | **Auth** | Privy — email + social + embedded wallets |
-| **Smart Account** | ZeroDev — ERC-4337 Kernel accounts + paymaster |
+| **Smart Account** | ZeroDev — ERC-4337 Kernel accounts + paymaster (gasless UserOps) |
 | **Blockchain** | Arbitrum Sepolia · Solidity ^0.8.24 · Foundry · viem · wagmi |
-| **Backend / DB** | Supabase — Postgres + Row Level Security + Edge Functions |
+| **Backend / DB** | Supabase — Postgres + Row Level Security (DB only, no Supabase Auth) |
+| **API** | Next.js route handlers (`app/api/*`) — token-verified, service-role to DB |
 | **Deploy** | Vercel |
-| **State** | TanStack Query (server state) · react-hook-form + Zod (forms) |
+| **State** | TanStack Query (server state) · react-hook-form + Zod v3 (forms) |
 | **UI** | shadcn/ui (Radix primitives) · sonner · Lucide |
 | **Map** | Leaflet + CARTO tiles + Nominatim geocoding |
-| **Integrations** | Talent Protocol · POAP |
+| **Integrations** | POAP |
 
 ---
 
@@ -346,7 +446,7 @@ The protocol charges those who want access to builders — not the builders them
 | Revenue Stream | Detail |
 |---|---|
 | **Host fee** | 0.5% on every pool coordinated via the escrow contract |
-| **Staking yield** | Locked deposits generate yield via pluggable adapters (MockYieldAdapter on testnet, GMX V2 on mainnet). Yield distributed to host or builders on release. |
+| **Staking yield** | Locked deposits generate yield via pluggable adapters (MockYieldAdapter on testnet, GMX V2 on mainnet) |
 | **Sponsored houses** | DAOs and companies fund branded houses — *Arbitrum House*, *Base House* — paying for visibility and curated access to their ecosystem's builders |
 
 ---
@@ -355,29 +455,12 @@ The protocol charges those who want access to builders — not the builders them
 
 | Phase | Focus |
 |---|---|
-| **Buildathon (now)** | On-chain escrow + SpotNFT + yield adapter system + gasless deposits + cancel/refund + release + identity gates + multi-wallet + privacy model + communities |
-| **Phase 2** | Hybrid staking mode · Sponsored houses · Human Passport + World ID verification |
+| **Buildathon (now)** | On-chain escrow + SpotNFT + pluggable yield adapter + gasless deposits + cancel/refund + release + identity gates + multi-wallet + privacy model + communities |
+| **Phase 2** | Sponsored houses · Skill verification (verifiable / on-chain credentials — in planning) · Human Passport + World ID verification · GMX V2 adapter on mainnet |
 | **V2** | In-app chat · Community governance · Gamified experience · Cypher Kittens NFT |
 | **V3** | ZK Matching · ZK Identity · Cross-chain |
 
-### 60-day post-buildathon targets
-
-| Metric | Target |
-|---|---|
-| Builders registered | 200 |
-| Hacker Houses created | 15 |
-| Houses with completed on-chain pool | 8 |
-| ETH coordinated via contract | 5 ETH |
-| Events covered | 3 Web3 events |
-| Communities onboarded | 3 |
-
----
-
-## Guides
-
-- **[On-Chain Flow (ES)](./docs/web3-flow.md)** — Full technical + pitch explanation of how HHP works on Arbitrum
-- **[On-Chain Flow (EN)](./docs/web3-flow-en.md)** — English version with wallet architecture field guide, hash types, and address map
-- **[Create a Hacker House — Step by Step](./docs/guides/create-a-house.md)** — Full walkthrough from form to on-chain deploy to managing deposits
+> Early-stage ideas under consideration (not committed) live in [`docs/ideas-to-explore.md`](./docs/ideas-to-explore.md).
 
 ---
 
@@ -396,8 +479,8 @@ NEXT_PUBLIC_PRIVY_APP_ID=
 NEXT_PUBLIC_ZERODEV_PROJECT_ID=
 NEXT_PUBLIC_ZERODEV_BUNDLER_URL=
 NEXT_PUBLIC_ZERODEV_PASSKEYS_URL=
-NEXT_PUBLIC_FACTORY_ADDRESS=
-NEXT_PUBLIC_USDC_ADDRESS=
+NEXT_PUBLIC_FACTORY_ADDRESS=0x751ea80Fae2F714812bF0317bE4df96FD3ffcfB5
+NEXT_PUBLIC_USDC_ADDRESS=0x999579cc79400a1b59b119b6697664Dd9122Ad93
 ```
 
 ```bash
@@ -405,6 +488,16 @@ pnpm dev      # Development server  (localhost:3000)
 pnpm build    # Production build
 pnpm lint     # ESLint
 ```
+
+Contracts:
+
+```bash
+cd contracts
+forge build           # Compile
+forge test -v         # Run 26 tests
+```
+
+More: [`INTEGRATION.md`](./INTEGRATION.md) (technical overview) · [`contracts/README.md`](./contracts/README.md) (contract spec) · [`docs/`](./docs/) (product, design, web3).
 
 ---
 
@@ -423,7 +516,7 @@ Every builder on the protocol has a primary archetype. It shapes how they appear
 > *"We were 4 builders heading to the same event.*
 > *Each paid their share on-chain.*
 > *If we didn't reach 4, everything came back automatically.*
-> *We reached 4. The Booking NFT appeared in our wallets that night."*
+> *We reached 4. The Spot NFT appeared in our wallets that night."*
 
 **Join the protocol. Build your Hacker House.**
 

@@ -3,6 +3,8 @@
 **Versión**: 1.1 · Junio 2026 (Arbitrum Open House London Buildathon)
 **Estado**: En desarrollo
 
+> ⚠️ **LEGACY — Talent Protocol.** Las menciones a Talent Protocol (score / tags / credentials) en este PRD son **legacy**: Talent fue reemplazado por un skill selector self-declared. El código sigue presente pero deprecado y pendiente de remover. La verificación de skills está en el roadmap (en planificación).
+
 ---
 
 ## Objetivo del MVP

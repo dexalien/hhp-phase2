@@ -38,7 +38,7 @@ NEXT_PUBLIC_ZERODEV_PROJECT_ID=...
 NEXT_PUBLIC_ZERODEV_BUNDLER_URL=https://rpc.zerodev.app/api/v3/<project-id>/chain/421614
 NEXT_PUBLIC_ZERODEV_PASSKEYS_URL=https://passkeys.zerodev.app/api/v3/<project-id>
 
-# Set to the deployed HackerHouseFactory address — update after Julio deploys
+# Set to the deployed HackerHouseFactory address — update after the Factory is deployed
 NEXT_PUBLIC_FACTORY_ADDRESS=0x0000000000000000000000000000000000000000
 ```
 
@@ -107,7 +107,7 @@ See: `feature/multisig` (to be created post-buildathon).
 
 ---
 
-## cancelHouse — pending decision for Julio
+## cancelHouse — open design decision
 
 Currently `cancelHouse()` has no time restriction — the creator can call it at any time, including after `withdrawDate`.
 
@@ -120,7 +120,7 @@ Prevents creator from cancelling after the event date has passed and the host is
 **Option B (no guard — current):**
 More flexible. The creator cancelling after `withdrawDate` is economically irrational (they refund everyone, host gets nothing) so abuse is unlikely.
 
-Decision deferred to Julio before mainnet deploy. No frontend changes required either way — the ABI stays the same.
+Decision deferred until before the mainnet deploy. No frontend changes required either way — the ABI stays the same.
 
 ---
 
