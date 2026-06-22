@@ -1,6 +1,6 @@
 import { encodeFunctionData } from "viem"
 import { env } from "@/env"
-import type { PrivacyBridge, PrivacyBridgeWithdrawArgs } from "./types"
+import type { PrivacyBridge, PrivacyBridgeWithdrawArgs, PrivacyBridgeFundArgs } from "./types"
 
 // Minimal ERC-20 ABI — only transfer
 const erc20TransferAbi = [
@@ -40,6 +40,22 @@ export const mockBridge: PrivacyBridge = {
           value: 0n,
         },
       ],
+    })
+    return { txHash }
+  },
+  async fund({ walletClient, amount, kernelAddress }: PrivacyBridgeFundArgs) {
+    const account = walletClient.account
+    if (!account) throw new Error("MockBridge.fund: wallet client has no account")
+    // External wallet sends USDC directly to the Kernel (it signs and pays gas).
+    const txHash = await walletClient.sendTransaction({
+      account,
+      chain: walletClient.chain,
+      to: env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`,
+      data: encodeFunctionData({
+        abi: erc20TransferAbi,
+        functionName: "transfer",
+        args: [kernelAddress, amount],
+      }),
     })
     return { txHash }
   },

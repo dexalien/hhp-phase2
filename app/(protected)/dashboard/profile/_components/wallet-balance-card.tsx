@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { formatUnits } from "viem"
 import { useQueryClient } from "@tanstack/react-query"
-import { Wallet, ArrowUpRight, Copy, Check, ExternalLink, Shield } from "lucide-react"
+import { Wallet, ArrowUpRight, ArrowDownLeft, Copy, Check, ExternalLink, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -12,6 +12,7 @@ import { useKernelBalance, USDC_DECIMALS } from "@/hooks/use-kernel-balance"
 import { useWallets } from "@/services/api/wallets"
 import { queryKeys } from "@/lib/query-keys"
 import { WithdrawDialog } from "./withdraw-dialog"
+import { FundDialog } from "./fund-dialog"
 import type { UserProfile } from "@/lib/types"
 
 function truncate(addr: string) {
@@ -24,6 +25,7 @@ export function WalletBalanceCard({ profile }: { profile: UserProfile }) {
   const { data: walletsData } = useWallets()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [fundOpen, setFundOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const connectedRef = useRef(false)
 
@@ -116,16 +118,28 @@ export function WalletBalanceCard({ profile }: { profile: UserProfile }) {
             </>
           )}
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="font-mono text-xs h-8 rounded-lg"
-          disabled={!kernelClient || !hasBalance}
-          onClick={() => setOpen(true)}
-        >
-          <ArrowUpRight className="size-3.5 mr-1" /> Withdraw
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="font-mono text-xs h-8 rounded-lg"
+            disabled={!kernelAddress}
+            onClick={() => setFundOpen(true)}
+          >
+            <ArrowDownLeft className="size-3.5 mr-1" /> Fund
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="font-mono text-xs h-8 rounded-lg"
+            disabled={!kernelClient || !hasBalance}
+            onClick={() => setOpen(true)}
+          >
+            <ArrowUpRight className="size-3.5 mr-1" /> Withdraw
+          </Button>
+        </div>
       </div>
 
       <WithdrawDialog
@@ -136,6 +150,15 @@ export function WalletBalanceCard({ profile }: { profile: UserProfile }) {
         balance={balance}
         linkedAddresses={linkedAddresses}
         onWithdrawn={() =>
+          queryClient.invalidateQueries({ queryKey: [queryKeys.kernelBalance] })
+        }
+      />
+
+      <FundDialog
+        open={fundOpen}
+        onOpenChange={setFundOpen}
+        kernelAddress={kernelAddress}
+        onFunded={() =>
           queryClient.invalidateQueries({ queryKey: [queryKeys.kernelBalance] })
         }
       />

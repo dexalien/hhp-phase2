@@ -46,10 +46,22 @@ The Kernel stays anonymous **only if every flow in and out uses the bridge**.
     (quick-picks of linked wallets + paste), EIP-55 validation, privacy +
     irreversibility warnings, confirm step, Arbiscan link.
 
-## Inbound — fund privately (PLANNED, next step)
+## Inbound — fund privately (BUILT, `anonymous-bridge` branch)
 
 The mirror of withdraw, with one key difference: **it is initiated by the user's
 external wallet, not the Kernel** — so it does NOT use `kernelClient`/the paymaster.
+The external wallet signs the tx and **pays its own gas** (not gasless).
+
+- `hooks/use-fund.ts` — builds a viem `WalletClient` over the external wallet's
+  Privy provider (`switchChain` → `getEthereumProvider`), then `standard` (direct
+  transfer to the Kernel) or `private` (delegates to `getPrivacyBridge().fund`).
+- `fund-dialog.tsx` — Standard / Private tabs, source = external wallet picker
+  (`useWallets`, non-embedded) with a `connectWallet` fallback, amount, confirm
+  step, gas-not-gasless note, Arbiscan link.
+- `wallet-balance-card.tsx` — **Fund** button next to Withdraw.
+- Adapter: `PrivacyBridge.fund({ walletClient, amount, kernelAddress })` —
+  `MockBridge.fund` does a direct external-wallet transfer (testnet);
+  `RailgunBridge.fund` is the mainnet shield→unshield (stub).
 
 **Mainnet (real):**
 1. The external wallet (e.g. MetaMask) `approve`s + `shield`s USDC into Railgun
@@ -58,19 +70,9 @@ external wallet, not the Kernel** — so it does NOT use `kernelClient`/the paym
 3. `unshield` to the Kernel address, submitted by a broadcaster.
 Result: USDC lands in the Kernel; no on-chain `MetaMask → Kernel` link.
 
-**Testnet (simulated):** no Railgun on Sepolia, so the external wallet transfers
-USDC **directly** to the Kernel address (a normal tx the user signs in MetaMask),
-clearly labeled "Simulated — real privacy on mainnet." In-app this needs a viem
-`WalletClient` over the **external** wallet's provider (Privy
-`wallet.getEthereumProvider()`), distinct from the Kernel path.
-
-**UI plan:** a **Fund** button next to Withdraw in `wallet-balance-card.tsx` →
-a `fund-dialog.tsx` with: amount, source = connected external wallet, Standard /
-Private tabs, and the same warnings. As a first cut it can also be a "receive"
-view (show the Kernel address to send to) before wiring the external-wallet tx.
-
-**Adapter:** extend `PrivacyBridge` with an inbound entry (e.g. `fund({ walletClient, amount, kernelAddress })`).
-Note the signature differs from `withdraw` (external `walletClient`, not `kernelClient`).
+**Testnet (current):** no Railgun on Sepolia, so the external wallet transfers
+USDC **directly** to the Kernel address (a normal tx the user signs in their
+wallet), clearly labeled "Simulated — real privacy on mainnet."
 
 ## Caveats
 

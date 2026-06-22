@@ -27,4 +27,10 @@ export const railgunBridge: PrivacyBridge = {
       "RailgunBridge is not implemented yet (mainnet only). See lib/privacy-bridge/railgun-bridge.ts.",
     )
   },
+  // Inbound: external wallet shields into Railgun, then unshields to the Kernel.
+  async fund(): Promise<{ txHash: `0x${string}` }> {
+    throw new Error(
+      "RailgunBridge.fund is not implemented yet (mainnet only). See lib/privacy-bridge/railgun-bridge.ts.",
+    )
+  },
 }
