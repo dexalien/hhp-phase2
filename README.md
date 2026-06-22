@@ -427,14 +427,36 @@ Kernel (0x, ZeroDev) ──shield──► Railgun pool (0zk) ──unshield─�
 
 Shield and unshield are the **only** operations that touch public addresses. The link between a specific shield and a specific unshield is hidden by the **anonymity set** (all the notes in the pool). The unshield can be submitted by a **broadcaster/relayer**, so the destination wallet needs no ETH and isn't linked by gas payment.
 
-### How HHP uses it
+### How HHP uses it — the full cycle
 
-The Kernel wallet shields its USDC into the Railgun pool, then unshields to a destination `0x` the user chooses — breaking the Kernel ↔ destination link.
+The bridge works in **both directions**, and in each one Railgun hides the **Kernel ↔ external wallet** link:
+
+**Outbound — withdraw (built):**
+```
+Kernel ──shield──► Railgun pool ──unshield──► external wallet
+   └──────────── no visible Kernel → wallet link ────────────┘
+```
+
+**Inbound — fund privately (planned):**
+```
+external wallet ──shield──► Railgun pool ──unshield──► Kernel
+   └──────────── no visible wallet → Kernel link ────────────┘
+```
+
+What's public vs. hidden in each direction:
+
+| Direction | Public on-chain | Hidden |
+|---|---|---|
+| **Inbound** (wallet → Railgun → Kernel) | "your wallet used Railgun" | that the funds went to your Kernel |
+| **Outbound** (Kernel → Railgun → wallet) | "your wallet received from Railgun" | **that the funds came from your Kernel** |
+
+In both directions, the link that gets broken is **Kernel ↔ wallet**. Your personal wallet is always public (it's your identity), but it's never tied to your Kernel or your HHP activity. The Kernel stays anonymous **only if every flow in and out goes through the bridge** — a single direct transfer to or from a public wallet links it permanently.
 
 ### Honest caveats
 
-- **Mainnet only.** Railgun is deployed on **Arbitrum One**, not Arbitrum Sepolia. On testnet the bridge runs in a **simulated** mode (a `MockBridge` that moves funds directly, clearly labeled); real Railgun privacy activates on mainnet. The bridge is built behind a pluggable `PrivacyBridge` adapter (same philosophy as the yield adapter), so swapping `MockBridge` → `RailgunBridge` requires no UI changes.
-- **Correlation.** Shielding and immediately unshielding the *same exact amount* to a fresh wallet can be correlated by amount + timing. Best practice: round amounts, some delay, a healthy anonymity set — and a **fresh destination address** not tied to your public identity.
+- **Mainnet only.** Railgun is deployed on **Arbitrum One**, not Arbitrum Sepolia. On testnet the bridge runs in a **simulated** mode (`MockBridge` moves funds directly and is clearly labeled) — so on testnet a withdrawal shows a *direct* `Kernel → wallet` transfer on the explorer; real unlinkability activates with `RailgunBridge` on mainnet. Built behind a pluggable `PrivacyBridge` adapter (same philosophy as the yield adapter), so swapping `MockBridge` → `RailgunBridge` requires no UI changes.
+- **Correlation.** Shielding and immediately unshielding the *same exact amount* can be correlated by amount + timing. Best practice: round amounts, some delay, a healthy anonymity set — and for maximum privacy a **fresh destination** not tied to your public identity.
+- **Status.** Outbound (withdraw) is built; **inbound (private fund) is the planned next step** — same adapter, opposite direction.
 
 ---
 
