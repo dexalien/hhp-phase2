@@ -22,7 +22,7 @@ const features = [
     title: "Hacker Houses",
     subtitle: "Co-living IRL. Skin in the game.",
     body: "Stake to secure your slot. A Key NFT per room. Physical spaces during events and in active builder cities — coordinated, filtered, and optimized for shipping code.",
-    tags: ["Free", "Paid", "With Staking"],
+    tags: ["Sponsored", "Co-payment", "With Staking"],
     color: "#6EE76E",
   },
 ]
