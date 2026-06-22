@@ -27,6 +27,7 @@ export const queryKeys = {
   eventRequests: "event-requests",
   adminEventRequests: "admin-event-requests",
   escrowState: "escrow-state",
+  kernelBalance: "kernel-balance",
   wallets: "wallets",
   gateCheck: "gate-check",
   linkAccess: "link-access",

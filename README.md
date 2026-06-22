@@ -19,6 +19,7 @@ Built at the **Arbitrum Open House London Buildathon** — June 2026.
 - [Account Abstraction & Wallet Architecture](#account-abstraction--wallet-architecture)
 - [Identity & Gates](#identity--gates)
 - [Privacy by Design](#privacy-by-design)
+- [Railgun Privacy Protocol](#railgun-privacy-protocol)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Business Model](#business-model)
@@ -298,6 +299,25 @@ Builders never pay gas and never expose a personal wallet on-chain. Every builde
 
 **What the user signs is a UserOperation, not an Ethereum transaction.** The real transaction is built and paid for by the bundler (ZeroDev) and submitted to the EntryPoint. When the builder clicks "Pay My Share", ZeroDev batches `USDC.approve()` + `escrow.deposit()` into one atomic, gas-sponsored UserOp — the builder gets a SpotNFT having never held ETH.
 
+### Who signs, who pays, who holds
+
+A common point of confusion: a builder has **two** addresses, and they do different jobs.
+
+| Address | Role | Holds funds? | On-chain? |
+|---|---|---|---|
+| **Embedded wallet** (Privy) | Signer — authorizes UserOps | No | No — signs off-chain only |
+| **Kernel / Smart Wallet** (ZeroDev) | Pays, holds USDC + Spot NFTs, calls contracts | **Yes** | **Yes — this is your on-chain address** |
+| **Destination wallet** | Where a withdrawal lands | — | Yes |
+
+```
+Embedded wallet ──signs──► Kernel / Smart Wallet ──executes via──► EntryPoint ──► destination
+   (signer,                  (holds the USDC,                       (runs the
+    no funds,                 pays/sends — this is                   UserOp; gas
+    off-chain)                what shows on Arbiscan)                 by paymaster)
+```
+
+The balance you see in the app lives in the **Kernel**, not the signer. On a withdrawal, the **Kernel** is the `From` of the token transfer (the signer only authorizes it, and the paymaster covers gas — you pay 0 ETH). The embedded signer never appears on-chain, which is why searching its address on a block explorer shows no activity.
+
 ### The ZeroDev stack
 
 | Role | Package | Notes |
@@ -381,7 +401,40 @@ Privacy is a first-class feature, not an afterthought.
 - **Identity verified, not revealed** — gates check credentials server-side and return only ✓/✗.
 - **Credentials you actually own** — data wallets require a signature to prove ownership, and a wallet can't be reused across accounts.
 - **Selective disclosure** — builders choose which POAPs and skills are public; the rest is used internally for matching and gates only.
-- **Private Bridge (planned)** — anonymous withdrawals via Railgun on Arbitrum to break the on-chain link between the Kernel wallet and a destination wallet.
+- **Private Bridge (in progress — `anonymous-bridge` branch)** — anonymous withdrawals via Railgun on Arbitrum to break the on-chain link between the Kernel wallet and a destination wallet. See below.
+
+---
+
+## Railgun Privacy Protocol
+
+The Private Bridge lets a builder withdraw funds from their Kernel wallet to an external wallet **without an on-chain link between the two**. It's powered by **Railgun**, an on-chain privacy system.
+
+### What Railgun is
+
+Railgun is a set of smart contracts secured by **zero-knowledge proofs (zk-SNARKs)**, live on Ethereum, **Arbitrum**, Polygon, and BNB Chain. It is not a centralized mixer and not a cross-chain bridge — it's a **shielded pool** on the same chain.
+
+```
+Kernel (0x, ZeroDev) ──shield──► Railgun pool (0zk) ──unshield──► External wallet (0x)
+        public                     private                  public
+        └────────────── no on-chain link between the two ──────────────┘
+```
+
+- **Shield** (enter) — send an ERC-20 from your public `0x` address into the Railgun contract. Inside, your balance lives under a private **`0zk` address**; it stops being visible and becomes an encrypted commitment in a Merkle tree alongside everyone else's.
+- **Private transfers** (`0zk → 0zk`) — fully private (amounts and recipients hidden).
+- **Unshield** (exit) — move tokens out to any public `0x` address. A zk proof shows you hold enough shielded balance **without revealing which deposit it came from**.
+
+### Why it preserves privacy
+
+Shield and unshield are the **only** operations that touch public addresses. The link between a specific shield and a specific unshield is hidden by the **anonymity set** (all the notes in the pool). The unshield can be submitted by a **broadcaster/relayer**, so the destination wallet needs no ETH and isn't linked by gas payment.
+
+### How HHP uses it
+
+The Kernel wallet shields its USDC into the Railgun pool, then unshields to a destination `0x` the user chooses — breaking the Kernel ↔ destination link.
+
+### Honest caveats
+
+- **Mainnet only.** Railgun is deployed on **Arbitrum One**, not Arbitrum Sepolia. On testnet the bridge runs in a **simulated** mode (a `MockBridge` that moves funds directly, clearly labeled); real Railgun privacy activates on mainnet. The bridge is built behind a pluggable `PrivacyBridge` adapter (same philosophy as the yield adapter), so swapping `MockBridge` → `RailgunBridge` requires no UI changes.
+- **Correlation.** Shielding and immediately unshielding the *same exact amount* to a fresh wallet can be correlated by amount + timing. Best practice: round amounts, some delay, a healthy anonymity set — and a **fresh destination address** not tied to your public identity.
 
 ---
 
