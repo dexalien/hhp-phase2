@@ -318,6 +318,18 @@ Embedded wallet ──signs──► Kernel / Smart Wallet ──executes via─
 
 The balance you see in the app lives in the **Kernel**, not the signer. On a withdrawal, the **Kernel** is the `From` of the token transfer (the signer only authorizes it, and the paymaster covers gas — you pay 0 ETH). The embedded signer never appears on-chain, which is why searching its address on a block explorer shows no activity.
 
+### Gasless — and its one boundary
+
+Every action your **smart wallet** takes is gasless — deposits, releases, cancels, mints, and **withdrawals** are all UserOps sponsored by the paymaster, so you pay **0 ETH**.
+
+| Action | Initiated by | Gasless? |
+|---|---|---|
+| Deposit / Release / Cancel / Mint | Kernel | ✅ Yes (paymaster) |
+| **Withdraw** (Kernel → external) | Kernel | ✅ Yes |
+| **Fund** (external → Kernel) | Your external wallet | ❌ No — your wallet pays |
+
+The single exception is **funding the Kernel from an external wallet**: that transaction is signed and paid for by your external wallet, because it lives **outside** the account-abstraction layer (no app can sponsor an external EOA's transaction). In short: **operating on HHP is free; bringing your own external funds in is a normal transaction.** And in the normal flow you rarely need to — the Kernel is funded by mints, refunds, and yield, all gasless.
+
 ### The ZeroDev stack
 
 | Role | Package | Notes |
