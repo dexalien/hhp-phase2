@@ -13,6 +13,7 @@ import { ProfilePoaps } from "./profile-poaps"
 import { ProfileLocation } from "./profile-location"
 import { ProfileLinks } from "./profile-links"
 import { ProfileWallets } from "./profile-wallets"
+import { WalletBalanceCard } from "./wallet-balance-card"
 import { ProfileBanner } from "./profile-banner"
 import { ProfileEditForm } from "./profile-edit-form"
 import { ActivityRow } from "./activity-row"
@@ -214,7 +215,10 @@ export function ProfileView({ profile, isOwner, isMatched = false, matchReasons 
 
             {isOwner && (
               <TabsContent value="wallets" className="p-4 overflow-y-auto min-h-0 flex-1">
-                <ProfileWallets profile={profile} isOwner={isOwner} />
+                <div className="flex flex-col gap-4">
+                  <WalletBalanceCard profile={profile} />
+                  <ProfileWallets profile={profile} isOwner={isOwner} />
+                </div>
               </TabsContent>
             )}
 

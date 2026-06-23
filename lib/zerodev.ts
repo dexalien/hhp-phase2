@@ -8,7 +8,8 @@ import { arbitrumSepolia } from "viem/chains"
 import { entryPoint07Address } from "viem/account-abstraction"
 import { env } from "@/env"
 
-const chain = arbitrumSepolia
+/** Active chain for all on-chain interactions. Single source of truth. */
+export const chain = arbitrumSepolia
 const bundlerUrl = env.NEXT_PUBLIC_ZERODEV_BUNDLER_URL
 // ZeroDev v3: paymaster is served from the same bundler endpoint
 const paymasterUrl = bundlerUrl

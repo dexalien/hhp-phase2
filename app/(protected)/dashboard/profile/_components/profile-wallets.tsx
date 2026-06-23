@@ -6,7 +6,7 @@ import {
   getEmbeddedConnectedWallet,
   useLinkAccount,
 } from "@privy-io/react-auth"
-import { Wallet, Plus, Trash2, Shield, Copy, Check, ExternalLink, BadgeCheck } from "lucide-react"
+import { Wallet, Plus, Trash2, Shield, KeyRound, BadgeCheck } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +25,6 @@ function truncateAddress(addr: string) {
 }
 
 export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
-  const [copied, setCopied] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
   const { data: walletsData, isLoading } = useWallets()
   const syncLinked = useSyncLinkedWallets()
@@ -75,13 +74,6 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
   const connectedWallet = embedded ?? privyWallet ?? privyWallets[0] ?? null
   const connectedAddress = connectedWallet?.address ?? null
 
-  function handleCopy() {
-    if (!connectedAddress) return
-    navigator.clipboard.writeText(connectedAddress)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
   if (!isOwner) return null
 
   const dataWallets = walletsData?.wallets ?? []
@@ -108,45 +100,16 @@ export function ProfileWallets({ profile, isOwner }: ProfileWalletsProps) {
         </div>
       </div>
 
-      {/* Connected smart wallet */}
+      {/* Signer — the embedded wallet that signs UserOps. Never holds funds and
+          never appears on-chain. Shown small/muted: it's a technical detail, not
+          the user's on-chain identity (that's the Smart Wallet card above). */}
       {connectedAddress && (
-        <div
-          className="flex flex-col gap-2 rounded-xl border p-3"
-          style={{ background: "var(--muted)", borderColor: "var(--border)" }}
-        >
-          <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
-            <Shield className="size-3.5 text-primary shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Your <span className="text-foreground font-medium">smart wallet</span> protects your identity on-chain. Your personal wallet is never exposed.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="size-2 rounded-full bg-builder-archetype shrink-0" />
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <span className="text-xs font-mono text-foreground">
-                {truncateAddress(connectedAddress)}
-              </span>
-              <Badge variant="secondary" className="font-mono text-[9px] gap-1">
-                <Shield className="size-2.5" />
-                Smart Wallet
-              </Badge>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="p-1 hover:text-primary transition-colors text-muted-foreground"
-            >
-              {copied ? <Check className="size-3 text-builder-archetype" /> : <Copy className="size-3" />}
-            </button>
-            <a
-              href={`https://sepolia.arbiscan.io/address/${connectedAddress}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <ExternalLink className="size-3" />
-            </a>
-          </div>
+        <div className="flex items-start gap-2 px-1 text-[10px] font-mono text-muted-foreground leading-relaxed">
+          <KeyRound className="size-3 shrink-0 mt-0.5" />
+          <span>
+            <span className="text-foreground/80">{truncateAddress(connectedAddress)}</span>{" "}
+            · Signer — signs your transactions. Never holds funds or appears on-chain.
+          </span>
         </div>
       )}
 
